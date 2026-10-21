@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-auth="required" data-page="leads">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1210">
+  <meta name="description" content="Base de leads da AssinaSoft — importe planilhas, filtre contatos e acompanhe o funil.">
+  <meta name="csrf-token" content="">
+  <title>Leads · Painel Comercial</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6B57'/%3E%3Cpath d='M9 23 16 8l7 15M12 17h8' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <link rel="stylesheet" href="assets/css/crm.css">
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu lateral"></aside>
+    <div class="app__main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page page--wide">
+        <div class="page-head">
+          <div class="page-head__main">
+            <div class="page-head__eyebrow">Comercial · Base de contatos</div>
+            <h1 class="page-head__title">Leads</h1>
+            <p class="page-head__desc">Importe sua planilha, organize contatos e mantenha o histórico de cada oportunidade em um só lugar.</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn btn--secondary" type="button" data-importar><svg class="icon" aria-hidden="true"><use href="#i-upload"></use></svg>Importar planilha</button>
+            <button class="btn btn--primary" type="button" data-novo><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Novo lead</button>
+          </div>
+        </div>
+
+        <div class="lead-stats">
+          <div class="lead-stat"><span class="lead-stat__label">Total na base</span><strong data-stat="total">—</strong><small>contatos cadastrados</small></div>
+          <div class="lead-stat"><span class="lead-stat__label">Em acompanhamento</span><strong data-stat="abertos">—</strong><small>fora de ganho/perdido</small></div>
+          <div class="lead-stat"><span class="lead-stat__label">Follow-ups atrasados</span><strong data-stat="atrasados" class="is-warning">—</strong><small>precisam de retorno</small></div>
+          <div class="lead-stat"><span class="lead-stat__label">Novos no mês</span><strong data-stat="novosMes" class="is-success">—</strong><small>entradas recentes</small></div>
+        </div>
+
+        <section class="card leads-card">
+          <div class="leads-toolbar">
+            <div class="leads-toolbar__top">
+              <div class="input-wrap toolbar__search">
+                <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+                <input class="input" id="busca" type="search" placeholder="Buscar por nome, empresa, telefone, e-mail ou tag…" autocomplete="off">
+              </div>
+              <div class="segmented" role="group" aria-label="Filtros rápidos">
+                <button type="button" class="is-active" data-quick="">Todos</button>
+                <button type="button" data-quick="abertos">Em aberto</button>
+                <button type="button" data-quick="atrasados">Atrasados</button>
+                <button type="button" data-quick="nao">Não contatar</button>
+              </div>
+              <button class="btn btn--secondary btn--sm" type="button" data-exportar><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>Exportar</button>
+            </div>
+            <div class="filters-bar leads-filters">
+              <label class="field"><span class="field__label">Etapa</span><select class="select" id="filtro-etapa"></select></label>
+              <label class="field"><span class="field__label">Sistema</span><select class="select" id="filtro-sistema"></select></label>
+              <label class="field"><span class="field__label">Origem</span><select class="select" id="filtro-origem"></select></label>
+              <label class="field"><span class="field__label">Responsável</span><select class="select" id="filtro-responsavel"></select></label>
+              <label class="field"><span class="field__label">Prioridade</span><select class="select" id="filtro-prioridade">
+                <option value="">Todas</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option>
+              </select></label>
+              <label class="field"><span class="field__label">Possui sistema</span><select class="select" id="filtro-possui">
+                <option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option><option value="nao_informado">Não informado</option>
+              </select></label>
+              <div class="filters-bar__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-limpar><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg>Limpar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bulk-bar" id="bulk-bar">
+            <strong><span id="bulk-count">0</span> lead(s) selecionado(s)</strong>
+            <div class="bulk-bar__actions">
+              <button class="btn btn--secondary btn--sm" type="button" data-bulk="mensagem"><svg class="icon" aria-hidden="true"><use href="#i-message-circle"></use></svg>Enviar mensagem</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-bulk="etapa"><svg class="icon" aria-hidden="true"><use href="#i-kanban"></use></svg>Mudar etapa</button>
+              <button class="btn btn--secondary btn--sm" type="button" data-bulk="exportar"><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>Exportar</button>
+              <button class="btn btn--danger-soft btn--sm" type="button" data-bulk="nao"><svg class="icon" aria-hidden="true"><use href="#i-eye-off"></use></svg>Não contatar</button>
+              <button class="btn btn--danger-soft btn--sm" type="button" data-bulk="excluir"><svg class="icon" aria-hidden="true"><use href="#i-trash"></use></svg>Excluir</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table table--leads">
+              <thead>
+                <tr>
+                  <th class="th--check"><input class="row-check" id="selecionar-todos" type="checkbox" aria-label="Selecionar todos os leads desta página"></th>
+                  <th>Lead</th>
+                  <th>Contato</th>
+                  <th>Sistemas</th>
+                  <th>Possui</th>
+                  <th>Etapa</th>
+                  <th>Responsável</th>
+                  <th>Próximo contato</th>
+                  <th class="th--actions"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody id="leads-tbody">
+                <tr><td colspan="9" style="height:220px"><div class="skeleton" style="height:12px;width:60%;margin:0 auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span class="table-footer__info" id="leads-info">Carregando…</span>
+            <div class="pagination" id="leads-pagination"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/mock/data.js"></script>
+  <script src="assets/js/mock/api.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/components/lead-ui.js"></script>
+  <script src="assets/vendor/xlsx.full.min.js"></script>
+  <script src="assets/js/pages/leads.js"></script>
+</body>
+</html>
