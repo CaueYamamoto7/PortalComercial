@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-auth="required" data-page="pipeline">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1210">
+  <meta name="description" content="Pipeline comercial da AssinaSoft — acompanhe cada lead por etapa do funil.">
+  <meta name="csrf-token" content="">
+  <title>Pipeline · Painel Comercial</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6B57'/%3E%3Cpath d='M9 23 16 8l7 15M12 17h8' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <link rel="stylesheet" href="assets/css/crm.css">
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu lateral"></aside>
+    <div class="app__main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page page--wide">
+        <div class="page-head">
+          <div class="page-head__main">
+            <div class="page-head__eyebrow">Comercial · Funil de vendas</div>
+            <h1 class="page-head__title">Pipeline</h1>
+            <p class="page-head__desc">Arraste os cards para avançar cada oportunidade. As etapas são configuráveis em Configurações.</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn btn--secondary" href="configuracoes.html#funil"><svg class="icon" aria-hidden="true"><use href="#i-sliders"></use></svg>Configurar funil</a>
+            <button class="btn btn--primary" type="button" data-novo><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Novo lead</button>
+          </div>
+        </div>
+
+        <div class="pipeline-toolbar">
+          <div class="input-wrap pipeline-search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input class="input" id="pipeline-busca" type="search" placeholder="Buscar lead, empresa ou tag…" autocomplete="off">
+          </div>
+          <select class="select select--sm" id="pipeline-sistema" aria-label="Filtrar por sistema"><option value="">Todos os sistemas</option></select>
+          <select class="select select--sm" id="pipeline-responsavel" aria-label="Filtrar por responsável"><option value="">Todos os responsáveis</option></select>
+          <select class="select select--sm" id="pipeline-origem" aria-label="Filtrar por origem"><option value="">Todas as origens</option></select>
+          <select class="select select--sm" id="pipeline-prioridade" aria-label="Filtrar por prioridade">
+            <option value="">Todas as prioridades</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option>
+          </select>
+          <button class="btn btn--ghost btn--sm" type="button" data-limpar><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg>Limpar</button>
+          <div class="pipeline-toolbar__count"><strong id="pipeline-total">—</strong> lead(s) no funil</div>
+        </div>
+
+        <div class="pipeline-board" id="pipeline-board" aria-live="polite">
+          <div class="board-loading"><span class="spinner"></span>Carregando funil…</div>
+        </div>
+        <p class="pipeline-hint"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>Arraste os leads entre as colunas para atualizar a etapa. Clique em um card para ver o histórico completo.</p>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/mock/data.js"></script>
+  <script src="assets/js/mock/api.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/components/lead-ui.js"></script>
+  <script src="assets/js/pages/pipeline.js"></script>
+</body>
+</html>
