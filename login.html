@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-auth="guest" data-page="login">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1210">
+  <meta name="description" content="Painel Comercial AssinaSoft — leads, funil de vendas, follow-ups e mensagens em um só lugar.">
+  <title>Entrar · Painel Comercial AssinaSoft</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6B57'/%3E%3Cpath d='M9 23 16 8l7 15M12 17h8' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/icons.js"></script>
+</head>
+<body>
+  <main class="auth">
+    <section class="auth__brand" aria-label="Sobre o Painel Comercial AssinaSoft">
+      <div class="auth__brand-inner">
+        <a class="brand auth__logo" href="login.html" aria-label="AssinaSoft">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 19 12 5l7 14M8.5 13h7"></path>
+            </svg>
+          </span>
+          <span class="brand__text">
+            <span class="brand__name">AssinaSoft</span>
+            <span class="brand__tag">Painel Comercial</span>
+          </span>
+        </a>
+
+        <div class="auth__copy">
+          <span class="auth__eyebrow"><i></i>CRM comercial · AssinaSoft</span>
+          <h1 class="auth__title">Da planilha ao fechamento, <span>sem perder o contato.</span></h1>
+          <p class="auth__desc">
+            Importe sua lista de leads, organize cada oportunidade no funil, programe follow-ups
+            e envie mensagens personalizadas pelo WhatsApp — tudo em um único painel.
+          </p>
+
+          <div class="auth__stats" aria-label="O que está incluído">
+            <div class="auth__stat">
+              <strong>3</strong>
+              <small>produtos<br>AssinaPDF, DNS e Seg</small>
+            </div>
+            <div class="auth__stat">
+              <strong>7</strong>
+              <small>etapas padrão<br>de funil configurável</small>
+            </div>
+            <div class="auth__stat">
+              <strong>1</strong>
+              <small>base central<br>de leads e históricos</small>
+            </div>
+          </div>
+
+          <figure class="auth__quote">
+            <p>“Organizar a base e falar com os contatos certos, na hora certa. É isso que o time comercial precisa para vender mais.”</p>
+            <span>
+              <span class="avatar">AS</span>
+              Equipe AssinaSoft
+            </span>
+          </figure>
+        </div>
+
+        <footer class="auth__foot">
+          © 2026 AssinaSoft · Painel Comercial · Dados tratados conforme a LGPD
+        </footer>
+      </div>
+    </section>
+
+    <section class="auth__form-side">
+      <div class="auth__form-wrap">
+        <div class="auth__form-top">
+          <a class="brand" href="login.html" aria-label="AssinaSoft">
+            <span class="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 19 12 5l7 14M8.5 13h7"></path>
+              </svg>
+            </span>
+            <span class="brand__text">
+              <span class="brand__name">AssinaSoft</span>
+              <span class="brand__tag">Painel Comercial</span>
+            </span>
+          </a>
+          <a class="auth__link" href="mailto:suporte@assinasoft.com.br">Precisa de ajuda?</a>
+        </div>
+
+        <div class="auth__form-head">
+          <h1>Bem-vindo de volta</h1>
+          <p>Entre para acessar os leads, o funil e a agenda comercial.</p>
+        </div>
+
+        <form class="auth__form" id="login-form" action="index.html" method="post" novalidate>
+          <div class="auth__error" id="login-error" role="alert">
+            <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"></use></svg>
+            <span id="login-error-text">Não foi possível entrar.</span>
+          </div>
+
+          <div class="field" id="field-email">
+            <label class="field__label" for="email">E-mail corporativo</label>
+            <div class="input-wrap">
+              <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg>
+              <input class="input" type="email" id="email" name="email" value="demo@assinasoft.com.br"
+                     placeholder="voce@assinasoft.com.br" autocomplete="username" inputmode="email" required>
+            </div>
+            <span class="field__error">Informe um e-mail válido.</span>
+          </div>
+
+          <div class="field" id="field-senha">
+            <label class="field__label" for="senha">Senha</label>
+            <div class="input-wrap">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              <input class="input" type="password" id="senha" name="senha" value="demo123"
+                     placeholder="Sua senha" autocomplete="current-password" required style="padding-right:36px">
+              <button class="input-wrap__action" type="button" id="toggle-senha" aria-label="Mostrar senha">
+                <svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+              </button>
+            </div>
+            <span class="field__hint">Mínimo de 6 caracteres.</span>
+            <span class="field__error">A senha deve ter pelo menos 6 caracteres.</span>
+          </div>
+
+          <div class="auth__row">
+            <label class="check">
+              <input type="checkbox" id="lembrar" name="lembrar" checked>
+              Manter conectado
+            </label>
+            <a class="auth__link" href="mailto:suporte@assinasoft.com.br?subject=Recupera%C3%A7%C3%A3o%20de%20senha%20-%20Painel%20Comercial">Esqueci minha senha</a>
+          </div>
+
+          <button class="btn btn--primary btn--block auth__submit" type="submit" id="btn-entrar">
+            Entrar no painel
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+          </button>
+        </form>
+
+        <div class="auth__divider">Acesso de demonstração</div>
+
+        <div class="auth__demo">
+          <strong>
+            <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+            Ambiente de demonstração
+          </strong>
+          Use <code>demo@assinasoft.com.br</code> e senha <code>demo123</code>.
+          Os dados são fictícios e ficam salvos apenas neste navegador.
+          <div>
+            <button type="button" id="preencher-demo">Preencher credenciais</button>
+          </div>
+        </div>
+
+        <p class="auth__legal">
+          Ao continuar, você concorda com os <a href="#">Termos de uso</a> e a
+          <a href="#">Política de privacidade</a>.<br>
+          AssinaSoft · Painel Comercial
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+      var form = document.getElementById("login-form");
+      var email = document.getElementById("email");
+      var senha = document.getElementById("senha");
+      var lembrar = document.getElementById("lembrar");
+      var botao = document.getElementById("btn-entrar");
+      var erro = document.getElementById("login-error");
+      var erroTexto = document.getElementById("login-error-text");
+      var campoEmail = document.getElementById("field-email");
+      var campoSenha = document.getElementById("field-senha");
+      var destino = Painel.auth.destino(new URLSearchParams(window.location.search).get("next"));
+
+      function limparErros() {
+        erro.classList.remove("is-visible");
+        campoEmail.classList.remove("has-error");
+        campoSenha.classList.remove("has-error");
+      }
+
+      function mostrarErro(msg, campo) {
+        erroTexto.textContent = msg;
+        erro.classList.add("is-visible");
+        if (campo) campo.classList.add("has-error");
+      }
+
+      document.getElementById("toggle-senha").addEventListener("click", function () {
+        var visivel = senha.type === "text";
+        senha.type = visivel ? "password" : "text";
+        this.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
+        this.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-' + (visivel ? "eye" : "eye-off") + '"></use></svg>';
+        senha.focus();
+      });
+
+      document.getElementById("preencher-demo").addEventListener("click", function () {
+        email.value = Painel.config.demo.email;
+        senha.value = Painel.config.demo.senha;
+        limparErros();
+        email.focus();
+      });
+
+      [email, senha].forEach(function (input) {
+        input.addEventListener("input", limparErros);
+      });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        limparErros();
+
+        var valorEmail = email.value.trim();
+        var valorSenha = senha.value;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valorEmail)) {
+          mostrarErro("Informe um e-mail válido.", campoEmail);
+          email.focus();
+          return;
+        }
+        if (valorSenha.length < 6) {
+          mostrarErro("A senha deve ter pelo menos 6 caracteres.", campoSenha);
+          senha.focus();
+          return;
+        }
+
+        botao.classList.add("is-loading");
+        botao.disabled = true;
+        Painel.auth.entrar(valorEmail, valorSenha, lembrar.checked).then(function () {
+          window.location.href = destino;
+        }).catch(function (err) {
+          botao.classList.remove("is-loading");
+          botao.disabled = false;
+          mostrarErro(err.message || "Não foi possível entrar. Tente novamente.");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
