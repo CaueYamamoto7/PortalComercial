@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-auth="required" data-page="configuracoes">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1210">
+  <meta name="description" content="Configurações do Painel Comercial AssinaSoft — empresa, funil, sistemas, origens, equipe e mensagens.">
+  <meta name="csrf-token" content="">
+  <title>Configurações · Painel Comercial</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6B57'/%3E%3Cpath d='M9 23 16 8l7 15M12 17h8' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <link rel="stylesheet" href="assets/css/crm.css">
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu lateral"></aside>
+    <div class="app__main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page">
+        <div class="page-head">
+          <div class="page-head__main">
+            <div class="page-head__eyebrow">Sistema · Preferências</div>
+            <h1 class="page-head__title">Configurações</h1>
+            <p class="page-head__desc">Ajuste os dados da empresa, personalize o funil e mantenha sua operação comercial organizada.</p>
+          </div>
+        </div>
+
+        <div class="settings-layout">
+          <aside class="settings-nav" aria-label="Seções de configuração">
+            <a href="#empresa" class="is-active"><svg class="icon" aria-hidden="true"><use href="#i-building"></use></svg>Empresa</a>
+            <a href="#funil"><svg class="icon" aria-hidden="true"><use href="#i-funnel"></use></svg>Funil de vendas</a>
+            <a href="#sistemas"><svg class="icon" aria-hidden="true"><use href="#i-layers"></use></svg>Sistemas</a>
+            <a href="#origens"><svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg>Origens</a>
+            <a href="#equipe"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>Equipe</a>
+            <a href="#mensagens"><svg class="icon" aria-hidden="true"><use href="#i-message-circle"></use></svg>Mensagens</a>
+            <a href="#dados"><svg class="icon" aria-hidden="true"><use href="#i-database"></use></svg>Dados</a>
+          </aside>
+
+          <div class="settings-content">
+            <section class="card settings-card" id="empresa">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Empresa</h2><p class="card__desc">Informações usadas no painel e nos materiais enviados</p></div>
+              </div>
+              <div class="card__body">
+                <form id="form-empresa" class="form-grid">
+                  <label class="field"><span class="field__label">Nome da empresa</span><input class="input" name="nome" required></label>
+                  <label class="field"><span class="field__label">Produto</span><input class="input" name="produto"></label>
+                  <label class="field"><span class="field__label">CNPJ / documento</span><input class="input" name="documento" placeholder="Opcional"></label>
+                  <label class="field"><span class="field__label">E-mail de contato</span><input class="input" type="email" name="email"></label>
+                  <label class="field"><span class="field__label">Telefone</span><input class="input" name="telefone" placeholder="(11) 99999-9999"></label>
+                  <label class="field"><span class="field__label">Site</span><input class="input" name="site" placeholder="assinasoft.com.br"></label>
+                  <label class="field"><span class="field__label">Cidade</span><input class="input" name="cidade"></label>
+                  <label class="field field--narrow"><span class="field__label">UF</span><input class="input" name="uf" maxlength="2" style="text-transform:uppercase"></label>
+                </form>
+              </div>
+              <div class="settings-card__foot">
+                <span class="small faint">Esses dados ficam salvos apenas neste navegador nesta demonstração.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar="empresa"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Salvar empresa</button>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="funil">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Funil de vendas</h2><p class="card__desc">Etapas do pipeline, na ordem em que aparecem no quadro</p></div>
+                <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-etapa><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Nova etapa</button></div>
+              </div>
+              <div class="settings-list" id="lista-etapas">
+                <div class="settings-loading"><span class="spinner"></span>Carregando etapas…</div>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="sistemas">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Sistemas</h2><p class="card__desc">Produtos que o time comercial oferece</p></div>
+                <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-sistema><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Novo sistema</button></div>
+              </div>
+              <div class="settings-list" id="lista-sistemas">
+                <div class="settings-loading"><span class="spinner"></span>Carregando sistemas…</div>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="origens">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Origens</h2><p class="card__desc">Canais de aquisição usados no cadastro e nos relatórios</p></div>
+                <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-origem><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Nova origem</button></div>
+              </div>
+              <div class="settings-list" id="lista-origens">
+                <div class="settings-loading"><span class="spinner"></span>Carregando origens…</div>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="equipe">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Equipe</h2><p class="card__desc">Quem pode acompanhar leads e receber oportunidades</p></div>
+                <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-membro><svg class="icon" aria-hidden="true"><use href="#i-user-plus"></use></svg>Convidar</button></div>
+              </div>
+              <div class="settings-list" id="lista-equipe">
+                <div class="settings-loading"><span class="spinner"></span>Carregando equipe…</div>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="mensagens">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Mensagens</h2><p class="card__desc">Limites e assinatura padrão dos envios</p></div>
+              </div>
+              <div class="card__body">
+                <form id="form-mensagens" class="form-grid">
+                  <label class="field"><span class="field__label">Limite diário de mensagens</span><input class="input" type="number" min="1" max="2000" name="limiteDiario"><span class="field__hint">Proteção contra envios excessivos.</span></label>
+                  <label class="field"><span class="field__label">Intervalo entre envios (segundos)</span><input class="input" type="number" min="1" max="120" name="intervalo"></label>
+                  <label class="field"><span class="field__label">Horário de início</span><input class="input" type="time" name="inicio"></label>
+                  <label class="field"><span class="field__label">Horário de fim</span><input class="input" type="time" name="fim"></label>
+                  <label class="field field--full"><span class="field__label">Mensagem de opt-out</span><textarea class="textarea" name="optout" rows="3"></textarea><span class="field__hint">Anexada aos envios para permitir que o contato saia da lista.</span></label>
+                </form>
+              </div>
+              <div class="settings-card__foot">
+                <span class="small faint">O envio real será conectado ao WhatsApp pelo backend em PHP/CakePHP.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar="mensagens"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Salvar mensagens</button>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="dados">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">Dados e demonstração</h2><p class="card__desc">Base local usada enquanto o backend não está conectado</p></div>
+              </div>
+              <div class="card__body">
+                <div class="data-counts">
+                  <div><strong data-count="leads">—</strong><span>leads</span></div>
+                  <div><strong data-count="interacoes">—</strong><span>interações</span></div>
+                  <div><strong data-count="tarefas">—</strong><span>tarefas</span></div>
+                  <div><strong data-count="campanhas">—</strong><span>campanhas</span></div>
+                  <div><strong data-count="templates">—</strong><span>templates</span></div>
+                </div>
+                <div class="data-actions">
+                  <div class="data-action"><div><strong>Exportar backup</strong><p>Baixe uma cópia dos dados locais em JSON.</p></div><button class="btn btn--secondary btn--sm" type="button" data-exportar-backup><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>Exportar JSON</button></div>
+                  <div class="data-action"><div><strong>Restaurar demonstração</strong><p>Recria leads, interações e configurações originais.</p></div><button class="btn btn--danger-soft btn--sm" type="button" data-resetar><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg>Restaurar dados</button></div>
+                  <div class="data-action"><div><strong>Encerrar sessão</strong><p>Saia deste navegador com segurança.</p></div><button class="btn btn--secondary btn--sm" type="button" data-sair><svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg>Sair</button></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/mock/data.js"></script>
+  <script src="assets/js/mock/api.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/pages/configuracoes.js"></script>
+</body>
+</html>
