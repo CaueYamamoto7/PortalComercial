@@ -17,7 +17,8 @@
     followups: { label: "Follow-ups", href: "followups.html", icon: "calendar-clock", grupo: "Comercial" },
     mensagens: { label: "Mensagens", href: "mensagens.html", icon: "message-circle", grupo: "Relacionamento" },
     relatorios: { label: "Relatórios", href: "relatorios.html", icon: "chart", grupo: "Relacionamento" },
-    configuracoes: { label: "Configurações", href: "configuracoes.html", icon: "sliders", grupo: "Sistema" }
+    configuracoes: { label: "Configurações", href: "configuracoes.html", icon: "sliders", grupo: "Sistema" },
+    conta: { label: "Minha conta", href: "conta.html", icon: "user", grupo: "Sistema" }
   };
 
   function paginaAtual() {
@@ -139,8 +140,8 @@
           '<div class="dropdown-panel" id="panel-user">' +
             '<div class="dropdown-panel__head"><div><strong>' + u.escaparHTML(sessao.nome) + '</strong><div class="xs faint" style="margin-top:2px">' + u.escaparHTML(sessao.email) + "</div></div></div>" +
             '<div class="dropdown-list">' +
-              '<a class="dropdown-item" href="configuracoes.html">' + icone("user") + '<span class="dropdown-item__text"><strong>Minha conta</strong><small>Perfil e empresa</small></span></a>' +
-              '<a class="dropdown-item" href="configuracoes.html">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Funil, sistemas e equipe</small></span></a>' +
+              '<a class="dropdown-item" href="conta.html">' + icone("user") + '<span class="dropdown-item__text"><strong>Minha conta</strong><small>Perfil e preferências</small></span></a>' +
+              '<a class="dropdown-item" href="configuracoes.html">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Empresa, funil e equipe</small></span></a>' +
             "</div>" +
             '<div class="dropdown-panel__foot"><button class="dropdown-item dropdown-item--danger" type="button" data-logout>' + icone("logout") + "<span>Encerrar sessão</span></button></div>" +
           "</div>" +
@@ -190,6 +191,7 @@
       { grupo: "Ações", label: "Importar planilha", desc: "CSV ou XLSX", icon: "file-spreadsheet", href: "leads.html?importar=1", termos: "csv xlsx planilha" },
       { grupo: "Ações", label: "Nova mensagem", desc: "Enviar pelo WhatsApp", icon: "send", href: "mensagens.html", termos: "campanha disparo whatsapp" },
       { grupo: "Ações", label: "Nova tarefa", desc: "Agendar follow-up", icon: "calendar", href: "followups.html?nova=1", termos: "followup tarefa retorno" },
+      { grupo: "Sistema", label: "Minha conta", desc: "Perfil e preferências", icon: "user", href: "conta.html", termos: "perfil senha preferencias conta" },
       { grupo: "Sistema", label: "Encerrar sessão", desc: "Sair do painel", icon: "logout", action: "logout", termos: "sair logout" }
     ];
   }
@@ -642,26 +644,37 @@
 
       if (e.target.closest("[data-user-menu-sidebar]")) {
         menuFlutuante(e.target.closest("[data-user-menu-sidebar]"), [
-          { label: "Minha conta", icone: "user", acao: function () { window.location.href = "configuracoes.html"; } },
+          { label: "Minha conta", icone: "user", acao: function () { window.location.href = "conta.html"; } },
           { label: "Configurações", icone: "sliders", acao: function () { window.location.href = "configuracoes.html"; } },
           { divider: true },
           { label: "Encerrar sessão", icone: "logout", perigo: true, acao: function () { Painel.auth.sair(); } }
         ]);
         return;
       }
-
-      if (e.target.closest("[data-workspace]")) {
-        menuFlutuante(e.target.closest("[data-workspace]"), [
-          { label: "AssinaSoft", icone: "building", acao: function () { toast("Você está no Painel Comercial da AssinaSoft.", "info"); } },
-          { label: "Configurações da empresa", icone: "sliders", acao: function () { window.location.href = "configuracoes.html"; } }
-        ]);
-      }
     });
 
     document.addEventListener("keydown", function (e) {
+      var cmdLayer = document.getElementById("cmd-layer");
+      if (cmdLayer && !cmdLayer.hidden) return;
+
+      var topo = camadaTopo();
+
+      if (e.key === "Tab" && topo) {
+        prenderFoco(e, topo.layer);
+        return;
+      }
+
       if (e.key === "Escape") {
+        if (document.querySelector(".floating-menu")) {
+          fecharMenuFlutuante();
+          return;
+        }
+        if (topo) {
+          e.preventDefault();
+          if (!topo.opts.locked) topo.fechar();
+          return;
+        }
         fecharPainéis();
-        fecharMenuFlutuante();
         document.body.classList.remove("sidebar-visible");
       }
     });
@@ -669,7 +682,15 @@
     window.addEventListener("resize", fecharMenuFlutuante);
   }
 
+  function aplicarPreferencias() {
+    if (!Painel.config.storage.conta || !Painel.store) return;
+    var conta = Painel.store.get(Painel.config.storage.conta);
+    var compactas = !!(conta && conta.preferencias && conta.preferencias.tabelaCompacta);
+    document.documentElement.classList.toggle("tables-compact", compactas);
+  }
+
   function iniciar() {
+    aplicarPreferencias();
     bindGlobal();
     renderSidebar();
     renderTopbar();
@@ -689,6 +710,8 @@
     fecharPainéis: fecharPainéis,
     paginaAtual: paginaAtual,
     abrirCmd: abrirCmd,
+    renderSidebar: renderSidebar,
+    renderTopbar: renderTopbar,
     recarregarResumoSidebar: carregarResumoSidebar,
     recarregarNotificacoes: carregarNotificacoes
   };

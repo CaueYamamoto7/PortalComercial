@@ -1,0 +1,232 @@
+/* ==========================================================================
+   Painel Comercial - Minha conta
+   ========================================================================== */
+
+(function (Painel) {
+  "use strict";
+
+  var u = Painel.util;
+  var ui = Painel.ui;
+  var store = Painel.store;
+  var chave = Painel.config.storage.conta;
+
+  function normalizar(texto) {
+    return String(texto || "").trim();
+  }
+
+  function emailValido(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function dadosPadrao() {
+    var sessao = Painel.auth.usuario();
+    return {
+      perfil: {
+        nome: sessao.nome || "Marina Costa",
+        email: sessao.email || Painel.config.demo.email,
+        cargo: sessao.cargo || "Diretora Comercial",
+        telefone: ""
+      },
+      preferencias: {
+        notifLeads: true,
+        notifFollowups: true,
+        tabelaCompacta: false,
+        idioma: "pt-BR",
+        fuso: "America/Sao_Paulo"
+      }
+    };
+  }
+
+  function carregarDados() {
+    var salvos = store.get(chave) || {};
+    var padrao = dadosPadrao();
+    return {
+      perfil: Object.assign({}, padrao.perfil, salvos.perfil || {}),
+      preferencias: Object.assign({}, padrao.preferencias, salvos.preferencias || {})
+    };
+  }
+
+  function salvarDados(dados) {
+    return store.set(chave, dados);
+  }
+
+  function campo(nome, raiz) {
+    return (raiz || document).querySelector('[name="' + nome + '"]');
+  }
+
+  function marcarErro(input, erro) {
+    var field = input.closest(".field");
+    if (!field) return;
+    field.classList.toggle("has-error", !!erro);
+    input.setAttribute("aria-invalid", erro ? "true" : "false");
+  }
+
+  function limparErros(form) {
+    form.querySelectorAll(".field.has-error").forEach(function (field) {
+      field.classList.remove("has-error");
+    });
+    form.querySelectorAll('[aria-invalid="true"]').forEach(function (input) {
+      input.setAttribute("aria-invalid", "false");
+    });
+  }
+
+  function preencherResumo(perfil) {
+    var sessao = Painel.auth.usuario();
+    var iniciais = u.iniciais(perfil.nome) || sessao.iniciais || "MC";
+    document.querySelectorAll("[data-conta-iniciais]").forEach(function (el) { el.textContent = iniciais; });
+    document.querySelectorAll("[data-conta-nome]").forEach(function (el) { el.textContent = perfil.nome; });
+    document.querySelectorAll("[data-conta-cargo]").forEach(function (el) { el.textContent = perfil.cargo || "Comercial"; });
+    document.querySelectorAll("[data-conta-email]").forEach(function (el) { el.textContent = perfil.email; });
+    document.querySelectorAll("[data-conta-empresa]").forEach(function (el) { el.textContent = sessao.empresa || Painel.config.company; });
+
+    var desde = sessao.desde ? new Date(sessao.desde) : null;
+    var desdeTexto = desde && !isNaN(desde.getTime())
+      ? desde.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+      : "Hoje";
+    document.querySelectorAll("[data-conta-desde]").forEach(function (el) { el.textContent = desdeTexto; });
+    document.querySelectorAll("[data-conta-sessao]").forEach(function (el) {
+      el.textContent = "Iniciada em " + desdeTexto + " neste navegador.";
+    });
+  }
+
+  function preencherFormulario(dados) {
+    var perfil = document.getElementById("form-perfil");
+    if (perfil) {
+      campo("nome", perfil).value = dados.perfil.nome;
+      campo("email", perfil).value = dados.perfil.email;
+      campo("cargo", perfil).value = dados.perfil.cargo || "";
+      campo("telefone", perfil).value = dados.perfil.telefone || "";
+    }
+
+    var prefs = dados.preferencias;
+    document.querySelectorAll("[name=notifLeads]").forEach(function (el) { el.checked = !!prefs.notifLeads; });
+    document.querySelectorAll("[name=notifFollowups]").forEach(function (el) { el.checked = !!prefs.notifFollowups; });
+    document.querySelectorAll("[name=tabelaCompacta]").forEach(function (el) { el.checked = !!prefs.tabelaCompacta; });
+    document.querySelectorAll("[name=idioma]").forEach(function (el) { el.value = prefs.idioma || "pt-BR"; });
+    document.querySelectorAll("[name=fuso]").forEach(function (el) { el.value = prefs.fuso || "America/Sao_Paulo"; });
+    document.documentElement.classList.toggle("tables-compact", !!prefs.tabelaCompacta);
+    preencherResumo(dados.perfil);
+  }
+
+  function salvarPerfil() {
+    var form = document.getElementById("form-perfil");
+    if (!form) return;
+    limparErros(form);
+
+    var nome = normalizar(campo("nome", form).value);
+    var email = normalizar(campo("email", form).value).toLowerCase();
+    var cargo = normalizar(campo("cargo", form).value);
+    var telefone = normalizar(campo("telefone", form).value);
+    var valido = true;
+
+    if (nome.length < 2) {
+      marcarErro(campo("nome", form), true);
+      valido = false;
+    }
+    if (!emailValido(email)) {
+      marcarErro(campo("email", form), true);
+      valido = false;
+    }
+    if (!valido) {
+      (form.querySelector(".field.has-error input") || form.querySelector(".field.has-error")).focus();
+      return;
+    }
+
+    var dados = carregarDados();
+    dados.perfil = { nome: nome, email: email, cargo: cargo, telefone: telefone };
+    salvarDados(dados);
+    preencherResumo(dados.perfil);
+
+    var sessao = Painel.auth.usuario();
+    sessao.nome = nome;
+    sessao.email = email;
+    sessao.cargo = cargo;
+    sessao.iniciais = u.iniciais(nome);
+    Painel.store.setSession(sessao);
+
+    if (Painel.ui.renderSidebar) Painel.ui.renderSidebar();
+    if (Painel.ui.renderTopbar) Painel.ui.renderTopbar();
+    ui.toast("Perfil atualizado.", "success");
+  }
+
+  function salvarPreferencias() {
+    var dados = carregarDados();
+    var prefs = {};
+    document.querySelectorAll("[name=notifLeads]").forEach(function (el) { prefs.notifLeads = !!el.checked; });
+    document.querySelectorAll("[name=notifFollowups]").forEach(function (el) { prefs.notifFollowups = !!el.checked; });
+    document.querySelectorAll("[name=tabelaCompacta]").forEach(function (el) { prefs.tabelaCompacta = !!el.checked; });
+    var idioma = document.querySelector("[name=idioma]");
+    var fuso = document.querySelector("[name=fuso]");
+    prefs.idioma = idioma ? idioma.value : dados.preferencias.idioma;
+    prefs.fuso = fuso ? fuso.value : dados.preferencias.fuso;
+    dados.preferencias = prefs;
+    salvarDados(dados);
+    document.documentElement.classList.toggle("tables-compact", !!prefs.tabelaCompacta);
+    ui.toast("Preferências salvas.", "success");
+  }
+
+  function alterarSenha() {
+    var form = document.getElementById("form-senha");
+    if (!form) return;
+    limparErros(form);
+
+    var atual = campo("atual", form);
+    var nova = campo("nova", form);
+    var confirmacao = campo("confirmacao", form);
+    var valido = true;
+
+    if (normalizar(atual.value).length < 6) {
+      marcarErro(atual, true);
+      valido = false;
+    }
+    if (normalizar(nova.value).length < 6) {
+      marcarErro(nova, true);
+      valido = false;
+    }
+    if (nova.value !== confirmacao.value || !confirmacao.value) {
+      marcarErro(confirmacao, true);
+      valido = false;
+    }
+    if (!valido) {
+      (form.querySelector(".field.has-error input") || form.querySelector(".field.has-error")).focus();
+      return;
+    }
+
+    form.reset();
+    ui.toast("Senha alterada nesta simulação.", "success");
+  }
+
+  function bind() {
+    var salvarPerfilBtn = document.querySelector("[data-salvar-perfil]");
+    var salvarPrefsBtn = document.querySelector("[data-salvar-preferencias]");
+    var alterarSenhaBtn = document.querySelector("[data-alterar-senha]");
+    if (salvarPerfilBtn) salvarPerfilBtn.addEventListener("click", salvarPerfil);
+    if (salvarPrefsBtn) salvarPrefsBtn.addEventListener("click", salvarPreferencias);
+    if (alterarSenhaBtn) alterarSenhaBtn.addEventListener("click", alterarSenha);
+
+    var formPerfil = document.getElementById("form-perfil");
+    if (formPerfil) {
+      formPerfil.addEventListener("input", function (e) {
+        if (e.target.matches("input")) marcarErro(e.target, false);
+      });
+    }
+    var formSenha = document.getElementById("form-senha");
+    if (formSenha) {
+      formSenha.addEventListener("input", function (e) {
+        if (e.target.matches("input")) marcarErro(e.target, false);
+      });
+    }
+  }
+
+  function iniciar() {
+    var dados = carregarDados();
+    preencherFormulario(dados);
+    bind();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciar);
+  } else {
+    iniciar();
+  }
+})(window.Painel);

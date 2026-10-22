@@ -17,7 +17,8 @@ Painel.config = {
 
   storage: {
     db: "assinasoft.painel.v2",
-    session: "assinasoft.sessao.v1"
+    session: "assinasoft.sessao.v1",
+    conta: "assinasoft.conta.v1"
   },
 
   paginacao: {
@@ -32,7 +33,8 @@ Painel.config = {
     "followups.html",
     "mensagens.html",
     "relatorios.html",
-    "configuracoes.html"
+    "configuracoes.html",
+    "conta.html"
   ],
 
   demo: {

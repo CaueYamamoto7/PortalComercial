@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-auth="required" data-page="conta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1210">
+  <meta name="description" content="Minha conta no Painel Comercial AssinaSoft - perfil, preferências e segurança.">
+  <meta name="csrf-token" content="">
+  <title>Minha conta - Painel Comercial</title>
+  <link rel="icon" type="image/png" href="images/logoMini.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <link rel="stylesheet" href="assets/css/crm.css">
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu lateral"></aside>
+    <div class="app__main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page">
+        <div class="page-head">
+          <div class="page-head__main">
+            <div class="page-head__eyebrow">Sistema · Conta pessoal</div>
+            <h1 class="page-head__title">Minha conta</h1>
+            <p class="page-head__desc">Atualize seus dados de acesso e defina como o painel deve se comportar para você.</p>
+          </div>
+        </div>
+
+        <div class="account-layout">
+          <aside class="account-side" aria-label="Resumo da conta">
+            <section class="card account-identity">
+              <span class="avatar avatar--xl" data-conta-iniciais>MC</span>
+              <strong data-conta-nome>Marina Costa</strong>
+              <span data-conta-cargo>Diretora Comercial</span>
+              <small data-conta-email>demo@assinasoft.com.br</small>
+              <div class="account-identity__meta">
+                <div><span>Empresa</span><strong data-conta-empresa>AssinaSoft</strong></div>
+                <div><span>Sessão desde</span><strong data-conta-desde>-</strong></div>
+              </div>
+              <a class="btn btn--secondary btn--block" href="configuracoes.html">Configurações da empresa</a>
+            </section>
+
+            <section class="account-note">
+              <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#shield-check"></use></svg>
+              <div>
+                <strong>Ambiente de demonstração</strong>
+                <p>Os dados desta conta ficam salvos apenas neste navegador.</p>
+              </div>
+            </section>
+          </aside>
+
+          <div class="account-content">
+            <section class="card account-card">
+              <div class="card__head card__head--bordered">
+                <div>
+                  <h2 class="card__title">Perfil</h2>
+                  <p class="card__desc">Informações exibidas na topbar, nos menus e nos registros de atendimento.</p>
+                </div>
+              </div>
+              <div class="card__body">
+                <form id="form-perfil" class="form-grid" novalidate>
+                  <label class="field field--full">
+                    <span class="field__label">Nome completo</span>
+                    <input class="input" name="nome" autocomplete="name" required>
+                    <span class="field__error">Informe seu nome.</span>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Cargo</span>
+                    <input class="input" name="cargo" autocomplete="organization-title">
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Telefone</span>
+                    <input class="input" name="telefone" autocomplete="tel" placeholder="(11) 99999-9999">
+                  </label>
+                  <label class="field field--full">
+                    <span class="field__label">E-mail</span>
+                    <input class="input" type="email" name="email" autocomplete="email" required>
+                    <span class="field__error">Informe um e-mail válido.</span>
+                  </label>
+                </form>
+              </div>
+              <div class="card__foot account-card__foot">
+                <span class="small faint">O e-mail é usado apenas para identificação nesta demonstração.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar-perfil>Salvar perfil</button>
+              </div>
+            </section>
+
+            <section class="card account-card">
+              <div class="card__head card__head--bordered">
+                <div>
+                  <h2 class="card__title">Preferências</h2>
+                  <p class="card__desc">Escolha como deseja receber avisos e visualizar as tabelas.</p>
+                </div>
+              </div>
+              <div class="card__body">
+                <label class="switch-row">
+                  <span class="switch-row__text">
+                    <strong>Novos leads</strong>
+                    <p>Receber um aviso quando um contato for cadastrado ou importado.</p>
+                  </span>
+                  <input class="switch" type="checkbox" name="notifLeads" aria-label="Avisar sobre novos leads">
+                </label>
+                <label class="switch-row">
+                  <span class="switch-row__text">
+                    <strong>Follow-ups do dia</strong>
+                    <p>Receber um resumo dos retornos e tarefas agendadas para hoje.</p>
+                  </span>
+                  <input class="switch" type="checkbox" name="notifFollowups" aria-label="Avisar sobre follow-ups do dia">
+                </label>
+                <label class="switch-row">
+                  <span class="switch-row__text">
+                    <strong>Tabelas compactas</strong>
+                    <p>Reduzir a altura das linhas para visualizar mais registros por tela.</p>
+                  </span>
+                  <input class="switch" type="checkbox" name="tabelaCompacta" aria-label="Usar tabelas compactas">
+                </label>
+                <div class="account-field-row">
+                  <label class="field">
+                    <span class="field__label">Idioma</span>
+                    <select class="select" name="idioma">
+                      <option value="pt-BR">Português (Brasil)</option>
+                      <option value="en-US">English (US)</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Fuso horário</span>
+                    <select class="select" name="fuso">
+                      <option value="America/Sao_Paulo">Brasília (GMT-3)</option>
+                      <option value="America/Manaus">Manaus (GMT-4)</option>
+                      <option value="America/Rio_Branco">Rio Branco (GMT-5)</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="card__foot account-card__foot">
+                <span class="small faint">As preferências são aplicadas apenas neste navegador.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar-preferencias>Salvar preferências</button>
+              </div>
+            </section>
+
+            <section class="card account-card">
+              <div class="card__head card__head--bordered">
+                <div>
+                  <h2 class="card__title">Segurança</h2>
+                  <p class="card__desc">Altere sua senha de acesso. Nesta demonstração, nenhuma senha é armazenada.</p>
+                </div>
+              </div>
+              <div class="card__body">
+                <form id="form-senha" class="form-grid" novalidate>
+                  <label class="field field--full">
+                    <span class="field__label">Senha atual</span>
+                    <input class="input" type="password" name="atual" autocomplete="current-password" required>
+                    <span class="field__error">Informe a senha atual.</span>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Nova senha</span>
+                    <input class="input" type="password" name="nova" autocomplete="new-password" minlength="6" required>
+                    <span class="field__error">Use pelo menos 6 caracteres.</span>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Confirmar nova senha</span>
+                    <input class="input" type="password" name="confirmacao" autocomplete="new-password" minlength="6" required>
+                    <span class="field__error">As senhas não conferem.</span>
+                  </label>
+                </form>
+                <div class="account-session">
+                  <div>
+                    <strong>Sessão atual</strong>
+                    <p data-conta-sessao>Navegador neste dispositivo</p>
+                  </div>
+                  <button class="btn btn--secondary btn--sm" type="button" data-logout>Encerrar sessão</button>
+                </div>
+              </div>
+              <div class="card__foot account-card__foot">
+                <span class="small faint">A troca de senha é simulada neste protótipo.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-alterar-senha>Alterar senha</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/pages/conta.js"></script>
+</body>
+</html>
