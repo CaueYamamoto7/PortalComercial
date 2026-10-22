@@ -153,16 +153,14 @@
 
   function estatisticasBase(leads) {
     var agora = new Date();
-    var inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
     var total = leads.length;
     var abertos = leads.filter(leadAberto);
-    var ganhos = leads.filter(function (l) { return l.etapaId === "et_ganho"; }).length;
-    var perdidos = leads.filter(function (l) { return l.etapaId === "et_perdido"; }).length;
+    var ganhos = leads.filter(function (l) { return tipoDoLead(l) === "ganho"; }).length;
+    var perdidos = leads.filter(function (l) { return tipoDoLead(l) === "perdido"; }).length;
     var decididos = ganhos + perdidos;
     return {
       total: total,
       abertos: abertos.length,
-      novosMes: leads.filter(function (l) { return new Date(l.criadoEm) >= inicioMes; }).length,
       ganhos: ganhos,
       perdidos: perdidos,
       taxaConversao: decididos ? u.percentual(ganhos, decididos) : 0,
@@ -573,96 +571,97 @@
 
   /* Dashboard ------------------------------------------------------------- */
 
-  function serieNovos(periodo) {
-    var dias = Number(periodo) || 30;
-    var passo = dias > 30 ? 7 : 1;
-    var inicio = inicioPeriodo(dias);
-    var pontos = [];
-    var cursor = new Date(inicio);
-    while (cursor <= new Date()) {
-      var fim = new Date(cursor);
-      fim.setDate(fim.getDate() + passo - 1);
-      fim.setHours(23, 59, 59, 999);
-      var qtd = carregar().leads.filter(function (l) {
-        var d = new Date(l.criadoEm);
-        return d >= cursor && d <= fim;
-      }).length;
-      var ganhos = carregar().leads.filter(function (l) {
-        if (l.etapaId !== "et_ganho") return false;
-        var d = new Date(l.ultimoContato || l.atualizadoEm);
-        return d >= cursor && d <= fim;
-      }).length;
-      pontos.push({
-        label: passo === 1 ? u.formatarData(cursor, "media") : u.formatarData(cursor, "media"),
-        valor: qtd,
-        detalhe: ganhos
-      });
-      cursor = new Date(cursor);
-      cursor.setDate(cursor.getDate() + passo);
-    }
-    return pontos;
+  function contarConversas(leads) {
+    var contagem = {
+      total: leads.length,
+      semMensagem: 0,
+      aguardando: 0,
+      precisoResponder: 0,
+      emConversa: 0,
+      conversasAbertas: 0,
+      clientes: 0,
+      recusados: 0
+    };
+    leads.forEach(function (lead) {
+      var conversa = enriquecerLead(lead).conversa;
+      if (conversa.status === "sem_mensagem") contagem.semMensagem++;
+      if (conversa.status === "aguardando") contagem.aguardando++;
+      if (conversa.status === "responder") contagem.precisoResponder++;
+      if (conversa.status === "em_conversa") contagem.emConversa++;
+      if (conversa.status === "cliente") contagem.clientes++;
+      if (conversa.status === "recusado") contagem.recusados++;
+      if (conversa.conversaAberta) contagem.conversasAbertas++;
+    });
+    return contagem;
+  }
+
+  function filtrarConversa(lead, tipo) {
+    var status = lead.conversa.status;
+    if (tipo === "sem_mensagem") return status === "sem_mensagem";
+    if (tipo === "aguardando") return status === "aguardando";
+    if (tipo === "responder") return status === "responder";
+    if (tipo === "abertas") return lead.conversa.conversaAberta;
+    if (tipo === "clientes") return status === "cliente";
+    if (tipo === "recusados") return status === "recusado";
+    return true;
+  }
+
+  function listarConversas(tipo, params) {
+    params = params || {};
+    var q = u.normalizarTexto(params.q || "");
+    var digitosBusca = u.somenteDigitos(params.q);
+    var itens = carregar().leads.map(enriquecerLead).filter(function (lead) {
+      if (!filtrarConversa(lead, tipo)) return false;
+      if (params.responsavel && lead.responsavel !== params.responsavel) return false;
+      if (params.prioridade && lead.prioridade !== params.prioridade) return false;
+      if (q) {
+        var alvo = u.normalizarTexto([
+          lead.nome, lead.empresa, lead.telefone, lead.email, lead.cidade,
+          lead.responsavel, (lead.tags || []).join(" "), (lead.sistemasNomes || []).join(" ")
+        ].join(" "));
+        if (alvo.indexOf(q) === -1 && (!digitosBusca || u.somenteDigitos(lead.telefone).indexOf(digitosBusca) === -1)) return false;
+      }
+      return true;
+    });
+
+    itens.sort(function (a, b) {
+      if (!a.conversa.ultimaMensagemEm && !b.conversa.ultimaMensagemEm) {
+        return new Date(a.criadoEm) - new Date(b.criadoEm);
+      }
+      var da = new Date(a.conversa.ultimaMensagemEm || a.criadoEm).getTime();
+      var db = new Date(b.conversa.ultimaMensagemEm || b.criadoEm).getTime();
+      return tipo === "responder" || tipo === "sem_mensagem" ? da - db : db - da;
+    });
+
+    var page = Number(params.page) || 1;
+    var perPage = Number(params.perPage) || 100;
+    var pagina = u.paginar(itens, page, perPage);
+    return {
+      tipo: tipo,
+      data: pagina.data,
+      meta: pagina.meta,
+      total: itens.length,
+      conversas: contarConversas(carregar().leads)
+    };
   }
 
   function dashboard(periodo) {
     var db = carregar();
     periodo = periodo || "30";
-    var leads = db.leads;
-    var stats = estatisticasBase(leads);
-    var novosPeriodo = leads.filter(function (l) { return dentroPeriodo(l.criadoEm, periodo); }).length;
-    var ganhosPeriodo = leads.filter(function (l) {
-      return l.etapaId === "et_ganho" && dentroPeriodo(l.ultimoContato || l.atualizadoEm, periodo);
-    }).length;
-    var perdidosPeriodo = leads.filter(function (l) {
-      return l.etapaId === "et_perdido" && dentroPeriodo(l.ultimoContato || l.atualizadoEm, periodo);
-    }).length;
-    var decididos = ganhosPeriodo + perdidosPeriodo;
-    var porEtapa = db.etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; }).map(function (etapa) {
-      return {
-        id: etapa.id, nome: etapa.nome, cor: etapa.cor, tipo: etapa.tipo,
-        valor: leads.filter(function (l) { return l.etapaId === etapa.id; }).length
-      };
-    });
-    var porSistema = db.sistemas.filter(function (s) { return s.ativo; }).map(function (s) {
-      return {
-        label: s.nome, cor: s.cor,
-        valor: leads.filter(function (l) { return l.etapaId !== "et_perdido" && (l.sistemaIds || []).indexOf(s.id) !== -1; }).length
-      };
-    }).sort(function (a, b) { return b.valor - a.valor; });
-    var porOrigem = db.origens.filter(function (o) { return o.ativo; }).map(function (o) {
-      return {
-        label: o.nome,
-        valor: leads.filter(function (l) { return l.etapaId !== "et_perdido" && l.origemId === o.id; }).length
-      };
-    }).sort(function (a, b) { return b.valor - a.valor; }).slice(0, 6);
+    var stats = estatisticasBase(db.leads);
 
     var tarefas = db.tarefas.map(enriquecerTarefa).filter(function (t) {
       return t.status === "pendente" && t.lead && t.lead.etapa.tipo === "aberto";
     }).sort(function (a, b) { return new Date(a.data) - new Date(b.data); });
 
-    var atividades = db.interacoes.map(function (i) {
-      var lead = db.leads.filter(function (l) { return l.id === i.leadId; })[0];
-      return Object.assign({}, i, {
-        lead: lead ? enriquecerLead(lead) : null
-      });
-    }).sort(function (a, b) { return new Date(b.data) - new Date(a.data); }).slice(0, 7);
-
-    var recentes = u.ordenar(leads.map(enriquecerLead), "criadoEm", "desc").slice(0, 6);
-    var campanhas = u.ordenar(db.campanhas, "criadaEm", "desc").slice(0, 3);
+    var campanhas = u.ordenar(db.campanhas, "criadaEm", "desc").slice(0, 4);
 
     return {
       periodo: periodo,
-      novosPeriodo: novosPeriodo,
-      ganhosPeriodo: ganhosPeriodo,
-      taxaConversaoPeriodo: decididos ? u.percentual(ganhosPeriodo, decididos) : 0,
       stats: stats,
-      porEtapa: porEtapa,
-      porSistema: porSistema,
-      porOrigem: porOrigem,
-      serie: serieNovos(periodo),
+      conversas: contarConversas(db.leads),
       tarefas: tarefas.slice(0, 6),
       tarefasTotal: tarefas.length,
-      atividades: atividades,
-      recentes: recentes,
       campanhas: campanhas
     };
   }
@@ -1065,7 +1064,8 @@
     },
 
     dashboard: {
-      obter: function (periodo) { return responder(function () { return dashboard(periodo); }); }
+      obter: function (periodo) { return responder(function () { return dashboard(periodo); }); },
+      conversas: function (tipo, params) { return responder(function () { return listarConversas(tipo, params); }); }
     },
 
     leads: {
