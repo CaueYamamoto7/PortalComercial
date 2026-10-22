@@ -288,24 +288,6 @@
 
   /* Dados ------------------------------------------------------------------ */
 
-  function exportarBackup() {
-    var db = Painel.store.getDB();
-    if (!db) {
-      ui.toast("Nenhum dado local encontrado para exportar.", "warning");
-      return;
-    }
-    var blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "backup-painel-comercial-" + u.paraInputDate(new Date()) + ".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    ui.toast("Backup exportado.", "success");
-  }
-
   /* Eventos ---------------------------------------------------------------- */
 
   function bind() {
@@ -434,21 +416,6 @@
     });
     document.querySelector("[data-add-membro]").addEventListener("click", abrirConvite);
 
-    document.querySelector("[data-exportar-backup]").addEventListener("click", exportarBackup);
-    document.querySelector("[data-resetar]").addEventListener("click", function () {
-      ui.confirmar({
-        titulo: "Restaurar demonstração",
-        texto: "Todos os leads, interações, tarefas e configurações locais serão substituídos pelos dados originais. Esta ação não pode ser desfeita.",
-        acao: "Restaurar dados",
-        perigo: true
-      }).then(function (ok) {
-        if (!ok) return;
-        api.sistema.resetar().then(function () {
-          ui.toast("Dados de demonstração restaurados.", "success");
-          setTimeout(function () { window.location.reload(); }, 500);
-        }).catch(function (err) { ui.toast(err.message, "error"); });
-      });
-    });
     document.querySelector("[data-sair]").addEventListener("click", function () { Painel.auth.sair(); });
 
     var links = Array.prototype.slice.call(document.querySelectorAll(".settings-nav a"));

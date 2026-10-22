@@ -1,0 +1,37 @@
+# Painel Comercial — container único para Vercel (FrankenPHP + CakePHP)
+#
+# Serve o front estático em / e a API CakePHP em /api, na mesma origem.
+# A API é exposta em backend/webroot/index.php; o CakePHP responde sob o
+# escopo /api definido em backend/config/routes.php.
+
+FROM dunglas/frankenphp:1-php8.5-alpine
+
+# Extensões necessárias para CakePHP + Postgres
+RUN install-php-extensions intl mbstring pdo_pgsql opcache zip
+
+# Configuração de produção
+ENV APP_ENV=production \
+    APP_TMP=/tmp/cake \
+    DEBUG=false \
+    SESSION_SECURE=true
+
+RUN mkdir -p /tmp/cake/cache/models /tmp/cake/cache/persistent /tmp/cake/cache/views \
+        /tmp/cake/logs /tmp/cake/sessions \
+    && chmod -R 0777 /tmp/cake \
+    && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+WORKDIR /app
+
+COPY backend /app/backend
+RUN cd /app/backend \
+    && composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts \
+    && rm -rf /app/backend/tmp /app/backend/logs /app/backend/tests
+
+COPY assets /app/public/assets
+COPY images /app/public/images
+COPY *.html /app/public/
+COPY Caddyfile /etc/frankenphp/Caddyfile
+
+EXPOSE 80

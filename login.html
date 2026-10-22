@@ -17,6 +17,7 @@
   <script src="assets/js/config.js"></script>
   <script src="assets/js/util.js"></script>
   <script src="assets/js/store.js"></script>
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/icons.js"></script>
 </head>
@@ -66,8 +67,8 @@
             <label class="field__label" for="email">E-mail corporativo</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#mail"></use></svg>
-              <input class="input" type="email" id="email" name="email" value="demo@assinasoft.com.br"
-                     placeholder="voce@assinasoft.com.br" autocomplete="username" inputmode="email" required>
+              <input class="input" type="email" id="email" name="email"
+                     placeholder="voce@empresa.com.br" autocomplete="username" inputmode="email" required>
             </div>
             <span class="field__error">Informe um e-mail válido.</span>
           </div>
@@ -76,7 +77,7 @@
             <label class="field__label" for="senha">Senha</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#lock"></use></svg>
-              <input class="input" type="password" id="senha" name="senha" value="demo123"
+              <input class="input" type="password" id="senha" name="senha"
                      placeholder="Sua senha" autocomplete="current-password" required style="padding-right:36px">
               <button class="input-wrap__action" type="button" id="toggle-senha" aria-label="Mostrar senha">
                 <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#eye"></use></svg>
@@ -99,20 +100,6 @@
             <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#arrow-right"></use></svg>
           </button>
         </form>
-
-        <div class="auth__divider">Acesso de demonstração</div>
-
-        <div class="auth__demo">
-          <strong>
-            <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#info"></use></svg>
-            Ambiente de demonstração
-          </strong>
-          Use <code>demo@assinasoft.com.br</code> e senha <code>demo123</code>.
-          Os dados são fictícios e ficam salvos apenas neste navegador.
-          <div>
-            <button type="button" id="preencher-demo">Preencher credenciais</button>
-          </div>
-        </div>
 
         <p class="auth__legal">
           Ao continuar, você concorda com os <a href="#">Termos de uso</a> e a
@@ -155,13 +142,6 @@
         this.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
         this.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-' + (visivel ? "eye" : "eye-off") + '"></use></svg>';
         senha.focus();
-      });
-
-      document.getElementById("preencher-demo").addEventListener("click", function () {
-        email.value = Painel.config.demo.email;
-        senha.value = Painel.config.demo.senha;
-        limparErros();
-        email.focus();
       });
 
       [email, senha].forEach(function (input) {

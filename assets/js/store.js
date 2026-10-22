@@ -59,16 +59,6 @@
     set: gravar,
     remove: remover,
 
-    getDB: function () {
-      return ler(Painel.config.storage.db);
-    },
-    setDB: function (db) {
-      return gravar(Painel.config.storage.db, db);
-    },
-    resetDB: function () {
-      remover(Painel.config.storage.db);
-    },
-
     getSession: function () {
       return ler(Painel.config.storage.session);
     },

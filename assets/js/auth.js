@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Autenticação (protótipo local)
+   Painel Comercial — Autenticação (sessão do backend)
    ========================================================================== */
 
 (function (Painel) {
@@ -17,12 +17,9 @@
     return "index.html";
   }
 
-  function derivarNome(email) {
-    var local = String(email || "").split("@")[0].replace(/[._-]+/g, " ");
-    var partes = local.split(/\s+/).filter(Boolean).map(function (p) {
-      return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-    });
-    return partes.join(" ") || "Usuário";
+  function redirecionarLogin() {
+    var next = paginaAtual() + window.location.search;
+    window.location.replace("login.html?next=" + encodeURIComponent(next));
   }
 
   var auth = {
@@ -32,50 +29,50 @@
 
     usuario: function () {
       return Painel.store.getSession() || {
-        nome: "Marina Costa",
-        email: Painel.config.demo.email,
-        cargo: "Diretora Comercial",
+        nome: "",
+        email: "",
+        cargo: "",
         empresa: Painel.config.company,
-        iniciais: "MC"
+        iniciais: ""
       };
     },
 
     entrar: function (email, senha, lembrar) {
-      return new Promise(function (resolve, reject) {
-        var e = String(email || "").trim().toLowerCase();
-        var s = String(senha || "");
-
-        setTimeout(function () {
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
-            reject(new Error("Informe um e-mail válido."));
-            return;
-          }
-          if (s.length < 6) {
-            reject(new Error("A senha deve ter pelo menos 6 caracteres."));
-            return;
-          }
-
-          var demo = e === Painel.config.demo.email;
-          var nome = demo ? "Marina Costa" : derivarNome(e);
-          var sessao = {
-            nome: nome,
-            email: e,
-            cargo: demo ? "Diretora Comercial" : "Consultor(a) comercial",
-            empresa: Painel.config.company,
-            iniciais: Painel.util.iniciais(nome),
-            lembrar: !!lembrar,
-            desde: new Date().toISOString()
-          };
-
-          Painel.store.setSession(sessao);
-          resolve(sessao);
-        }, 380);
+      return Painel.api.auth.login(email, senha).then(function (usuario) {
+        var sessao = Object.assign({}, usuario, {
+          lembrar: !!lembrar,
+          desde: usuario.desde || new Date().toISOString()
+        });
+        Painel.store.setSession(sessao);
+        return sessao;
       });
     },
 
     sair: function () {
-      Painel.store.clearSession();
-      window.location.href = "login.html";
+      var concluir = function () {
+        Painel.store.clearSession();
+        window.location.href = "login.html";
+      };
+      if (Painel.api && Painel.api.auth) {
+        Painel.api.auth.logout().then(concluir, concluir);
+      } else {
+        concluir();
+      }
+    },
+
+    verificar: function () {
+      if (!Painel.api || !Painel.api.auth) return Promise.resolve(auth.sessao());
+      return Painel.api.auth.sessao().then(function (resposta) {
+        if (resposta && resposta.autenticado && resposta.usuario) {
+          var sessao = Object.assign({}, auth.sessao() || {}, resposta.usuario);
+          Painel.store.setSession(sessao);
+          return sessao;
+        }
+        Painel.store.clearSession();
+        return null;
+      }).catch(function () {
+        return null;
+      });
     },
 
     destino: normalizarDestino
@@ -84,8 +81,21 @@
   Painel.auth = auth;
 
   var modo = document.documentElement.getAttribute("data-auth");
+
   if (modo === "required" && Painel.store.disponivel && !Painel.store.getSession()) {
-    var next = paginaAtual() + window.location.search;
-    window.location.replace("login.html?next=" + encodeURIComponent(next));
+    redirecionarLogin();
+    return;
+  }
+
+  if (modo === "required") {
+    auth.verificar().then(function (sessao) {
+      if (!sessao) redirecionarLogin();
+    });
+  }
+
+  if (modo === "guest" && Painel.store.getSession()) {
+    auth.verificar().then(function (sessao) {
+      if (sessao) window.location.replace("index.html");
+    });
   }
 })(window.Painel);

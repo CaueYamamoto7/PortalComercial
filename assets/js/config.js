@@ -1,7 +1,6 @@
 /* ==========================================================================
    Painel Comercial — Configuração central
-   Front-end local. O backend em PHP/CakePHP consumirá o contrato descrito
-   em assets/js/api.js quando useMock for desativado.
+   O front-end consome a API PHP/CakePHP em apiBase (mesma origem).
    ========================================================================== */
 
 window.Painel = window.Painel || {};
@@ -11,12 +10,9 @@ Painel.config = {
   company: "AssinaSoft",
   versao: "2.0.0",
 
-  useMock: true,
   apiBase: "/api",
-  latenciaMock: [80, 220],
 
   storage: {
-    db: "assinasoft.painel.v2",
     session: "assinasoft.sessao.v1",
     conta: "assinasoft.conta.v1"
   },
@@ -35,10 +31,5 @@ Painel.config = {
     "relatorios.html",
     "configuracoes.html",
     "conta.html"
-  ],
-
-  demo: {
-    email: "demo@assinasoft.com.br",
-    senha: "demo123"
-  }
+  ]
 };

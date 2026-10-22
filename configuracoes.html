@@ -62,7 +62,7 @@
                 </form>
               </div>
               <div class="settings-card__foot">
-                <span class="small faint">Esses dados ficam salvos apenas neste navegador nesta demonstração.</span>
+                <span class="small faint">Os dados ficam salvos no servidor e são compartilhados com a equipe.</span>
                 <button class="btn btn--primary btn--sm" type="button" data-salvar="empresa"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar empresa</button>
               </div>
             </section>
@@ -120,14 +120,14 @@
                 </form>
               </div>
               <div class="settings-card__foot">
-                <span class="small faint">O envio real será conectado ao WhatsApp pelo backend em PHP/CakePHP.</span>
+                <span class="small faint">O envio é registrado no histórico do lead. A integração oficial com o WhatsApp será habilitada em breve.</span>
                 <button class="btn btn--primary btn--sm" type="button" data-salvar="mensagens"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar mensagens</button>
               </div>
             </section>
 
             <section class="card settings-card" id="dados">
               <div class="card__head card__head--bordered">
-                <div><h2 class="card__title">Dados e demonstração</h2><p class="card__desc">Base local usada enquanto o backend não está conectado</p></div>
+                <div><h2 class="card__title">Dados</h2><p class="card__desc">Volume atual da base do CRM</p></div>
               </div>
               <div class="card__body">
                 <div class="data-counts">
@@ -138,8 +138,6 @@
                   <div><strong data-count="templates">—</strong><span>templates</span></div>
                 </div>
                 <div class="data-actions">
-                  <div class="data-action"><div><strong>Exportar backup</strong><p>Baixe uma cópia dos dados locais em JSON.</p></div><button class="btn btn--secondary btn--sm" type="button" data-exportar-backup><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#download"></use></svg>Exportar JSON</button></div>
-                  <div class="data-action"><div><strong>Restaurar demonstração</strong><p>Recria leads, interações e configurações originais.</p></div><button class="btn btn--danger-soft btn--sm" type="button" data-resetar><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#refresh-cw"></use></svg>Restaurar dados</button></div>
                   <div class="data-action"><div><strong>Encerrar sessão</strong><p>Saia deste navegador com segurança.</p></div><button class="btn btn--secondary btn--sm" type="button" data-sair><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#log-out"></use></svg>Sair</button></div>
                 </div>
               </div>
@@ -151,8 +149,6 @@
   </div>
 
   <script src="assets/js/icons.js"></script>
-  <script src="assets/js/mock/data.js"></script>
-  <script src="assets/js/mock/api.js"></script>
   <script src="assets/js/api.js"></script>
   <script src="assets/js/charts.js"></script>
   <script src="assets/js/ui.js"></script>

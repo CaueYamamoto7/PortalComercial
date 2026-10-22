@@ -622,7 +622,7 @@
               }).join("") + "</div></div>" +
             '<div class="field field--full"><span class="field__label">Prévia para ' + u.escaparHTML(u.primeiroNome(lead.nome)) + "</span>" +
               '<div class="message-preview" data-msg-preview></div>' +
-              '<span class="field__hint">O envio real será conectado ao WhatsApp pelo backend em PHP/CakePHP. Nesta demonstração, a mensagem é registrada no histórico do lead.</span></div>' +
+              '<span class="field__hint">A mensagem é registrada no histórico do lead. A integração oficial com o WhatsApp será habilitada em breve.</span></div>' +
           "</div>",
         footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button>' +
           '<button class="btn btn--primary" type="button" data-enviar' + (bloqueado ? " disabled" : "") + ">" + icone("send") + "Enviar mensagem</button>"

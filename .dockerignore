@@ -1,0 +1,29 @@
+# Arquivos que não devem ir para a imagem do container
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Dependências e artefatos locais do backend
+backend/vendor
+backend/tmp
+backend/logs
+backend/tests
+backend/config/.env
+backend/.github
+backend/phpunit.xml.dist
+backend/phpcs.xml
+backend/phpstan.neon
+backend/psalm.xml
+
+# Ambiente e documentação
+.env
+.env.*
+*.md
+!README.md
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

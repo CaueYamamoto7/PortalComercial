@@ -38,10 +38,10 @@
         <div class="account-layout">
           <aside class="account-side" aria-label="Resumo da conta">
             <section class="card account-identity">
-              <span class="avatar avatar--xl" data-conta-iniciais>MC</span>
-              <strong data-conta-nome>Marina Costa</strong>
-              <span data-conta-cargo>Diretora Comercial</span>
-              <small data-conta-email>demo@assinasoft.com.br</small>
+              <span class="avatar avatar--xl" data-conta-iniciais>—</span>
+              <strong data-conta-nome>Usuário</strong>
+              <span data-conta-cargo>Comercial</span>
+              <small data-conta-email>—</small>
               <div class="account-identity__meta">
                 <div><span>Empresa</span><strong data-conta-empresa>AssinaSoft</strong></div>
                 <div><span>Sessão desde</span><strong data-conta-desde>-</strong></div>
@@ -52,8 +52,8 @@
             <section class="account-note">
               <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#shield-check"></use></svg>
               <div>
-                <strong>Ambiente de demonstração</strong>
-                <p>Os dados desta conta ficam salvos apenas neste navegador.</p>
+                <strong>Conta</strong>
+                <p>Seus dados de acesso são gerenciados pelo servidor do painel.</p>
               </div>
             </section>
           </aside>
@@ -89,7 +89,7 @@
                 </form>
               </div>
               <div class="card__foot account-card__foot">
-                <span class="small faint">O e-mail é usado apenas para identificação nesta demonstração.</span>
+                <span class="small faint">O e-mail é usado para identificação e acesso ao painel.</span>
                 <button class="btn btn--primary btn--sm" type="button" data-salvar-perfil>Salvar perfil</button>
               </div>
             </section>
@@ -150,28 +150,11 @@
             <section class="card account-card">
               <div class="card__head card__head--bordered">
                 <div>
-                  <h2 class="card__title">Segurança</h2>
-                  <p class="card__desc">Altere sua senha de acesso. Nesta demonstração, nenhuma senha é armazenada.</p>
+                  <h2 class="card__title">Acesso e segurança</h2>
+                  <p class="card__desc">Sua sessão é protegida pelo servidor. A troca de senha é feita pelo administrador da conta.</p>
                 </div>
               </div>
               <div class="card__body">
-                <form id="form-senha" class="form-grid" novalidate>
-                  <label class="field field--full">
-                    <span class="field__label">Senha atual</span>
-                    <input class="input" type="password" name="atual" autocomplete="current-password" required>
-                    <span class="field__error">Informe a senha atual.</span>
-                  </label>
-                  <label class="field">
-                    <span class="field__label">Nova senha</span>
-                    <input class="input" type="password" name="nova" autocomplete="new-password" minlength="6" required>
-                    <span class="field__error">Use pelo menos 6 caracteres.</span>
-                  </label>
-                  <label class="field">
-                    <span class="field__label">Confirmar nova senha</span>
-                    <input class="input" type="password" name="confirmacao" autocomplete="new-password" minlength="6" required>
-                    <span class="field__error">As senhas não conferem.</span>
-                  </label>
-                </form>
                 <div class="account-session">
                   <div>
                     <strong>Sessão atual</strong>
@@ -181,8 +164,7 @@
                 </div>
               </div>
               <div class="card__foot account-card__foot">
-                <span class="small faint">A troca de senha é simulada neste protótipo.</span>
-                <button class="btn btn--primary btn--sm" type="button" data-alterar-senha>Alterar senha</button>
+                <span class="small faint">Para alterar a senha, solicite ao administrador do painel.</span>
               </div>
             </section>
           </div>
@@ -192,6 +174,7 @@
   </div>
 
   <script src="assets/js/icons.js"></script>
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/ui.js"></script>
   <script src="assets/js/pages/conta.js"></script>
 </body>

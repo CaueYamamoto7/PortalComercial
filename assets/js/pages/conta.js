@@ -22,9 +22,9 @@
     var sessao = Painel.auth.usuario();
     return {
       perfil: {
-        nome: sessao.nome || "Marina Costa",
-        email: sessao.email || Painel.config.demo.email,
-        cargo: sessao.cargo || "Diretora Comercial",
+        nome: sessao.nome || "",
+        email: sessao.email || "",
+        cargo: sessao.cargo || "",
         telefone: ""
       },
       preferencias: {
@@ -133,20 +133,37 @@
     }
 
     var dados = carregarDados();
-    dados.perfil = { nome: nome, email: email, cargo: cargo, telefone: telefone };
-    salvarDados(dados);
-    preencherResumo(dados.perfil);
+    var botao = document.querySelector("[data-salvar-perfil]");
+    if (botao) {
+      botao.disabled = true;
+      botao.classList.add("is-loading");
+    }
 
-    var sessao = Painel.auth.usuario();
-    sessao.nome = nome;
-    sessao.email = email;
-    sessao.cargo = cargo;
-    sessao.iniciais = u.iniciais(nome);
-    Painel.store.setSession(sessao);
+    Painel.api.conta.salvarPerfil({ nome: nome, email: email, cargo: cargo }).then(function (membro) {
+      dados.perfil = { nome: nome, email: email, cargo: cargo, telefone: telefone };
+      salvarDados(dados);
+      preencherResumo(dados.perfil);
 
-    if (Painel.ui.renderSidebar) Painel.ui.renderSidebar();
-    if (Painel.ui.renderTopbar) Painel.ui.renderTopbar();
-    ui.toast("Perfil atualizado.", "success");
+      var sessao = Painel.auth.usuario();
+      sessao.nome = membro.nome || nome;
+      sessao.email = membro.email || email;
+      sessao.cargo = membro.cargo || cargo;
+      sessao.iniciais = membro.iniciais || u.iniciais(nome);
+      Painel.store.setSession(sessao);
+
+      if (Painel.ui.renderSidebar) Painel.ui.renderSidebar();
+      if (Painel.ui.renderTopbar) Painel.ui.renderTopbar();
+      ui.toast("Perfil atualizado.", "success");
+    }).catch(function (err) {
+      if (err.campo === "email") marcarErro(campo("email", form), true);
+      if (err.campo === "nome") marcarErro(campo("nome", form), true);
+      ui.toast(err.message || "Não foi possível salvar o perfil.", "error");
+    }).then(function () {
+      if (botao) {
+        botao.disabled = false;
+        botao.classList.remove("is-loading");
+      }
+    });
   }
 
   function salvarPreferencias() {

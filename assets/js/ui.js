@@ -63,9 +63,9 @@
       '<div class="sidebar__brand"><a href="index.html" class="brand brand--inverse" aria-label="AssinaSoft — Painel Comercial">' + marca() + "</a></div>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
       '<div class="sidebar__foot">' +
-        '<a class="conn-card" href="mensagens.html" title="Envio pelo WhatsApp em modo demonstração">' +
+        '<a class="conn-card" href="mensagens.html" title="Envio de mensagens registrado no histórico do lead">' +
           '<span class="conn-card__dot"></span>' +
-          '<span class="conn-card__text"><strong>WhatsApp</strong><small>Modo demonstração</small></span>' +
+          '<span class="conn-card__text"><strong>WhatsApp</strong><small>Integração pendente</small></span>' +
           icone("message-circle") +
         "</a>" +
         '<button class="sidebar__user" type="button" data-user-menu-sidebar>' +
@@ -137,7 +137,7 @@
               "</div>" +
               '<div class="help-panel__section">' +
                 '<span class="help-panel__label">Envio de mensagens</span>' +
-                '<p class="xs faint">Nesta demonstração, os envios pelo WhatsApp são simulados e ficam registrados no histórico do lead.</p>' +
+                '<p class="xs faint">Os envios pelo WhatsApp ficam registrados no histórico do lead. A integração oficial será habilitada em breve.</p>' +
               "</div>" +
             "</div>" +
             '<div class="dropdown-panel__foot"><a class="text-link xs" href="mailto:contato@assinasoft.com.br">Falar com o suporte</a></div>' +
