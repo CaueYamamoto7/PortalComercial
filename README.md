@@ -1,208 +1,156 @@
 # Painel Comercial · AssinaSoft
 
-CRM comercial da **AssinaSoft** para importar leads, organizar o funil de vendas, acompanhar follow-ups e registrar mensagens de WhatsApp.
+CRM comercial da AssinaSoft para gestão de leads, funil de vendas, follow-ups, campanhas de WhatsApp e indicadores de desempenho.
 
-O projeto tem duas partes no mesmo repositório:
+## Visão geral
 
-- **Front-end** estático (HTML/CSS/JS) na raiz.
-- **Backend** em **PHP 8.5 + CakePHP 5.4** em `backend/`, com banco **Postgres** (produção) ou **SQLite** (desenvolvimento).
+O Painel Comercial centraliza a operação comercial em uma aplicação web com front-end estático e API própria. A interface reúne cadastro e qualificação de leads, acompanhamento do pipeline, agenda de follow-ups, templates de mensagem, campanhas e relatórios gerenciais.
 
-Em produção, um único container (FrankenPHP) serve o front em `/` e a API em `/api`, na mesma origem — sem CORS.
+O sistema opera em uma única origem: o front-end é servido em `/` e a API em `/api`. A autenticação é baseada em sessão, com proteção CSRF e cookies restritos ao contexto da aplicação.
 
-> O envio de WhatsApp ainda é um **stub**: a mensagem é validada e registrada no histórico do lead, mas não é disparada para a API do WhatsApp.
+## Arquitetura
 
-## Funcionalidades
+- **Front-end:** aplicação multipágina em HTML, CSS e JavaScript, sem framework de UI.
+- **Backend:** API JSON em PHP 8.5 com CakePHP 5.4.
+- **Banco de dados:** PostgreSQL em produção e SQLite em desenvolvimento.
+- **Sessões:** armazenadas no banco de dados.
+- **Cache:** arquivos no diretório configurado por `APP_TMP`.
+- **Implantação:** container único com FrankenPHP e Caddy, hospedado na Vercel.
+- **Rede:** front-end e API na mesma origem, sem CORS.
 
-- **Painel:** cartões operacionais com listas de contatos — sem mensagem enviada, aguardando resposta, preciso responder, conversas em aberto, clientes e recusados/não contatar.
-- **Leads:** busca, filtros combinados, paginação, cadastro/edição, detalhe com timeline, conversa e tarefas.
-- **Importação:** CSV, XLSX e XLS com mapeamento automático de colunas, validação de telefone e tratamento de duplicados.
-- **Pipeline:** kanban com arrastar e soltar entre etapas configuráveis.
-- **Follow-ups:** agenda por período, atrasados, conclusão de tarefas e filtros por responsável.
-- **Mensagens:** seleção de público por filtros ou manual, prévia estilo WhatsApp, variáveis, templates e histórico de campanhas.
-- **Relatórios:** conversão, funil, origem dos leads, motivos de perda, desempenho da equipe e volume de mensagens.
-- **Configurações:** empresa, funil, sistemas vendidos, origens, equipe e regras de mensagens.
-- **Conta:** perfil persistido no servidor e preferências de exibição neste navegador.
+## Stack
 
-O funil inicial é **Novo → Contatado → Qualificado → Proposta → Negociação → Ganho / Perdido**, e os sistemas acompanhados são **AssinaPDF**, **AssinaDNS** e **ConforSeg**.
+| Camada | Tecnologia |
+| --- | --- |
+| Interface | HTML5, CSS3, JavaScript |
+| Planilhas | SheetJS |
+| Backend | PHP 8.5, CakePHP 5.4, Composer |
+| Banco | PostgreSQL, SQLite |
+| Servidor | FrankenPHP, Caddy |
+| Container | Docker |
+| Hospedagem | Vercel |
 
-## Requisitos
+## Módulos
 
-- PHP **8.2+** (recomendado 8.5) com `intl`, `mbstring`, `pdo_sqlite` e `pdo_pgsql`.
-- Composer 2.
-- Node.js apenas para o servidor estático alternativo (`serve.js`); não é necessário para o backend.
+### Painel
 
-## Desenvolvimento local
+Visão operacional com cartões de contatos organizados por estágio de relacionamento: sem mensagem enviada, aguardando resposta, resposta pendente, conversas em aberto, clientes e contatos recusados.
 
-### 1. Backend
+### Leads
 
-```bash
-cd backend
-composer install
+Cadastro, edição, consulta detalhada, timeline de interações, filtros combinados, ordenação e paginação. O detalhe do lead reúne dados cadastrais, histórico, conversa e tarefas associadas.
 
-# Cria o banco SQLite em tmp/dev.sqlite
-php bin/cake.php migrations migrate
-```
+### Importação
 
-A migration `SeedCatalog` cria o catálogo inicial (funil, sistemas, origens e configurações) e **um único usuário administrador**:
+Leitura de arquivos CSV, XLSX e XLS com mapeamento automático de colunas, validação de telefones e tratamento de registros duplicados.
 
-- **E-mail:** `admin@assinasoft.com.br`
-- **Senha:** `admin123`
+### Pipeline
 
-Para usar outras credenciais já na criação, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` antes de rodar a migration. Depois do primeiro acesso, altere a senha diretamente no banco (a troca pelo painel é feita pelo administrador da conta).
+Quadro kanban com etapas configuráveis e movimentação de leads por arrastar e soltar.
 
-> Não há leads, conversas ou campanhas fictícias no banco. A base começa vazia.
+### Follow-ups
 
-### 2. Front + API na mesma origem
+Agenda de tarefas por período, identificação de atrasos, conclusão de atividades e filtros por responsável.
 
-Na raiz do repositório:
+### Mensagens
 
-```bash
-php -S 127.0.0.1:8080 -t . router.php
-```
+Composição de campanhas, seleção de público por filtros ou de forma manual, prévia de mensagem, variáveis, templates e histórico de envios.
 
-Abra **http://127.0.0.1:8080**. O `router.php` serve os arquivos estáticos e encaminha `/api/*` para `backend/webroot/index.php`.
+### Relatórios
 
-Também é possível servir apenas o front com `node serve.js` (porta 4173), mas nesse caso a API não estará disponível na mesma origem.
+Indicadores de conversão, funil, origem dos leads, motivos de perda, desempenho da equipe e volume de mensagens.
 
-### Configuração do backend
+### Configurações
 
-`backend/config/app_local.php` lê as variáveis de ambiente:
+Gestão da empresa, funil, sistemas comercializados, origens de lead, equipe e regras de mensagens.
 
-| Variável | Padrão | Descrição |
-| --- | --- | --- |
-| `DATABASE_URL` | — | URL do Postgres. Sem ela, usa SQLite em `backend/tmp/dev.sqlite`. |
-| `SECURITY_SALT` | valor de desenvolvimento | Salt do CakePHP. **Obrigatório em produção.** |
-| `DEBUG` | `true` | Desative em produção. |
-| `SESSION_SECURE` | `false` | Use `true` em produção (HTTPS). |
-| `APP_TMP` | `backend/tmp` | Diretório gravável para cache, logs e sessões. |
-| `APP_DEFAULT_TIMEZONE` | `America/Sao_Paulo` | Fuso do servidor. |
+### Conta
 
-As sessões são gravadas na tabela `sessions` do banco (sem Redis) e o cache usa arquivos em `APP_TMP`.
+Perfil persistido no servidor e preferências de exibição mantidas no navegador.
 
-## Estrutura
+## Catálogo inicial
+
+O funil padrão é composto por **Novo → Contatado → Qualificado → Proposta → Negociação → Ganho / Perdido**.
+
+Os sistemas inicialmente acompanhados são **AssinaPDF**, **AssinaDNS** e **ConforSeg**.
+
+## Estrutura do repositório
 
 ```text
 assets/
-  css/            tokens, componentes, páginas e estilos do CRM
+  css/            estilos globais, componentes e páginas
   js/
-    api.js        fachada HTTP (CSRF, sessão, tratamento de 401)
-    auth.js       login, verificação de sessão e logout
-    ui.js         navegação, sidebar, topbar e componentes visuais
-    components/   drawers e componentes de lead
-    pages/        scripts de cada tela
-    store.js      sessão e preferências no localStorage
-  vendor/         SheetJS para leitura de XLSX
-*.html            páginas do sistema
-images/           logotipos
-router.php        servidor de desenvolvimento (front + /api)
-Caddyfile         configuração do FrankenPHP em produção
-Dockerfile.vercel imagem do container (front + API)
-serve.js          servidor estático alternativo
-backend/          aplicação CakePHP (API)
-  config/         rotas, banco, migrations
-  src/            controllers, services, middleware, models
-  webroot/        front controller
+    api.js        integração HTTP, CSRF e sessão
+    auth.js       autenticação e ciclo de sessão
+    ui.js         shell, navegação e componentes visuais
+    components/   componentes de lead e drawers
+    pages/        comportamento de cada tela
+    store.js      sessão e preferências locais
+  vendor/         dependências de front-end
+*.html            páginas da aplicação
+images/           identidade visual
+router.php        roteamento local do front e da API
+Caddyfile         configuração do FrankenPHP
+Dockerfile.vercel imagem de implantação
+serve.js          servidor estático auxiliar
+backend/          aplicação CakePHP
+  config/         rotas, banco, migrations e configuração
+  src/            controllers, services, middleware e models
+  webroot/        front controller da API
 ```
 
 ## API
 
-Todas as rotas ficam sob `/api`. Respostas de sucesso usam `{ "data": ... }`; erros usam `{ "message": "...", "campo": "..." }`.
+As rotas são agrupadas sob `/api`. Respostas de sucesso utilizam o envelope `{ "data": ... }`; erros utilizam `{ "message": "...", "campo": "..." }`.
 
-| Método | Rota | Descrição |
-| --- | --- | --- |
-| `GET` | `/api/health` | Status da aplicação e do banco |
-| `POST` | `/api/auth/login` | Login (sessão + cookie) |
-| `POST` | `/api/auth/logout` | Encerra a sessão |
-| `GET` | `/api/auth/session` | Sessão atual e empresa |
-| `GET` | `/api/dashboard` | Indicadores, tarefas e campanhas |
-| `GET` | `/api/dashboard/conversas` | Conversas por status |
-| `GET/POST` | `/api/leads` | Lista e cria leads |
-| `GET/PUT/DELETE` | `/api/leads/{id}` | Detalhe, edição e remoção |
-| `POST` | `/api/leads/{id}/mover` | Move de etapa no funil |
-| `POST` | `/api/leads/importar` | Importa linhas de planilha |
-| `POST` | `/api/leads/{id}/interacoes` | Registra nota, mensagem ou ligação |
-| `GET/POST` | `/api/tarefas` | Lista e cria tarefas |
-| `POST` | `/api/tarefas/{id}/concluir` | Conclui/reabre tarefa |
-| `DELETE` | `/api/tarefas/{id}` | Remove tarefa |
-| `GET` | `/api/pipeline` | Quadro do funil |
-| `GET/POST` | `/api/mensagens` | Campanhas |
-| `POST` | `/api/mensagens/individual` | Mensagem para um lead |
-| `POST` | `/api/mensagens/{id}/cancelar` | Cancela campanha agendada |
-| `GET/POST` | `/api/templates` | Templates de mensagem |
-| `PUT/DELETE` | `/api/templates/{id}` | Edita/remove template |
-| `GET` | `/api/relatorios` | Relatórios por período |
-| `GET` | `/api/configuracoes` | Configurações, catálogo e equipe |
-| `PUT` | `/api/configuracoes/{empresa\|mensagens}` | Salva seção de configuração |
-| `POST/PUT/DELETE` | `/api/configuracoes/sistemas[/{id}]` | CRUD de sistemas |
-| `POST/PUT/DELETE` | `/api/configuracoes/origens[/{id}]` | CRUD de origens |
-| `POST/PUT/DELETE` | `/api/configuracoes/etapas[/{id}]` | CRUD de etapas |
-| `POST` | `/api/configuracoes/etapas/reordenar` | Reordena o funil |
-| `POST/DELETE` | `/api/configuracoes/equipe[/{id}]` | Convida/remove membros |
-| `PUT` | `/api/perfil` | Atualiza o próprio perfil |
-| `PUT` | `/api/senha` | Altera a própria senha (exige a senha atual) |
-| `GET` | `/api/notificacoes` | Notificações |
-| `POST` | `/api/notificacoes/marcar-lidas` | Marca notificações como lidas |
+| Área | Rotas |
+| --- | --- |
+| Saúde | `GET /api/health` |
+| Autenticação | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session` |
+| Painel | `GET /api/dashboard`, `GET /api/dashboard/conversas` |
+| Leads | `GET/POST /api/leads`, `GET/PUT/DELETE /api/leads/{id}`, `POST /api/leads/{id}/mover`, `POST /api/leads/importar` |
+| Interações | `POST /api/leads/{id}/interacoes` |
+| Tarefas | `GET/POST /api/tarefas`, `POST /api/tarefas/{id}/concluir`, `DELETE /api/tarefas/{id}` |
+| Pipeline | `GET /api/pipeline` |
+| Campanhas | `GET/POST /api/mensagens`, `POST /api/mensagens/individual`, `POST /api/mensagens/{id}/cancelar` |
+| Templates | `GET/POST /api/templates`, `PUT/DELETE /api/templates/{id}` |
+| Relatórios | `GET /api/relatorios` |
+| Configurações | `GET /api/configuracoes`, `PUT /api/configuracoes/{secao}`, CRUD de sistemas, origens, etapas e equipe |
+| Conta | `PUT /api/perfil`, `PUT /api/senha` |
+| Notificações | `GET /api/notificacoes`, `POST /api/notificacoes/marcar-lidas` |
 
-A autenticação usa sessão do CakePHP com `password_hash`/`password_verify`. O CSRF usa cookie double-submit (`csrfToken`): o front lê o cookie e envia o valor em `X-CSRF-Token`.
+## Configuração de ambiente
 
-## Deploy na Vercel
+| Variável | Finalidade |
+| --- | --- |
+| `DATABASE_URL` | Conexão com o PostgreSQL. Na ausência, a aplicação utiliza SQLite local. |
+| `SECURITY_SALT` | Salt criptográfico do CakePHP. |
+| `DEBUG` | Modo de diagnóstico detalhado. |
+| `SESSION_SECURE` | Restringe o cookie de sessão a conexões HTTPS. |
+| `APP_TMP` | Diretório de cache, logs e sessões. |
+| `APP_DEFAULT_TIMEZONE` | Fuso horário da aplicação. |
+| `ADMIN_NAME` | Nome do usuário inicial criado pela migration de catálogo. |
+| `ADMIN_EMAIL` | E-mail do usuário inicial. |
+| `ADMIN_PASSWORD` | Senha do usuário inicial. |
 
-O repositório já contém `Dockerfile.vercel`, `Caddyfile` e `vercel.json`. A Vercel detecta o `Dockerfile.vercel` automaticamente e roteia todo o tráfego para o container.
+## Segurança
 
-### 1. Banco gratuito no Neon
+- Senhas armazenadas com `password_hash` e verificadas com `password_verify`.
+- Sessões com cookie `HttpOnly`, `SameSite=Lax` e opção de restrição a HTTPS.
+- Proteção CSRF por cookie double-submit e header `X-CSRF-Token`.
+- Consultas de banco realizadas pelo ORM do CakePHP.
+- Front-end e API na mesma origem, sem CORS.
+- Conexão com PostgreSQL protegida por SSL.
+- Cabeçalhos de segurança configurados no Caddy.
 
-1. Crie uma conta em [neon.tech](https://neon.tech) e um projeto na região **AWS South America East 1 (São Paulo)**, para ficar próximo da Vercel.
-2. Copie a **connection string** (formato `postgresql://...?sslmode=require`). O app aceita tanto `postgresql://` quanto `postgres://`.
-3. Rode as migrations **manualmente**, uma única vez, da sua máquina. Prefira o host **direto** (sem `-pooler`) para migrações:
+## Operação
 
-```bash
-cd backend
-$env:DATABASE_URL="postgresql://usuario:senha@ep-xxxx.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require"
-$env:ADMIN_EMAIL="seu@email.com"
-$env:ADMIN_PASSWORD="uma-senha-forte"
-php bin/cake.php migrations migrate
-```
+A aplicação é implantada como um único container FrankenPHP/Caddy. O Caddy entrega o front-end estático e encaminha `/api/*` para o front controller do CakePHP. A região de implantação é `gru1` (São Paulo).
 
-Em Linux/macOS use `DATABASE_URL=... ADMIN_EMAIL=... php bin/cake.php migrations migrate`.
+As migrations são aplicadas de forma independente do boot do container. As sessões utilizam a tabela `sessions` do banco e o cache utiliza arquivos no diretório `APP_TMP`.
 
-> As migrations **não** rodam no boot do container. Isso evita alterações acidentais no schema a cada deploy.
->
-> A conexão usa `PDO::ATTR_EMULATE_PREPARES` para evitar um bug do pdo_pgsql (PHP 8.5) em que DDL dentro de transação aborta silenciosamente, e também para maior compatibilidade com o pooler do Neon.
+## Estado atual
 
-O plano gratuito do Neon oferece 1 GB por projeto, 100 CU-horas/mês e suspensão automática após 5 minutos sem uso (o primeiro acesso pode levar alguns segundos).
-
-### 2. Variáveis na Vercel
-
-Configure em **Project → Settings → Environment Variables**:
-
-- `DATABASE_URL` — connection string do Neon.
-- `SECURITY_SALT` — gere com `php -r "echo bin2hex(random_bytes(32));"`.
-- `DEBUG=false`
-- `SESSION_SECURE=true`
-- `APP_TMP=/tmp/cake`
-- `APP_DEFAULT_TIMEZONE=America/Sao_Paulo`
-
-### 3. Deploy
-
-```bash
-npx vercel
-```
-
-ou conecte o repositório no painel da Vercel. O container escuta em `$PORT` (padrão `80`) e serve front + API na mesma origem.
-
-O `vercel.json` fixa a região em **`gru1` (São Paulo)**, co-localizada com o banco no Neon. O plano **Hobby** permite uma única região por projeto.
-
-> **Plano:** a Vercel permite o uso do plano **Hobby** apenas para projetos pessoais e não comerciais. Para um CRM de uso comercial, é necessário o plano **Pro**.
-
-### Alternativas de banco gratuito
-
-- **Neon** (recomendado): 1 GB, 100 CU-horas/mês, pooled, scale-to-zero.
-- **Aiven Free**: 1 GB e 20 conexões.
-
-## Segurança e operação
-
-- Nunca versione `.env` nem credenciais de produção.
-- `SECURITY_SALT` deve ser único por ambiente.
-- Em produção, mantenha `DEBUG=false` e `SESSION_SECURE=true`.
-- Faça backup do banco pelo painel do provedor (Neon/Aiven) antes de mudanças de schema.
-- A senha pode ser alterada em **Conta → Acesso e segurança**; o perfil (nome, e-mail e cargo) também é editável em **Conta**.
+- O envio de WhatsApp está implementado como stub: a mensagem é validada e registrada no histórico, mas não é disparada para a API do WhatsApp.
+- O banco inicial não contém leads, conversas ou campanhas fictícias.
+- A interface e a API são servidas na mesma origem em produção.
