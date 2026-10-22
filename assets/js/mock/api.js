@@ -191,6 +191,7 @@
     var q = u.normalizarTexto(params.q || "");
 
     if (q) {
+      var digitosBusca = u.somenteDigitos(params.q);
       leads = leads.filter(function (l) {
         var sistemas = (l.sistemaIds || []).map(function (id) {
           var s = sistemaPorId(id);
@@ -200,7 +201,7 @@
           l.nome, l.empresa, l.cargo, l.email, l.cidade, l.uf, l.responsavel,
           l.observacoes, l.origemDetalhe, (l.tags || []).join(" "), sistemas
         ].join(" "));
-        return alvo.indexOf(q) !== -1 || u.somenteDigitos(l.telefone).indexOf(u.somenteDigitos(params.q)) !== -1;
+        return alvo.indexOf(q) !== -1 || (!!digitosBusca && u.somenteDigitos(l.telefone).indexOf(digitosBusca) !== -1);
       });
     }
     if (params.etapa) {

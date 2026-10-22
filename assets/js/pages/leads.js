@@ -29,6 +29,7 @@
   var selecionados = {};
   var idsPagina = [];
   var facetsCarregadas = false;
+  var seqCarregar = 0;
 
   function el(id) { return document.getElementById(id); }
 
@@ -52,8 +53,7 @@
     var mapa = {
       total: stats.total,
       abertos: stats.abertos,
-      atrasados: stats.atrasados,
-      novosMes: stats.novosMes
+      atrasados: stats.atrasados
     };
     Object.keys(mapa).forEach(function (k) {
       var node = document.querySelector('[data-stat="' + k + '"]');
@@ -88,7 +88,7 @@
         ? '<span class="next-date' + (l.proximoContatoAtrasado ? " is-late" : "") + '"><strong>' + u.rotuloPrazo(l.proximoContato) + "</strong><small>" + u.formatarData(l.proximoContato) + "</small></span>"
         : '<span class="faint">—</span>';
       return '<tr data-lead-row="' + l.id + '">' +
-        '<td class="td--check"><input class="row-check" type="checkbox" data-select="' + l.id + '"' + (selecionados[l.id] ? " checked" : "") + "></td>" +
+        '<td class="td--check"><input class="row-check" type="checkbox" data-select="' + l.id + '" aria-label="Selecionar ' + u.escaparHTML(l.nome) + '"' + (selecionados[l.id] ? " checked" : "") + "></td>" +
         '<td><button class="cell-main cell-main--button" type="button" data-open="' + l.id + '">' +
           '<span class="avatar avatar--sm ' + u.tomAvatar(l.nome) + '">' + u.escaparHTML(u.iniciais(l.nome)) + "</span>" +
           "<span><strong>" + u.escaparHTML(l.nome) + "</strong><small>" + u.escaparHTML(l.empresa || "Sem empresa") + (l.cargo ? " · " + u.escaparHTML(l.cargo) : "") + "</small></span></button></td>" +
@@ -147,7 +147,9 @@
   }
 
   function carregar() {
+    var seq = ++seqCarregar;
     return api.leads.listar(params()).then(function (res) {
+      if (seq !== seqCarregar) return res;
       preencherFacets(res.facets);
       renderStats(res.stats);
       renderTabela(res.data);
@@ -157,6 +159,7 @@
       ui.recarregarResumoSidebar();
       return res;
     }).catch(function (err) {
+      if (seq !== seqCarregar) return;
       ui.toast(err.message || "Não foi possível carregar os leads.", "error");
       el("leads-tbody").innerHTML = '<tr><td colspan="9"><div class="empty"><p>Erro ao carregar os leads.</p></div></td></tr>';
     });
@@ -229,7 +232,17 @@
       { label: "Enviar mensagem", icone: "message-circle", acao: function () { leadUI.abrirMensagem(id, { onSent: carregar }); } },
       { label: "Editar lead", icone: "pencil", acao: function () { abrirEdicao(id); } },
       { label: "Mover etapa", icone: "kanban", acao: function () { leadUI.abrirMudarEtapa([id], { onDone: function () { carregar(); } }); } },
-      { label: "Agendar follow-up", icone: "calendar-plus", acao: function () { leadUI.abrirTarefa({ lead: lead, onSaved: carregar }); } },
+      {
+        label: "Agendar follow-up", icone: "calendar-plus", acao: function () {
+          var abrir = function (registro) {
+            leadUI.abrirTarefa({ lead: registro, onSaved: carregar });
+          };
+          if (lead) { abrir(lead); return; }
+          api.leads.obter(id).then(function (res) { abrir(res.lead); }).catch(function (err) {
+            ui.toast(err.message || "Não foi possível carregar o lead.", "error");
+          });
+        }
+      },
       { divider: true },
       {
         label: "Excluir lead", icone: "trash", perigo: true, acao: function () {
@@ -254,8 +267,6 @@
         }
       }
     ]);
-    // Carrega os dados em segundo plano para a ação de agendamento.
-    api.leads.obter(id).then(function (res) { lead = res.lead; }).catch(function () { });
   }
 
   /* Importação ------------------------------------------------------------- */
@@ -419,9 +430,9 @@
   }
 
   function valorPreview(valor) {
-    if (valor instanceof Date) return u.formatarData(valor);
+    if (valor instanceof Date) return u.escaparHTML(u.formatarData(valor));
     var s = String(valor === null || valor === undefined ? "" : valor).trim();
-    return s ? u.truncar(s, 42) : '<span class="faint">—</span>';
+    return s ? u.escaparHTML(u.truncar(s, 42)) : '<span class="faint">—</span>';
   }
 
   function atualizarPrevia() {
@@ -583,25 +594,36 @@
       recarregarPrimeira();
     }, 280));
 
+    function marcarQuick(q) {
+      document.querySelectorAll("[data-quick]").forEach(function (b) {
+        b.classList.toggle("is-active", q !== null && b.getAttribute("data-quick") === q);
+      });
+    }
+
     ["etapa", "sistema", "origem", "responsavel", "prioridade", "possuiSistema"].forEach(function (campo) {
       var id = campo === "possuiSistema" ? "filtro-possui" : "filtro-" + campo;
       el(id).addEventListener("change", function (e) {
         estado[campo] = e.target.value;
+        if (campo === "etapa") {
+          estado.atrasados = "";
+          estado.naoContatar = "";
+          marcarQuick(e.target.value === "abertos" ? "abertos" : null);
+        }
         recarregarPrimeira();
       });
     });
 
     document.querySelectorAll("[data-quick]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        document.querySelectorAll("[data-quick]").forEach(function (b) { b.classList.remove("is-active"); });
-        btn.classList.add("is-active");
         var q = btn.getAttribute("data-quick");
+        marcarQuick(q);
         estado.etapa = "";
         estado.atrasados = "";
         estado.naoContatar = "";
         if (q === "abertos") estado.etapa = "abertos";
         if (q === "atrasados") estado.atrasados = "1";
         if (q === "nao") estado.naoContatar = "1";
+        el("filtro-etapa").value = q === "abertos" ? "abertos" : "";
         recarregarPrimeira();
       });
     });
@@ -635,7 +657,7 @@
         leadUI.abrirFormulario(null, { onSaved: function () { leadUI.invalidarListas(); carregar(); } });
         return;
       }
-      var pageBtn = e.target.closest("[data-page]");
+      var pageBtn = e.target.closest("button[data-page]");
       if (pageBtn) {
         estado.page = Number(pageBtn.getAttribute("data-page"));
         carregar();
