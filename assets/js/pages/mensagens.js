@@ -31,6 +31,10 @@
     return mapa[status] || mapa.concluida;
   }
 
+  function podeCancelar(status) {
+    return ["agendada", "em_andamento"].indexOf(status) !== -1;
+  }
+
   /* Público ---------------------------------------------------------------- */
 
   function preencherFiltros(cfg) {
@@ -55,29 +59,40 @@
       if (filtros.prioridade && l.prioridade !== filtros.prioridade) return false;
       if (q) {
         var alvo = u.normalizarTexto([l.nome, l.empresa, l.cidade, l.responsavel, l.email, (l.tags || []).join(" "), (l.sistemasNomes || []).join(" ")].join(" "));
-        if (alvo.indexOf(q) === -1 && u.somenteDigitos(l.telefone).indexOf(u.somenteDigitos(filtros.q)) === -1) return false;
+        if (alvo.indexOf(q) === -1 && (!digitosBusca || u.somenteDigitos(l.telefone).indexOf(digitosBusca) === -1)) return false;
       }
       return true;
     });
   }
 
+  function elegivelLead(l) {
+    return !l.naoContatar && !!l.etapa && l.etapa.tipo === "aberto";
+  }
+
+  function motivoBloqueio(l) {
+    if (l.naoContatar) return "Não contatar";
+    if (l.etapa && l.etapa.tipo === "ganho") return "Cliente";
+    if (l.etapa && l.etapa.tipo === "perdido") return "Recusado";
+    return "Encerrado";
+  }
+
   function publicoAtual() {
     var filtrados = filtrarLeads();
     if (modo === "filtros") {
-      return filtrados.filter(function (l) { return !l.naoContatar; });
+      return filtrados.filter(elegivelLead);
     }
-    return leads.filter(function (l) { return selecionados[l.id] && !l.naoContatar; });
+    return leads.filter(function (l) { return selecionados[l.id] && elegivelLead(l); });
   }
 
   function amostra() {
     var pub = publicoAtual();
     if (pub.length) return pub[0];
-    var filtrados = filtrarLeads().filter(function (l) { return !l.naoContatar; });
+    var filtrados = filtrarLeads().filter(elegivelLead);
     return filtrados[0] || leads[0] || null;
   }
 
   function itemManual(l) {
-    var bloqueado = l.naoContatar;
+    var bloqueado = !elegivelLead(l);
     var marcado = !!selecionados[l.id];
     return '<label class="audience-item' + (marcado ? " is-selected" : "") + (bloqueado ? " is-blocked" : "") + '">' +
       '<input type="checkbox" data-pick="' + l.id + '"' + (marcado ? " checked" : "") + (bloqueado ? " disabled" : "") + ">" +
@@ -85,22 +100,22 @@
       '<span class="avatar avatar--sm ' + u.tomAvatar(l.nome) + '">' + u.escaparHTML(u.iniciais(l.nome)) + "</span>" +
       '<span class="audience-item__main"><strong>' + u.escaparHTML(l.nome) + "</strong><small>" + u.escaparHTML(l.empresa || "Sem empresa") + " · " + u.formatarTelefone(l.telefone) + "</small></span>" +
       '<span class="audience-item__tags">' + leadUI.sistemaChips(l.sistemas, 1) + "</span>" +
-      (bloqueado ? '<span class="badge badge--danger">Não contatar</span>' : leadUI.etapaBadge(l.etapa)) +
+      (bloqueado ? '<span class="badge badge--danger">' + motivoBloqueio(l) + "</span>" : leadUI.etapaBadge(l.etapa)) +
     "</label>";
   }
 
   function renderPublico() {
     var filtrados = filtrarLeads();
     var pub = publicoAtual();
-    var bloqueados = filtrados.filter(function (l) { return l.naoContatar; }).length;
+    var bloqueados = filtrados.filter(function (l) { return !elegivelLead(l); }).length;
     el("msg-publico").textContent = u.formatarNumero(pub.length);
     el("msg-publico-nota").textContent = bloqueados
-      ? "· " + bloqueados + " bloqueado(s) por não contatar"
+      ? "· " + bloqueados + " contato(s) fora do público de envio"
       : (modo === "manual" ? "· seleção manual" : "· todos os filtrados serão incluídos");
     el("resumo-publico").textContent = u.formatarNumero(pub.length);
     el("resumo-bloqueados").textContent = u.formatarNumero(bloqueados);
     el("msg-excluidos").hidden = !bloqueados;
-    if (bloqueados) el("msg-excluidos").textContent = bloqueados + " contato(s) do filtro estão marcados como “não contatar” e serão ignorados no envio.";
+    if (bloqueados) el("msg-excluidos").textContent = bloqueados + " contato(s) do filtro estão encerrados, são clientes ou estão marcados como “não contatar” e serão ignorados no envio.";
 
     var manual = el("audience-manual");
     manual.hidden = modo !== "manual";
@@ -305,7 +320,7 @@
             (c.agendadaPara ? '<p class="small muted" style="margin-top:12px">Agendada para ' + u.formatarDataHoraCurta(c.agendadaPara) + "</p>" : "") +
           "</div>",
         footer: '<button class="btn btn--secondary" type="button" data-close>Fechar</button>' +
-          (c.status === "agendada" ? '<button class="btn btn--danger-soft" type="button" data-cancelar-campanha="' + c.id + '">Cancelar campanha</button>' : "") +
+          (podeCancelar(c.status) ? '<button class="btn btn--danger-soft" type="button" data-cancelar-campanha="' + c.id + '">Cancelar campanha</button>' : "") +
           '<button class="btn btn--primary" type="button" data-duplicar="' + c.id + '">Duplicar mensagem</button>',
         onMount: function (layer, fechar) {
           var dup = layer.querySelector("[data-duplicar]");
@@ -335,7 +350,7 @@
     selecionados = {};
     (c.leadIds || []).forEach(function (id) {
       var l = leads.filter(function (x) { return x.id === id; })[0];
-      if (l && !l.naoContatar) selecionados[id] = true;
+      if (l && elegivelLead(l)) selecionados[id] = true;
     });
     el("msg-nome").value = "Cópia de " + c.nome;
     el("msg-texto").value = c.mensagem;
@@ -529,7 +544,7 @@
     });
 
     document.querySelector("[data-selecionar-visiveis]").addEventListener("click", function () {
-      filtrarLeads().forEach(function (l) { if (!l.naoContatar) selecionados[l.id] = true; });
+      filtrarLeads().forEach(function (l) { if (elegivelLead(l)) selecionados[l.id] = true; });
       renderPublico();
     });
     document.querySelector("[data-limpar-selecao]").addEventListener("click", function () {
@@ -614,7 +629,7 @@
         document.querySelectorAll("[data-modo]").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-modo") === "manual"); });
         ids.forEach(function (id) {
           var l = leads.filter(function (x) { return x.id === id; })[0];
-          if (l && !l.naoContatar) selecionados[id] = true;
+          if (l && elegivelLead(l)) selecionados[id] = true;
         });
         if (ids.length === 1) {
           var unico = leads.filter(function (x) { return x.id === ids[0]; })[0];

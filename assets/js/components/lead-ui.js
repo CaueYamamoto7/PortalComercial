@@ -416,7 +416,7 @@
         footer: '<button class="btn btn--danger-soft btn--sm" type="button" data-detail-delete>' + icone("trash") + "Excluir</button>" +
           '<span class="spacer"></span>' +
           '<button class="btn btn--secondary" type="button" data-detail-task2>' + icone("calendar-plus") + "Agendar</button>" +
-          '<button class="btn btn--primary" type="button" data-detail-msg' + (dados.lead.naoContatar ? " disabled" : "") + ">" + icone("send") + "Enviar mensagem</button>"
+          '<button class="btn btn--primary" type="button" data-detail-msg' + (dados.lead.naoContatar || (dados.lead.etapa && dados.lead.etapa.tipo === "perdido") ? " disabled" : "") + ">" + icone("send") + "Enviar mensagem</button>"
       });
 
       var body = d.el.querySelector(".drawer__body");
@@ -429,7 +429,7 @@
           body.innerHTML = detalheHTML(dados);
           body.scrollTop = scroll;
           var msgBtn = d.el.querySelector("[data-detail-msg]");
-          if (msgBtn) msgBtn.disabled = dados.lead.naoContatar;
+          if (msgBtn) msgBtn.disabled = dados.lead.naoContatar || (dados.lead.etapa && dados.lead.etapa.tipo === "perdido");
           if (opts.onChanged) opts.onChanged(dados.lead);
           Painel.ui.recarregarResumoSidebar();
         });
@@ -446,7 +446,7 @@
       }
 
       function mensagem() {
-        if (dados.lead.naoContatar) return;
+        if (dados.lead.naoContatar || (dados.lead.etapa && dados.lead.etapa.tipo === "perdido")) return;
         abrirMensagem(dados.lead.id, {
           onSent: function () {
             recarregar();
@@ -566,7 +566,7 @@
     return Promise.all([Painel.api.leads.obter(leadId), Painel.api.mensagens.templates()]).then(function (res) {
       var lead = res[0].lead;
       var templates = res[1];
-      var bloqueado = lead.naoContatar;
+      var bloqueado = lead.naoContatar || (lead.etapa && lead.etapa.tipo === "perdido");
       var m = Painel.ui.modal({
         title: "Enviar mensagem",
         subtitle: "Mensagem individual pelo WhatsApp",

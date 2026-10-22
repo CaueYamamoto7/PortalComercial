@@ -697,7 +697,10 @@
     if (!String(payload.nome || "").trim()) throw erro("Dê um nome para a campanha.", "nome");
     if (!String(payload.mensagem || "").trim()) throw erro("Escreva a mensagem.", "mensagem");
     var leadIds = (payload.leadIds || []).filter(function (id) {
-      return db.leads.some(function (l) { return l.id === id && !l.naoContatar; });
+      return db.leads.some(function (l) {
+        var etapa = etapaPorId(l.etapaId);
+        return l.id === id && !l.naoContatar && etapa && etapa.tipo === "aberto";
+      });
     });
     if (!leadIds.length) throw erro("Selecione pelo menos um lead que aceite receber mensagens.", "leads");
     var agendada = payload.agendadaPara ? new Date(payload.agendadaPara) : null;
@@ -731,7 +734,7 @@
           id: u.uid("it"), leadId: lead.id, tipo: "mensagem",
           titulo: "Mensagem enviada — " + campanha.nome,
           descricao: "Mensagem enviada por WhatsApp na campanha “" + campanha.nome + "”.",
-          data: agora.toISOString(), usuario: campanha.responsavel, canal: "WhatsApp"
+          data: agora.toISOString(), usuario: campanha.responsavel, canal: "WhatsApp", direcao: "saida"
         });
       });
     }
@@ -742,6 +745,9 @@
   function cancelarCampanha(id) {
     var campanha = carregar().campanhas.filter(function (c) { return c.id === id; })[0];
     if (!campanha) throw erro("Campanha não encontrada.");
+    if (["agendada", "em_andamento"].indexOf(campanha.status) === -1) {
+      throw erro("Esta campanha não pode mais ser cancelada.");
+    }
     campanha.status = "cancelada";
     persistir();
     return campanha;
@@ -750,7 +756,9 @@
   function enviarIndividual(leadId, payload) {
     var lead = carregar().leads.filter(function (l) { return l.id === leadId; })[0];
     if (!lead) throw erro("Lead não encontrado.");
+    var etapa = etapaPorId(lead.etapaId);
     if (lead.naoContatar) throw erro("Este lead está marcado como “não contatar”.", "lead");
+    if (etapa && etapa.tipo === "perdido") throw erro("Esta oportunidade foi encerrada como perdida. Reative o contato antes de enviar mensagens.", "lead");
     var mensagem = String(payload && payload.mensagem || "").trim();
     if (!mensagem) throw erro("Escreva a mensagem.", "mensagem");
     var agora = new Date().toISOString();
@@ -758,7 +766,7 @@
       id: u.uid("it"), leadId: lead.id, tipo: "mensagem",
       titulo: "Mensagem individual enviada",
       descricao: mensagem, data: agora, usuario: Painel.auth.usuario().nome,
-      canal: "WhatsApp"
+      canal: "WhatsApp", direcao: "saida"
     };
     carregar().interacoes.push(interacao);
     lead.ultimoContato = agora;

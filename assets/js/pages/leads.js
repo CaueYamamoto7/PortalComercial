@@ -99,8 +99,8 @@
         '<td><span class="resp-cell"><span class="avatar avatar--xs ' + u.tomAvatar(l.responsavel) + '">' + u.escaparHTML(u.iniciais(l.responsavel)) + "</span>" + u.escaparHTML(u.primeiroNome(l.responsavel)) + "</span></td>" +
         "<td>" + proximo + "</td>" +
         '<td class="td--actions"><div class="row-actions">' +
-          '<button class="icon-btn icon-btn--sm" type="button" data-msg="' + l.id + '" title="Enviar mensagem"' + (l.naoContatar ? " disabled" : "") + ">" + ui.icone("message-circle") + "</button>" +
-          '<button class="icon-btn icon-btn--sm" type="button" data-menu="' + l.id + '" title="Mais ações">' + ui.icone("more") + "</button>" +
+          '<button class="icon-btn icon-btn--sm" type="button" data-msg="' + l.id + '" title="Enviar mensagem" aria-label="Enviar mensagem para ' + u.escaparHTML(l.nome) + '"' + (l.naoContatar || (l.etapa && l.etapa.tipo === "perdido") ? " disabled" : "") + ">" + ui.icone("message-circle") + "</button>" +
+          '<button class="icon-btn icon-btn--sm" type="button" data-menu="' + l.id + '" title="Mais ações" aria-label="Mais ações para ' + u.escaparHTML(l.nome) + '">' + ui.icone("more") + "</button>" +
         "</div></td>" +
       "</tr>";
     }).join("");
