@@ -128,11 +128,6 @@
   function carregar() {
     return api.tarefas.listar().then(function (res) {
       tarefas = res.data;
-      var stats = res.stats;
-      ["atrasadas", "hoje", "semana", "concluidas"].forEach(function (k) {
-        var node = document.querySelector('[data-fstat="' + k + '"]');
-        if (node) node.textContent = u.formatarNumero(stats[k] || 0);
-      });
       preencherResponsaveis();
       render();
       ui.recarregarResumoSidebar();
