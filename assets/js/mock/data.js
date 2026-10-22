@@ -16,6 +16,23 @@
     return u.diasFrente(dias, h, m);
   }
 
+  function depoisDe(data, horas) {
+    var d = new Date(data);
+    d.setTime(d.getTime() + horas * 3600000);
+    if (d > new Date()) d = new Date(Date.now() - 30 * 60000);
+    return d.toISOString();
+  }
+
+  function textoMensagem(lead) {
+    var sistemasLead = (lead.sistemaIds || []).map(function (id) {
+      var s = sistemas.filter(function (x) { return x.id === id; })[0];
+      return s ? s.nome : "";
+    }).filter(Boolean).join(" e ");
+    return "Olá, " + u.primeiroNome(lead.nome) + "! Sou " + lead.responsavel + ", da AssinaSoft. " +
+      (sistemasLead ? "Vi seu interesse em " + sistemasLead + " e queria entender melhor o seu cenário. " : "") +
+      "Podemos conversar por aqui?";
+  }
+
   /* Catálogo -------------------------------------------------------------- */
 
   var sistemas = [
@@ -139,15 +156,52 @@
   var indiceEtapa = {};
   etapas.forEach(function (e) { indiceEtapa[e.id] = e.ordem; });
 
+  var ULTIMA_ENTRADA = {
+    ld_003: "Oi! Recebi sim. Pode me explicar como funciona a assinatura para os contratos da Casa Nativa?",
+    ld_007: "Oi, tudo bem! A clínica precisa se adequar à LGPD. Consegue me enviar um resumo?",
+    ld_009: "Recebi a proposta. Consigo avaliar com o financeiro amanhã, pode ser?",
+    ld_015: "Gostei da reunião. Consegue me mandar o escopo por escrito para eu validar internamente?",
+    ld_019: "Oi! Ainda estou avaliando com o jurídico. Você tem um caso parecido com o nosso?",
+    ld_023: "A demonstração foi ótima. Podemos ver os valores para 10 usuários?",
+    ld_025: "Oi! Consegue me enviar o exemplo de contrato que comentou?",
+    ld_031: "Oi! Consegui falar com o TI. Eles pediram uma proposta para 40 domínios."
+  };
+
+  var CONVERSA_ATIVA = {
+    ld_001: "Oi, Marina! Tenho interesse sim. Como funciona a assinatura para campanhas?",
+    ld_004: "Faz sentido. Consegue revisar a proposta para 2 anos?",
+    ld_008: "Legal! Meu time usa API. Vocês têm integração?",
+    ld_016: "Perfeito, gostei do escopo. Qual o próximo passo?",
+    ld_017: "Oi! Podemos marcar uma conversa na quinta?",
+    ld_022: "Fechado, podemos seguir com a proposta combinada.",
+    ld_026: "Recebi. Vou validar internamente e te retorno.",
+    ld_027: "Oi! O time jurídico pediu alguns ajustes no contrato."
+  };
+
+  var RESPOSTAS_CLIENTE = {
+    ld_005: "Fechado! Pode enviar o contrato para assinatura.",
+    ld_013: "Aprovado. Pode emitir o contrato do pacote.",
+    ld_021: "Conseguimos aprovar. Vamos seguir com a implantação.",
+    ld_029: "Fechado para as três escolas. Pode iniciar o onboarding."
+  };
+
+  var RESPOSTAS_RECUSA = {
+    ld_010: "Obrigado, mas vamos continuar com o fornecedor atual.",
+    ld_014: "Não temos interesse no momento. Por favor, não envie mais mensagens.",
+    ld_020: "Agradecemos o contato, mas não há aderência para o nosso momento."
+  };
+
   leads.forEach(function (lead, i) {
     addInteracao(lead, "nota", "Lead cadastrado", "Contato adicionado ao Painel Comercial a partir de " + (lead.origemDetalhe || "prospecção") + ".", lead.criadoEm);
 
     var ordem = indiceEtapa[lead.etapaId];
+    var base = lead.ultimoContato || lead.criadoEm;
+    var enviadaEm = base;
+
     if (ordem >= 1) {
-      addInteracao(lead, i % 2 ? "ligacao" : "mensagem", i % 2 ? "Ligação de primeiro contato" : "Mensagem de primeiro contato",
-        i % 2 ? "Conversa inicial realizada. Lead demonstrou interesse e pediu mais detalhes." : "Mensagem enviada por WhatsApp apresentando a AssinaSoft e o sistema de interesse.",
-        lead.ultimoContato || lead.criadoEm, { canal: "WhatsApp" });
+      addInteracao(lead, "mensagem", "Mensagem enviada pelo WhatsApp", textoMensagem(lead), enviadaEm, { canal: "WhatsApp", direcao: "saida" });
     }
+
     if (ordem >= 2) {
       addInteracao(lead, "reuniao", "Reunião de qualificação", "Reunião realizada para entender o cenário atual, necessidades e tomada de decisão.", hora(Math.max(1, 10 - i % 5), 15, 0));
     }
@@ -157,6 +211,41 @@
     if (ordem >= 4) {
       addInteracao(lead, "nota", "Negociação em andamento", "Lead solicitou ajustes comerciais. Valores e condições em revisão.", hora(2, 16, 0));
     }
+
+    if (ULTIMA_ENTRADA[lead.id]) {
+      var entradaEm = depoisDe(enviadaEm, 4);
+      addInteracao(lead, "mensagem", "Mensagem recebida pelo WhatsApp", ULTIMA_ENTRADA[lead.id], entradaEm, { canal: "WhatsApp", direcao: "entrada" });
+      lead.ultimoContato = entradaEm;
+      lead.atualizadoEm = entradaEm;
+    }
+
+    if (CONVERSA_ATIVA[lead.id]) {
+      var recebidaEm = depoisDe(enviadaEm, 4);
+      addInteracao(lead, "mensagem", "Mensagem recebida pelo WhatsApp", CONVERSA_ATIVA[lead.id], recebidaEm, { canal: "WhatsApp", direcao: "entrada" });
+      var respondidaEm = depoisDe(recebidaEm, 1);
+      addInteracao(lead, "mensagem", "Resposta enviada pelo WhatsApp", "Perfeito! Vou preparar o material e já te envio por aqui. Qualquer dúvida, fico à disposição.", respondidaEm, { canal: "WhatsApp", direcao: "saida" });
+      lead.ultimoContato = respondidaEm;
+      lead.atualizadoEm = respondidaEm;
+    }
+
+    if (RESPOSTAS_CLIENTE[lead.id]) {
+      var clienteEm = depoisDe(enviadaEm, 4);
+      addInteracao(lead, "mensagem", "Mensagem recebida pelo WhatsApp", RESPOSTAS_CLIENTE[lead.id], clienteEm, { canal: "WhatsApp", direcao: "entrada" });
+      var contratoEm = depoisDe(clienteEm, 1);
+      addInteracao(lead, "mensagem", "Resposta enviada pelo WhatsApp", "Excelente! Vou encaminhar o contrato e o passo a passo de onboarding.", contratoEm, { canal: "WhatsApp", direcao: "saida" });
+      lead.ultimoContato = contratoEm;
+      lead.atualizadoEm = contratoEm;
+    }
+
+    if (RESPOSTAS_RECUSA[lead.id]) {
+      var recusaEm = depoisDe(enviadaEm, 3);
+      addInteracao(lead, "mensagem", "Mensagem recebida pelo WhatsApp", RESPOSTAS_RECUSA[lead.id], recusaEm, { canal: "WhatsApp", direcao: "entrada" });
+      lead.naoContatar = true;
+      lead.motivoPerda = lead.motivoPerda || "Contato recusou a continuidade.";
+      lead.ultimoContato = recusaEm;
+      lead.atualizadoEm = recusaEm;
+    }
+
     if (lead.etapaId === "et_ganho") {
       addInteracao(lead, "nota", "Negócio ganho", "Contrato fechado. Cliente encaminhado para onboarding.", lead.ultimoContato || hora(5, 10, 0));
     }

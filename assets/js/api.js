@@ -55,7 +55,8 @@
         logout: function () { return requisicao("POST", "/auth/logout"); }
       },
       dashboard: {
-        obter: function (periodo) { return requisicao("GET", "/dashboard", undefined, { periodo: periodo }); }
+        obter: function (periodo) { return requisicao("GET", "/dashboard", undefined, { periodo: periodo }); },
+        conversas: function (tipo, params) { return requisicao("GET", "/dashboard/conversas", undefined, Object.assign({ tipo: tipo }, params || {})); }
       },
       leads: {
         listar: function (params) { return requisicao("GET", "/leads", undefined, params); },

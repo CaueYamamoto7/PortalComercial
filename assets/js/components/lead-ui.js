@@ -53,6 +53,20 @@
     return '<span class="badge ' + p.cls + '">' + p.label + "</span>";
   }
 
+  var CONVERSA = {
+    sem_mensagem: { label: "Sem mensagem enviada", cls: "badge--neutral" },
+    aguardando: { label: "Aguardando resposta", cls: "badge--warning" },
+    responder: { label: "Precisa de resposta", cls: "badge--danger" },
+    em_conversa: { label: "Em conversa", cls: "badge--info" },
+    cliente: { label: "Cliente", cls: "badge--success" },
+    recusado: { label: "Não enviar", cls: "badge--danger" }
+  };
+
+  function conversaBadge(status) {
+    var c = CONVERSA[status] || CONVERSA.sem_mensagem;
+    return '<span class="badge ' + c.cls + '">' + c.label + "</span>";
+  }
+
   function sistemaChips(sistemas, max) {
     var lista = sistemas || [];
     var limite = max || lista.length;
@@ -309,19 +323,21 @@
     var lead = dados.lead;
     var pendentes = (dados.tarefas || []).filter(function (t) { return t.status === "pendente"; });
     var proxima = pendentes[0];
+    var conversa = lead.conversa || { status: "sem_mensagem", enviadas: 0, recebidas: 0 };
+    var bloqueado = lead.naoContatar || (lead.etapa && lead.etapa.tipo === "perdido");
     return '<div class="lead-detail">' +
       '<div class="lead-hero">' + avatar(lead.nome, true) +
         '<div class="lead-hero__main"><div class="lead-hero__title"><h3>' + u.escaparHTML(lead.nome) + "</h3>" +
           (lead.naoContatar ? '<span class="badge badge--danger">Não contatar</span>' : "") + "</div>" +
           '<p>' + u.escaparHTML(lead.cargo || "Cargo não informado") + (lead.empresa ? " · " + u.escaparHTML(lead.empresa) : "") + "</p>" +
-          '<div class="lead-hero__badges">' + etapaBadge(lead.etapa) + prioridadeBadge(lead.prioridade) +
+          '<div class="lead-hero__badges">' + etapaBadge(lead.etapa) + prioridadeBadge(lead.prioridade) + conversaBadge(conversa.status) +
             '<span class="badge badge--neutral">' + u.escaparHTML(lead.responsavel) + "</span></div>" +
           '<div class="lead-hero__sistemas">' + sistemaChips(lead.sistemas) + "</div>" +
         "</div>" +
         '<button class="btn btn--secondary btn--sm" type="button" data-detail-edit>' + icone("edit") + "Editar</button>" +
       "</div>" +
 
-      (lead.naoContatar ? '<div class="notice notice--danger">' + icone("alert-triangle") + "<div><strong>Lead marcado como não contatar.</strong> Envios de mensagens estão bloqueados para este contato.</div></div>" : "") +
+      (bloqueado ? '<div class="notice notice--danger">' + icone("alert-triangle") + "<div><strong>Contato bloqueado para envios.</strong> " + (lead.naoContatar ? "Marcado como “não contatar”." : "Oportunidade encerrada como perdida.") + " Para voltar a enviar mensagens, reative o contato no cadastro.</div></div>" : "") +
 
       '<div class="detail-grid">' +
         '<div class="detail-panel"><div class="detail-panel__head">' + icone("user") + "<h4>Contato</h4></div>" +
@@ -339,6 +355,17 @@
           '<div class="detail-line"><span>Origem</span><strong>' + u.escaparHTML(lead.origem ? lead.origem.nome : "—") + (lead.origemDetalhe ? " · " + u.escaparHTML(lead.origemDetalhe) : "") + "</strong></div>" +
           '<div class="detail-line"><span>Responsável</span><strong>' + u.escaparHTML(lead.responsavel) + "</strong></div>" +
         "</div>" +
+      "</div>" +
+
+      '<div class="detail-panel detail-conversa">' +
+        '<div class="detail-panel__head">' + icone("message-circle") + "<h4>Conversa no WhatsApp</h4>" + conversaBadge(conversa.status) + "</div>" +
+        '<div class="detail-line"><span>Status do contato</span><strong>' + (conversa.status === "recusado" ? "Não enviar mensagens" : conversa.status === "cliente" ? "Cliente fechado" : conversa.status === "sem_mensagem" ? "Primeiro contato pendente" : conversa.status === "responder" ? "Aguardando sua resposta" : conversa.status === "em_conversa" ? "Conversa ativa" : "Aguardando retorno") + "</strong></div>" +
+        '<div class="detail-line"><span>Mensagens enviadas</span><strong>' + (conversa.enviadas || 0) + "</strong></div>" +
+        '<div class="detail-line"><span>Mensagens recebidas</span><strong>' + (conversa.recebidas || 0) + "</strong></div>" +
+        (conversa.ultimaMensagem
+          ? '<div class="conv-last conv-last--' + u.escaparHTML(conversa.ultimaMensagem.direcao || "saida") + '"><small>Última mensagem · ' + u.tempoRelativo(conversa.ultimaMensagem.data) + (conversa.ultimaMensagem.direcao === "entrada" ? " · recebida" : " · enviada") + "</small><p>" + u.escaparHTML(conversa.ultimaMensagem.texto) + "</p></div>"
+          : '<p class="small muted">Nenhuma mensagem registrada com este contato.</p>') +
+        '<div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn btn--secondary btn--sm" type="button" data-detail-resposta>' + icone("inbox") + "Registrar resposta recebida</button></div>" +
       "</div>" +
 
       '<div class="detail-panel detail-next">' +
@@ -364,6 +391,7 @@
               '<input class="input input--sm" type="datetime-local" name="data" value="' + u.paraInputDateTime(new Date().toISOString()) + '">' +
             "</div>" +
             '<textarea class="textarea" name="descricao" rows="3" placeholder="O que aconteceu nesta interação?"></textarea>' +
+            '<label class="check" style="margin:8px 0"><input type="checkbox" name="recebida"> Esta mensagem foi recebida do contato</label>' +
             '<div class="row" style="justify-content:flex-end"><button class="btn btn--primary btn--sm" type="submit">Registrar</button></div>' +
           "</form></details>" +
         timelineHTML(dados.interacoes) +
@@ -440,6 +468,15 @@
       d.el.addEventListener("click", function (e) {
         if (e.target.closest("[data-detail-edit]")) { editar(); return; }
         if (e.target.closest("[data-detail-msg]")) { mensagem(); return; }
+        if (e.target.closest("[data-detail-resposta]")) {
+          abrirResposta(dados.lead.id, {
+            onSaved: function () {
+              recarregar();
+              if (opts.onChanged) opts.onChanged(dados.lead);
+            }
+          });
+          return;
+        }
         if (e.target.closest("[data-detail-task]") || e.target.closest("[data-detail-task2]")) { agendar(); return; }
         if (e.target.closest("[data-detail-delete]")) {
           Painel.ui.confirmar({
@@ -496,13 +533,16 @@
           return;
         }
         var dataValor = form.elements.data.value;
+        var recebida = tipo === "mensagem" && form.elements.recebida.checked;
         var btn = form.querySelector("button[type=submit]");
         btn.disabled = true;
         btn.classList.add("is-loading");
         Painel.api.interacoes.criar(id, {
           tipo: tipo,
-          titulo: tipo === "nota" ? "Nota interna" : tipo === "ligacao" ? "Ligação registrada" : tipo === "reuniao" ? "Reunião registrada" : tipo === "email" ? "E-mail registrado" : "Mensagem registrada",
+          titulo: recebida ? "Mensagem recebida pelo WhatsApp" : tipo === "nota" ? "Nota interna" : tipo === "ligacao" ? "Ligação registrada" : tipo === "reuniao" ? "Reunião registrada" : tipo === "email" ? "E-mail registrado" : "Mensagem registrada",
           descricao: descricao,
+          direcao: recebida ? "entrada" : (tipo === "mensagem" ? "saida" : undefined),
+          canal: tipo === "mensagem" ? "WhatsApp" : undefined,
           data: dataValor ? new Date(dataValor).toISOString() : new Date().toISOString()
         }).then(function () {
           Painel.ui.toast("Interação registrada.", "success");
@@ -514,7 +554,6 @@
         });
       });
 
-      if (opts.onChanged) opts.onChanged(dados.lead);
     }).catch(function (err) {
       Painel.ui.toast(err.message || "Não foi possível abrir o lead.", "error");
     });
@@ -705,6 +744,63 @@
     });
   }
 
+  /* Resposta recebida ------------------------------------------------------ */
+
+  function abrirResposta(leadId, opts) {
+    opts = opts || {};
+    return Painel.api.leads.obter(leadId).then(function (res) {
+      var lead = res.lead;
+      var m = Painel.ui.modal({
+        title: "Registrar resposta recebida",
+        subtitle: lead.nome + (lead.empresa ? " · " + lead.empresa : ""),
+        size: "lg",
+        body:
+          '<div class="msg-recipient">' + avatar(lead.nome) +
+            '<div><strong>' + u.escaparHTML(lead.nome) + "</strong><small>" + u.formatarTelefone(lead.telefone) + "</small></div>" +
+            '<span class="badge badge--info">Mensagem recebida</span>' +
+          "</div>" +
+          '<label class="field field--full" style="margin-top:16px"><span class="field__label">O que o contato respondeu? <em class="field__req">*</em></span>' +
+            '<textarea class="textarea" data-resposta-text rows="6" placeholder="Cole ou resuma a resposta recebida no WhatsApp...">' + u.escaparHTML(opts.mensagem || "") + "</textarea>" +
+            '<span class="field__hint">Ao registrar, o contato passa para “Preciso responder” até você enviar a próxima mensagem.</span></label>',
+        footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button>' +
+          '<button class="btn btn--primary" type="button" data-salvar-resposta>' + icone("inbox") + "Registrar resposta</button>"
+      });
+
+      var textarea = m.el.querySelector("[data-resposta-text]");
+      var btn = m.el.querySelector("[data-salvar-resposta]");
+      textarea.focus();
+
+      btn.addEventListener("click", function () {
+        var texto = textarea.value.trim();
+        if (!texto) {
+          Painel.ui.toast("Escreva a resposta recebida.", "warning");
+          textarea.focus();
+          return;
+        }
+        btn.disabled = true;
+        btn.classList.add("is-loading");
+        Painel.api.interacoes.criar(leadId, {
+          tipo: "mensagem",
+          titulo: "Mensagem recebida pelo WhatsApp",
+          descricao: texto,
+          canal: "WhatsApp",
+          direcao: "entrada"
+        }).then(function () {
+          m.close();
+          Painel.ui.toast("Resposta registrada. O contato agora precisa da sua resposta.", "success");
+          Painel.ui.recarregarResumoSidebar();
+          if (opts.onSaved) opts.onSaved();
+        }).catch(function (err) {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+          Painel.ui.toast(err.message || "Não foi possível registrar a resposta.", "error");
+        });
+      });
+    }).catch(function (err) {
+      Painel.ui.toast(err.message || "Não foi possível abrir o contato.", "error");
+    });
+  }
+
   /* Mudança de etapa em lote ----------------------------------------------- */
 
   function abrirMudarEtapa(ids, opts) {
@@ -747,9 +843,11 @@
     prioridadeBadge: prioridadeBadge,
     sistemaChips: sistemaChips,
     avatar: avatar,
+    conversaBadge: conversaBadge,
     abrirFormulario: abrirFormulario,
     abrirDetalhe: abrirDetalhe,
     abrirMensagem: abrirMensagem,
+    abrirResposta: abrirResposta,
     abrirTarefa: abrirTarefa,
     abrirMudarEtapa: abrirMudarEtapa
   };

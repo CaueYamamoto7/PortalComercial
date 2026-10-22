@@ -56,6 +56,53 @@
     return carregar().etapas.filter(function (e) { return e.id === id; })[0] || null;
   }
 
+  function tipoDoLead(lead) {
+    var etapa = etapaPorId(lead.etapaId);
+    return etapa ? etapa.tipo : "aberto";
+  }
+
+  function emailValido(valor) {
+    return /^[^\s@"'<>]+@[^\s@"'<>]+\.[^\s@"'<>]+$/.test(String(valor || ""));
+  }
+
+  function resumoConversa(lead, etapa, interacoes) {
+    var mensagens = (interacoes || []).filter(function (i) {
+      return i.leadId === lead.id && i.tipo === "mensagem";
+    }).sort(function (a, b) { return new Date(a.data) - new Date(b.data); });
+
+    var enviadas = mensagens.filter(function (i) { return (i.direcao || "saida") === "saida"; });
+    var recebidas = mensagens.filter(function (i) { return i.direcao === "entrada"; });
+    var ultima = mensagens[mensagens.length - 1] || null;
+    var ultimaDirecao = ultima ? (ultima.direcao || "saida") : null;
+    var cliente = etapa && etapa.tipo === "ganho";
+    var recusado = lead.naoContatar || (etapa && etapa.tipo === "perdido");
+    var encerrado = etapa && etapa.tipo !== "aberto";
+    var status;
+
+    if (recusado) status = "recusado";
+    else if (cliente) status = "cliente";
+    else if (!enviadas.length) status = "sem_mensagem";
+    else if (ultimaDirecao === "entrada") status = "responder";
+    else if (recebidas.length) status = "em_conversa";
+    else status = "aguardando";
+
+    return {
+      status: status,
+      enviadas: enviadas.length,
+      recebidas: recebidas.length,
+      respondeu: recebidas.length > 0,
+      conversaAberta: !encerrado && recebidas.length > 0,
+      ultimaDirecao: ultimaDirecao,
+      ultimaMensagemEm: ultima ? ultima.data : null,
+      ultimaMensagem: ultima ? {
+        texto: ultima.descricao || ultima.titulo || "",
+        data: ultima.data,
+        direcao: ultimaDirecao
+      } : null,
+      podeEnviar: !recusado
+    };
+  }
+
   function origemPorId(id) {
     return carregar().origens.filter(function (o) { return o.id === id; })[0] || null;
   }
@@ -72,7 +119,8 @@
       etapa: etapa,
       origem: origem,
       proximoContatoAtrasado: atrasado,
-      diasParaContato: proximo ? u.diferencaDias(proximo, new Date()) : null
+      diasParaContato: proximo ? u.diferencaDias(proximo, new Date()) : null,
+      conversa: resumoConversa(lead, etapa, carregar().interacoes)
     });
   }
 
@@ -421,6 +469,7 @@
       descricao: descricao, data: data, usuario: lead.responsavel
     };
     if (extra && extra.canal) item.canal = extra.canal;
+    if (extra && extra.direcao) item.direcao = extra.direcao;
     db.interacoes.push(item);
     if (!extra || !extra.silencioso) {
       lead.ultimoContato = data;
@@ -436,7 +485,7 @@
     if (!String(dados.descricao || "").trim() && !String(dados.titulo || "").trim()) {
       throw erro("Escreva a interação.");
     }
-    var item = registrarInteracao(lead, dados.tipo || "nota", dados.titulo || "Interação", String(dados.descricao || "").trim(), { data: dados.data, canal: dados.canal });
+    var item = registrarInteracao(lead, dados.tipo || "nota", dados.titulo || "Interação", String(dados.descricao || "").trim(), { data: dados.data, canal: dados.canal, direcao: dados.direcao });
     if (dados.proximoContato !== undefined) {
       lead.proximoContato = dados.proximoContato ? new Date(dados.proximoContato).toISOString() : null;
       persistir();
