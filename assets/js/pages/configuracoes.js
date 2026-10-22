@@ -262,7 +262,7 @@
         '<label class="field field--full"><span class="field__label">Perfil</span><select class="select" name="perfil">' +
           '<option>Consultor comercial</option><option>Consultora comercial</option><option>Administrador</option><option>Gestor comercial</option>' +
         "</select></label></form>",
-      footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button><button class="btn btn--primary" type="button" data-convidar><svg class="icon" aria-hidden="true"><use href="#i-user-plus"></use></svg>Enviar convite</button>'
+      footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button><button class="btn btn--primary" type="button" data-convidar>' + ui.icone("user-plus") + 'Enviar convite</button>'
     });
     var form = m.el.querySelector("#membro-form");
     m.el.querySelector("[data-convidar]").addEventListener("click", function (e) {

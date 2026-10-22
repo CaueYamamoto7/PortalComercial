@@ -597,14 +597,6 @@
   /* Init ------------------------------------------------------------------- */
 
   function bindGlobal() {
-    if (!document.getElementById("painel-sprite")) {
-      var wrapper = document.createElement("div");
-      wrapper.innerHTML = Painel.icons.sprite();
-      var svg = wrapper.firstChild;
-      svg.id = "painel-sprite";
-      document.body.insertBefore(svg, document.body.firstChild);
-    }
-
     document.addEventListener("click", function (e) {
       if (e.target.closest("[data-sidebar-toggle]")) {
         document.body.classList.toggle("sidebar-visible");
