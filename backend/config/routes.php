@@ -49,6 +49,7 @@ return function (RouteBuilder $routes): void {
 
         $builder->get('/configuracoes', ['controller' => 'Settings', 'action' => 'index']);
         $builder->put('/perfil', ['controller' => 'Settings', 'action' => 'perfil']);
+        $builder->put('/senha', ['controller' => 'Settings', 'action' => 'alterarSenha']);
         $builder->put('/configuracoes/{secao}', ['controller' => 'Settings', 'action' => 'save'])
             ->setPass(['secao']);
         $builder->post('/configuracoes/sistemas', ['controller' => 'Settings', 'action' => 'addSystem']);

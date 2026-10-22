@@ -164,7 +164,8 @@
       marcarLidas: function () { return requisicao("POST", "/notificacoes/marcar-lidas"); }
     },
     conta: {
-      salvarPerfil: function (dados) { return requisicao("PUT", "/perfil", dados); }
+      salvarPerfil: function (dados) { return requisicao("PUT", "/perfil", dados); },
+      alterarSenha: function (dados) { return requisicao("PUT", "/senha", dados); }
     }
   };
 })(window.Painel);

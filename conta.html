@@ -151,10 +151,27 @@
               <div class="card__head card__head--bordered">
                 <div>
                   <h2 class="card__title">Acesso e segurança</h2>
-                  <p class="card__desc">Sua sessão é protegida pelo servidor. A troca de senha é feita pelo administrador da conta.</p>
+                  <p class="card__desc">Altere sua senha de acesso e gerencie a sessão deste navegador.</p>
                 </div>
               </div>
               <div class="card__body">
+                <form id="form-senha" class="form-grid" novalidate>
+                  <label class="field field--full">
+                    <span class="field__label">Senha atual</span>
+                    <input class="input" type="password" name="atual" autocomplete="current-password" required>
+                    <span class="field__error">Informe a senha atual.</span>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Nova senha</span>
+                    <input class="input" type="password" name="nova" autocomplete="new-password" minlength="8" required>
+                    <span class="field__error">Use pelo menos 8 caracteres.</span>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Confirmar nova senha</span>
+                    <input class="input" type="password" name="confirmacao" autocomplete="new-password" required>
+                    <span class="field__error">As senhas não conferem.</span>
+                  </label>
+                </form>
                 <div class="account-session">
                   <div>
                     <strong>Sessão atual</strong>
@@ -164,7 +181,8 @@
                 </div>
               </div>
               <div class="card__foot account-card__foot">
-                <span class="small faint">Para alterar a senha, solicite ao administrador do painel.</span>
+                <span class="small faint">Você continuará conectado e usará a nova senha no próximo login.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-alterar-senha>Alterar senha</button>
               </div>
             </section>
           </div>

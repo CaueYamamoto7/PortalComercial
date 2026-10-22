@@ -192,11 +192,11 @@
     var confirmacao = campo("confirmacao", form);
     var valido = true;
 
-    if (normalizar(atual.value).length < 6) {
+    if (normalizar(atual.value).length < 1) {
       marcarErro(atual, true);
       valido = false;
     }
-    if (normalizar(nova.value).length < 6) {
+    if (normalizar(nova.value).length < 8) {
       marcarErro(nova, true);
       valido = false;
     }
@@ -204,13 +204,39 @@
       marcarErro(confirmacao, true);
       valido = false;
     }
+    if (atual.value && atual.value === nova.value) {
+      marcarErro(nova, true);
+      valido = false;
+    }
     if (!valido) {
       (form.querySelector(".field.has-error input") || form.querySelector(".field.has-error")).focus();
       return;
     }
 
-    form.reset();
-    ui.toast("Senha alterada nesta simulação.", "success");
+    var botao = document.querySelector("[data-alterar-senha]");
+    if (botao) {
+      botao.disabled = true;
+      botao.classList.add("is-loading");
+    }
+
+    Painel.api.conta.alterarSenha({
+      atual: atual.value,
+      nova: nova.value,
+      confirmacao: confirmacao.value
+    }).then(function () {
+      form.reset();
+      ui.toast("Senha alterada. Use a nova senha no próximo login.", "success");
+    }).catch(function (err) {
+      if (err.campo === "atual") marcarErro(atual, true);
+      if (err.campo === "nova") marcarErro(nova, true);
+      if (err.campo === "confirmacao") marcarErro(confirmacao, true);
+      ui.toast(err.message || "Não foi possível alterar a senha.", "error");
+    }).then(function () {
+      if (botao) {
+        botao.disabled = false;
+        botao.classList.remove("is-loading");
+      }
+    });
   }
 
   function bind() {

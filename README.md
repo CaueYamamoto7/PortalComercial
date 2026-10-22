@@ -139,6 +139,7 @@ Todas as rotas ficam sob `/api`. Respostas de sucesso usam `{ "data": ... }`; er
 | `POST` | `/api/configuracoes/etapas/reordenar` | Reordena o funil |
 | `POST/DELETE` | `/api/configuracoes/equipe[/{id}]` | Convida/remove membros |
 | `PUT` | `/api/perfil` | Atualiza o próprio perfil |
+| `PUT` | `/api/senha` | Altera a própria senha (exige a senha atual) |
 | `GET` | `/api/notificacoes` | Notificações |
 | `POST` | `/api/notificacoes/marcar-lidas` | Marca notificações como lidas |
 
@@ -204,4 +205,4 @@ O `vercel.json` fixa a região em **`gru1` (São Paulo)**, co-localizada com o b
 - `SECURITY_SALT` deve ser único por ambiente.
 - Em produção, mantenha `DEBUG=false` e `SESSION_SECURE=true`.
 - Faça backup do banco pelo painel do provedor (Neon/Aiven) antes de mudanças de schema.
-- A troca de senha é feita pelo administrador da conta; o perfil (nome, e-mail e cargo) é editável em **Conta**.
+- A senha pode ser alterada em **Conta → Acesso e segurança**; o perfil (nome, e-mail e cargo) também é editável em **Conta**.

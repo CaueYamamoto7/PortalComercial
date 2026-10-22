@@ -294,6 +294,47 @@ class SettingsController extends AppController
         return $this->respond($this->membroDetalhado($usuario));
     }
 
+    public function alterarSenha(): Response
+    {
+        $this->request->allowMethod(['put', 'patch']);
+        $identidade = $this->identidade();
+        $table = $this->fetchTable('Users');
+        $usuario = $table->find()->where(['id' => (string)($identidade['id'] ?? '')])->first();
+        if (!$usuario) {
+            $this->erro('Usuário não encontrado.', null, 404);
+        }
+
+        $dados = (array)$this->request->getData();
+        $atual = (string)($dados['atual'] ?? '');
+        $nova = (string)($dados['nova'] ?? '');
+        $confirmacao = (string)($dados['confirmacao'] ?? '');
+        $hashAtual = (string)$usuario->get('senha_hash');
+
+        if ($atual === '') {
+            $this->erro('Informe a senha atual.', 'atual');
+        }
+        if (!password_verify($atual, $hashAtual)) {
+            $this->erro('A senha atual está incorreta.', 'atual');
+        }
+        if (mb_strlen($nova) < 8) {
+            $this->erro('A nova senha deve ter pelo menos 8 caracteres.', 'nova');
+        }
+        if ($nova !== $confirmacao) {
+            $this->erro('A confirmação não confere com a nova senha.', 'confirmacao');
+        }
+        if (password_verify($nova, $hashAtual)) {
+            $this->erro('A nova senha precisa ser diferente da atual.', 'nova');
+        }
+
+        $usuario->set('senha_hash', password_hash($nova, PASSWORD_DEFAULT));
+        $usuario->set('atualizado_em', $this->agora());
+        $table->saveOrFail($usuario);
+
+        $this->request->getSession()->renew();
+
+        return $this->respond(['ok' => true]);
+    }
+
     public function addMember(): Response
     {
         $this->request->allowMethod(['post']);
