@@ -376,7 +376,6 @@
   var config = {
     empresa: {
       nome: "AssinaSoft",
-      produto: "Painel Comercial",
       documento: "",
       email: "contato@assinasoft.com.br",
       telefone: "",
@@ -388,13 +387,12 @@
       limiteDiario: 300,
       intervalo: 10,
       inicio: "08:00",
-      fim: "18:00",
-      optout: "Para não receber mais mensagens, responda SAIR."
+      fim: "18:00"
     }
   };
 
   Painel.seed = {
-    __v: 2,
+    __v: 3,
     sistemas: sistemas,
     etapas: etapas,
     origens: origens,

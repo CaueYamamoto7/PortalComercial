@@ -452,15 +452,40 @@
     document.querySelector("[data-sair]").addEventListener("click", function () { Painel.auth.sair(); });
 
     var links = Array.prototype.slice.call(document.querySelectorAll(".settings-nav a"));
+
+    function ativarLink(alvo) {
+      links.forEach(function (x) { x.classList.toggle("is-active", x === alvo); });
+    }
+
+    function linkDoHash() {
+      var hash = window.location.hash;
+      if (!hash) return null;
+      return links.filter(function (a) { return a.getAttribute("href") === hash; })[0] || null;
+    }
+
     links.forEach(function (a) {
       a.addEventListener("click", function (e) {
         e.preventDefault();
         var alvo = document.querySelector(a.getAttribute("href"));
         if (alvo) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
-        links.forEach(function (x) { x.classList.remove("is-active"); });
-        a.classList.add("is-active");
+        ativarLink(a);
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, "", a.getAttribute("href"));
+        }
       });
     });
+
+    var inicial = linkDoHash();
+    if (inicial) ativarLink(inicial);
+
+    window.addEventListener("hashchange", function () {
+      var alvo = linkDoHash();
+      if (!alvo) return;
+      ativarLink(alvo);
+      var secao = document.querySelector(alvo.getAttribute("href"));
+      if (secao) secao.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     window.addEventListener("scroll", function () {
       var pos = window.scrollY + 140;
       var atual = links[0];
@@ -468,7 +493,7 @@
         var secao = document.querySelector(a.getAttribute("href"));
         if (secao && secao.offsetTop <= pos) atual = a;
       });
-      links.forEach(function (a) { a.classList.toggle("is-active", a === atual); });
+      ativarLink(atual);
     }, { passive: true });
   }
 

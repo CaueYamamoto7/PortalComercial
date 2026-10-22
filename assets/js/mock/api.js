@@ -279,7 +279,7 @@
     if (!String(dados.telefone || "").trim()) throw erro("Informe o telefone do lead.", "telefone");
     var telefone = u.normalizarTelefone(dados.telefone);
     if (!u.telefoneValido(telefone)) throw erro("Telefone inválido. Use DDD + número.", "telefone");
-    if (dados.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) {
+    if (dados.email && !emailValido(dados.email)) {
       throw erro("Informe um e-mail válido.", "email");
     }
     var duplicado = carregar().leads.some(function (l) {
@@ -291,7 +291,10 @@
 
   function montarLead(dados, existente) {
     var base = existente || {};
-    var primeiro = carregar().etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; })[0];
+    var etapas = carregar().etapas;
+    var primeiro = etapas.filter(function (e) { return e.tipo === "aberto"; })
+      .sort(function (a, b) { return a.ordem - b.ordem; })[0] ||
+      etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; })[0];
     var responsavel = String(dados.responsavel || base.responsavel || "Marina Costa").trim();
     return {
       id: base.id,
@@ -390,7 +393,9 @@
   function importarLeads(linhas) {
     var db = carregar();
     var importados = 0, duplicados = 0, invalidos = 0, detalhes = [];
-    var primeiraEtapa = db.etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; })[0];
+    var primeiraEtapa = db.etapas.filter(function (e) { return e.tipo === "aberto"; })
+      .sort(function (a, b) { return a.ordem - b.ordem; })[0] ||
+      db.etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; })[0];
 
     (linhas || []).forEach(function (linha, idx) {
       var nome = String(linha.nome || linha.name || "").trim();
@@ -404,6 +409,12 @@
       if (db.leads.some(function (l) { return u.normalizarTelefone(l.telefone) === telefone; })) {
         duplicados++;
         detalhes.push({ linha: idx + 2, motivo: "Telefone já cadastrado" });
+        return;
+      }
+      var email = String(linha.email || linha.e_mail || linha.mail || "").trim().toLowerCase();
+      if (email && !emailValido(email)) {
+        invalidos++;
+        detalhes.push({ linha: idx + 2, motivo: "E-mail inválido" });
         return;
       }
       var sistemaIds = [];
@@ -429,7 +440,7 @@
         empresa: String(linha.empresa || linha.company || "").trim(),
         cargo: String(linha.cargo || "").trim(),
         telefone: telefone,
-        email: String(linha.email || "").trim().toLowerCase(),
+        email: email,
         cidade: String(linha.cidade || "").trim(),
         uf: String(linha.uf || linha.estado || "").trim().toUpperCase().slice(0, 2),
         origemId: origemId,
@@ -450,6 +461,10 @@
         motivoPerda: ""
       };
       db.leads.push(lead);
+      db.interacoes.push({
+        id: u.uid("it"), leadId: lead.id, tipo: "nota", titulo: "Lead importado",
+        descricao: "Cadastro criado por importação de planilha.", data: lead.criadoEm, usuario: lead.responsavel
+      });
       importados++;
     });
 
@@ -823,23 +838,23 @@
     var stats = estatisticasBase(leads);
     var porSistema = db.sistemas.filter(function (s) { return s.ativo; }).map(function (s) {
       var doSistema = leads.filter(function (l) { return (l.sistemaIds || []).indexOf(s.id) !== -1; });
-      var ganhos = doSistema.filter(function (l) { return l.etapaId === "et_ganho"; }).length;
-      var decididos = doSistema.filter(function (l) { return ["et_ganho", "et_perdido"].indexOf(l.etapaId) !== -1; }).length;
+      var ganhos = doSistema.filter(function (l) { return tipoDoLead(l) === "ganho"; }).length;
+      var decididos = doSistema.filter(function (l) { return ["ganho", "perdido"].indexOf(tipoDoLead(l)) !== -1; }).length;
       return { id: s.id, nome: s.nome, cor: s.cor, total: doSistema.length, ganhos: ganhos, taxa: decididos ? u.percentual(ganhos, decididos) : 0 };
     }).sort(function (a, b) { return b.total - a.total; });
     var porOrigem = db.origens.filter(function (o) { return o.ativo; }).map(function (o) {
       var daOrigem = leads.filter(function (l) { return l.origemId === o.id; });
-      var ganhos = daOrigem.filter(function (l) { return l.etapaId === "et_ganho"; }).length;
+      var ganhos = daOrigem.filter(function (l) { return tipoDoLead(l) === "ganho"; }).length;
       return { nome: o.nome, total: daOrigem.length, ganhos: ganhos };
     }).filter(function (o) { return o.total; }).sort(function (a, b) { return b.total - a.total; });
     var porResponsavel = db.equipe.filter(function (m) { return m.status === "ativo"; }).map(function (m) {
       var doResponsavel = leads.filter(function (l) { return l.responsavel === m.nome; });
-      var ganhos = doResponsavel.filter(function (l) { return l.etapaId === "et_ganho"; }).length;
-      var decididos = doResponsavel.filter(function (l) { return ["et_ganho", "et_perdido"].indexOf(l.etapaId) !== -1; }).length;
+      var ganhos = doResponsavel.filter(function (l) { return tipoDoLead(l) === "ganho"; }).length;
+      var decididos = doResponsavel.filter(function (l) { return ["ganho", "perdido"].indexOf(tipoDoLead(l)) !== -1; }).length;
       return { nome: m.nome, iniciais: m.iniciais, total: doResponsavel.length, ganhos: ganhos, taxa: decididos ? u.percentual(ganhos, decididos) : 0 };
     }).sort(function (a, b) { return b.total - a.total; });
     var motivos = {};
-    leads.filter(function (l) { return l.etapaId === "et_perdido"; }).forEach(function (l) {
+    leads.filter(function (l) { return tipoDoLead(l) === "perdido"; }).forEach(function (l) {
       var m = l.motivoPerda || "Não informado";
       motivos[m] = (motivos[m] || 0) + 1;
     });
@@ -939,13 +954,18 @@
 
   function salvarOrigem(dados) {
     var db = carregar();
-    if (!String(dados.nome || "").trim()) throw erro("Informe o nome da origem.", "nome");
+    var nome = String(dados.nome || "").trim();
+    if (!nome) throw erro("Informe o nome da origem.", "nome");
     var origem = dados.id ? db.origens.filter(function (o) { return o.id === dados.id; })[0] : null;
+    var duplicada = db.origens.some(function (o) {
+      return (!origem || o.id !== origem.id) && u.normalizarTexto(o.nome) === u.normalizarTexto(nome);
+    });
+    if (duplicada) throw erro("Já existe uma origem com este nome.", "nome");
     if (origem) {
-      origem.nome = String(dados.nome).trim();
+      origem.nome = nome;
       origem.ativo = dados.ativo !== false;
     } else {
-      origem = { id: u.uid("org"), nome: String(dados.nome).trim(), ativo: true };
+      origem = { id: u.uid("org"), nome: nome, ativo: true };
       db.origens.push(origem);
     }
     persistir();
@@ -969,18 +989,32 @@
 
   function salvarEtapa(dados) {
     var db = carregar();
-    if (!String(dados.nome || "").trim()) throw erro("Informe o nome da etapa.", "nome");
+    var nome = String(dados.nome || "").trim();
+    if (!nome) throw erro("Informe o nome da etapa.", "nome");
     var etapa = dados.id ? db.etapas.filter(function (e) { return e.id === dados.id; })[0] : null;
+    var duplicada = db.etapas.some(function (e) {
+      return (!etapa || e.id !== etapa.id) && u.normalizarTexto(e.nome) === u.normalizarTexto(nome);
+    });
+    if (duplicada) throw erro("Já existe uma etapa com este nome.", "nome");
+
+    var tipo = ["aberto", "ganho", "perdido"].indexOf(dados.tipo) !== -1
+      ? dados.tipo
+      : (etapa ? etapa.tipo : "aberto");
+    if (etapa && etapa.tipo === "aberto" && tipo !== "aberto") {
+      var outraAberta = db.etapas.some(function (e) { return e.id !== etapa.id && e.tipo === "aberto"; });
+      if (!outraAberta) throw erro("O funil precisa ter pelo menos uma etapa em aberto.", "tipo");
+    }
+
     if (etapa) {
-      etapa.nome = String(dados.nome).trim();
+      etapa.nome = nome;
       etapa.cor = dados.cor || etapa.cor;
-      etapa.tipo = ["aberto", "ganho", "perdido"].indexOf(dados.tipo) !== -1 ? dados.tipo : etapa.tipo;
+      etapa.tipo = tipo;
     } else {
-      var max = Math.max.apply(null, db.etapas.map(function (e) { return e.ordem; }));
+      var max = db.etapas.length ? Math.max.apply(null, db.etapas.map(function (e) { return e.ordem; })) : -1;
       etapa = {
-        id: u.uid("et"), nome: String(dados.nome).trim(),
+        id: u.uid("et"), nome: nome,
         cor: dados.cor || "#0B6B57",
-        tipo: ["aberto", "ganho", "perdido"].indexOf(dados.tipo) !== -1 ? dados.tipo : "aberto",
+        tipo: tipo,
         ordem: max + 1
       };
       db.etapas.push(etapa);
@@ -991,10 +1025,16 @@
 
   function reordenarEtapas(ids) {
     var db = carregar();
-    (ids || []).forEach(function (id, idx) {
-      var etapa = db.etapas.filter(function (e) { return e.id === id; })[0];
-      if (etapa) etapa.ordem = idx;
+    var posicao = {};
+    (ids || []).forEach(function (id, idx) { posicao[id] = idx; });
+    var ordenadas = db.etapas.slice().sort(function (a, b) {
+      var pa = Object.prototype.hasOwnProperty.call(posicao, a.id) ? posicao[a.id] : a.ordem;
+      var pb = Object.prototype.hasOwnProperty.call(posicao, b.id) ? posicao[b.id] : b.ordem;
+      return pa - pb;
     });
+    var abertas = ordenadas.filter(function (e) { return e.tipo === "aberto"; });
+    var terminais = ordenadas.filter(function (e) { return e.tipo !== "aberto"; });
+    abertas.concat(terminais).forEach(function (etapa, idx) { etapa.ordem = idx; });
     persistir();
     return db.etapas.slice().sort(function (a, b) { return a.ordem - b.ordem; });
   }
@@ -1005,7 +1045,10 @@
     if (!etapa) throw erro("Etapa não encontrada.");
     if (db.etapas.length <= 2) throw erro("O funil precisa ter pelo menos duas etapas.");
     var restantes = db.etapas.filter(function (e) { return e.id !== id; }).sort(function (a, b) { return a.ordem - b.ordem; });
-    var destino = restantes.filter(function (e) { return e.tipo === "aberto"; })[0] || restantes[0];
+    if (!restantes.some(function (e) { return e.tipo === "aberto"; })) {
+      throw erro("O funil precisa ter pelo menos uma etapa em aberto.");
+    }
+    var destino = restantes.filter(function (e) { return e.tipo === "aberto"; })[0];
     var movidos = 0;
     db.leads.forEach(function (l) {
       if (l.etapaId === id) { l.etapaId = destino.id; movidos++; }
@@ -1019,10 +1062,14 @@
   function convidarMembro(dados) {
     var db = carregar();
     if (!String(dados.nome || "").trim()) throw erro("Informe o nome do membro.", "nome");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(dados.email || ""))) throw erro("Informe um e-mail válido.", "email");
+    var email = String(dados.email || "").trim().toLowerCase();
+    if (!emailValido(email)) throw erro("Informe um e-mail válido.", "email");
+    if (db.equipe.some(function (m) { return String(m.email || "").toLowerCase() === email; })) {
+      throw erro("Já existe um membro com este e-mail.", "email");
+    }
     var membro = {
       id: u.uid("us"), nome: String(dados.nome).trim(),
-      email: String(dados.email).trim().toLowerCase(),
+      email: email,
       perfil: dados.perfil || "Consultor comercial",
       status: "convite", iniciais: u.iniciais(dados.nome)
     };

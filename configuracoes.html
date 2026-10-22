@@ -54,7 +54,6 @@
               <div class="card__body">
                 <form id="form-empresa" class="form-grid">
                   <label class="field"><span class="field__label">Nome da empresa</span><input class="input" name="nome" required></label>
-                  <label class="field"><span class="field__label">Produto</span><input class="input" name="produto"></label>
                   <label class="field"><span class="field__label">CNPJ / documento</span><input class="input" name="documento" placeholder="Opcional"></label>
                   <label class="field"><span class="field__label">E-mail de contato</span><input class="input" type="email" name="email"></label>
                   <label class="field"><span class="field__label">Telefone</span><input class="input" name="telefone" placeholder="(11) 99999-9999"></label>
@@ -111,7 +110,7 @@
 
             <section class="card settings-card" id="mensagens">
               <div class="card__head card__head--bordered">
-                <div><h2 class="card__title">Mensagens</h2><p class="card__desc">Limites e assinatura padrão dos envios</p></div>
+                <div><h2 class="card__title">Mensagens</h2><p class="card__desc">Limites e horários dos envios</p></div>
               </div>
               <div class="card__body">
                 <form id="form-mensagens" class="form-grid">
@@ -119,12 +118,11 @@
                   <label class="field"><span class="field__label">Intervalo entre envios (segundos)</span><input class="input" type="number" min="1" max="120" name="intervalo"></label>
                   <label class="field"><span class="field__label">Horário de início</span><input class="input" type="time" name="inicio"></label>
                   <label class="field"><span class="field__label">Horário de fim</span><input class="input" type="time" name="fim"></label>
-                  <label class="field field--full"><span class="field__label">Mensagem de opt-out</span><textarea class="textarea" name="optout" rows="3"></textarea><span class="field__hint">Anexada aos envios para permitir que o contato saia da lista.</span></label>
                 </form>
               </div>
               <div class="settings-card__foot">
                 <span class="small faint">O envio real será conectado ao WhatsApp pelo backend em PHP/CakePHP.</span>
-                <button class="btn btn--primary btn--sm" type="button" data-salvar="mensagens"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Salvar mensagens</button>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar="mensagens"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar mensagens</button>
               </div>
             </section>
 
