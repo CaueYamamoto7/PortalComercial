@@ -25,10 +25,9 @@
   }
 
   function marca() {
-    return '<span class="brand__mark" aria-hidden="true">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M5 19 12 5l7 14"/><path d="M8 14h8"/></svg></span>' +
-      '<span class="brand__text"><span class="brand__name">AssinaSoft</span><span class="brand__tag">Painel Comercial</span></span>';
+    return '<span class="brand__text">' +
+      '<img class="brand__logo" src="images/logoFull.png" alt="AssinaSoft">' +
+      '<span class="brand__tag">Painel Comercial</span></span>';
   }
 
   function navGrupo(nome, chaves, atual) {
@@ -59,24 +58,12 @@
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
     el.innerHTML =
-      '<div class="sidebar__brand"><a href="index.html" class="brand" aria-label="AssinaSoft — Painel Comercial">' + marca() + "</a></div>" +
-      '<div class="sidebar__workspace">' +
-        '<button class="workspace" type="button" data-workspace>' +
-          '<span class="workspace__logo">AS</span>' +
-          '<span class="workspace__text"><strong>AssinaSoft</strong><small>Painel Comercial</small></span>' +
-          icone("chevron-down") +
-        "</button>" +
-      "</div>" +
+      '<div class="sidebar__brand"><a href="index.html" class="brand brand--inverse" aria-label="AssinaSoft — Painel Comercial">' + marca() + "</a></div>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
       '<div class="sidebar__foot">' +
-        '<div class="sidebar__usage">' +
-          '<div class="sidebar__usage-head"><span>Leads ativos</span><strong data-sidebar-ativos>—</strong></div>' +
-          '<div class="progress"><div class="progress__bar" data-sidebar-progress style="width:0%"></div></div>' +
-          '<p data-sidebar-resumo>Carregando resumo…</p>' +
-        "</div>" +
         '<a class="conn-card" href="mensagens.html" title="Envio pelo WhatsApp em modo demonstração">' +
           '<span class="conn-card__dot"></span>' +
-          '<span class="conn-card__text"><strong>WhatsApp · demonstração</strong><small>Envios simulados</small></span>' +
+          '<span class="conn-card__text"><strong>WhatsApp</strong><small>Modo demonstração</small></span>' +
           icone("message-circle") +
         "</a>" +
         '<button class="sidebar__user" type="button" data-user-menu-sidebar>' +

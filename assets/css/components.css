@@ -19,9 +19,19 @@
 .sidebar__brand {
   display: flex;
   align-items: center;
-  height: var(--topbar-h);
-  padding: 0 18px;
+  justify-content: center;
+  height: auto;
+  padding: 18px 16px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar__brand .brand {
+  justify-content: center;
+  width: 100%;
+}
+
+.sidebar__brand .brand__text {
+  align-items: center;
 }
 
 .brand {
@@ -45,6 +55,28 @@
 .brand__mark svg {
   width: 18px;
   height: 18px;
+}
+
+.brand__logo {
+  display: block;
+  width: auto;
+  height: 25px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.brand--inverse .brand__logo {
+  filter: brightness(0) invert(1);
+}
+
+.brand__text .brand__logo {
+  height: 42px;
+}
+
+.brand__text .brand__tag {
+  margin-top: 1px;
+  padding-left: 2px;
+  font-size: 10px;
 }
 
 .brand__text {
@@ -96,13 +128,20 @@
   place-items: center;
   width: 28px;
   height: 28px;
+  padding: 3px;
   border-radius: 6px;
-  background: #24322c;
+  background: #fff;
   color: var(--brand-200);
   font-size: 10.5px;
   font-weight: 650;
   letter-spacing: 0.02em;
   flex: none;
+}
+
+.workspace__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .workspace__text {
