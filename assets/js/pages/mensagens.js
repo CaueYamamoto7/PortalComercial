@@ -50,6 +50,7 @@
 
   function filtrarLeads() {
     var q = u.normalizarTexto(filtros.q);
+    var digitosBusca = u.somenteDigitos(filtros.q);
     return leads.filter(function (l) {
       if (filtros.etapa && l.etapaId !== filtros.etapa) return false;
       if (filtros.sistema && (l.sistemaIds || []).indexOf(filtros.sistema) === -1) return false;
@@ -229,7 +230,6 @@
       renderPublico();
       ui.recarregarResumoSidebar();
       mostrarView("historico");
-      carregarHistorico();
     }).catch(function (err) {
       btn.disabled = false;
       btn.classList.remove("is-loading");
@@ -262,8 +262,7 @@
           '<td class="td--right">' + (c.falhas ? '<span class="text-danger">' + c.falhas + "</span>" : "0") + "</td>" +
           "<td><span class=\"cell-muted\">" + quando + "</span></td>" +
           '<td class="td--actions"><div class="row-actions">' +
-            '<button class="icon-btn icon-btn--sm" type="button" data-ver-campanha="' + c.id + '" title="Ver detalhes">' + ui.icone("eye") + "</button>" +
-            '<button class="icon-btn icon-btn--sm" type="button" data-campanha-menu="' + c.id + '" title="Mais ações">' + ui.icone("more") + "</button>" +
+            '<button class="icon-btn icon-btn--sm" type="button" data-ver-campanha="' + c.id + '" title="Ver detalhes" aria-label="Ver detalhes da campanha ' + u.escaparHTML(c.nome) + '">' + ui.icone("eye") + "</button>" +
           "</div></td>" +
         "</tr>";
       }).join("");
@@ -360,31 +359,6 @@
     ui.toast("Mensagem carregada no compositor.", "info");
   }
 
-  function campanhaMenu(anchor, id) {
-    api.mensagens.listar({ perPage: 1000 }).then(function (res) {
-      var c = res.data.filter(function (x) { return x.id === id; })[0];
-      if (!c) return;
-      ui.menu(anchor, [
-        { label: "Ver detalhes", icone: "eye", acao: function () { verCampanha(id); } },
-        { label: "Duplicar mensagem", icone: "copy", acao: function () { duplicar(c); } },
-        { divider: true },
-        {
-          label: "Cancelar campanha", icone: "x", perigo: true,
-          acao: function () {
-            ui.confirmar({ titulo: "Cancelar campanha", texto: "Cancelar <strong>" + u.escaparHTML(c.nome) + "</strong>?", acao: "Cancelar campanha", perigo: true })
-              .then(function (ok) {
-                if (!ok) return;
-                return api.mensagens.cancelar(id).then(function () {
-                  ui.toast("Campanha cancelada.", "success");
-                  carregarHistorico();
-                });
-              });
-          }
-        }
-      ]);
-    });
-  }
-
   /* Templates -------------------------------------------------------------- */
 
   function abrirTemplates() {
@@ -397,7 +371,8 @@
         '<button class="btn btn--primary" type="button" data-novo-template>' + ui.icone("plus") + "Novo template</button>"
     });
     var list = drawer.el.querySelector("#template-list");
-    var ds = drawer;
+    var drawerEl = drawer.el.querySelector(".drawer");
+    if (drawerEl) drawerEl.classList.add("drawer--templates");
 
     function render() {
       list.innerHTML = templates.length ? templates.map(function (t) {
@@ -488,10 +463,11 @@
 
   function atualizarTemplates() {
     return api.mensagens.templates().then(function (lista) {
+      var atual = el("msg-template").value;
       templates = lista;
       preencherTemplates();
-      var atual = el("msg-template").value;
-      el("msg-template").value = atual;
+      var existe = templates.some(function (t) { return t.id === atual; });
+      el("msg-template").value = existe ? atual : "";
     });
   }
 
@@ -512,7 +488,6 @@
     document.querySelectorAll("[data-view]").forEach(function (btn) {
       btn.addEventListener("click", function () { mostrarView(btn.getAttribute("data-view")); });
     });
-    document.querySelector("[data-historico]").addEventListener("click", function () { mostrarView("historico"); });
     document.querySelector("[data-templates]").addEventListener("click", abrirTemplates);
 
     document.querySelectorAll("[data-modo]").forEach(function (btn) {
@@ -592,8 +567,6 @@
     document.addEventListener("click", function (e) {
       var ver = e.target.closest("[data-ver-campanha]");
       if (ver) { verCampanha(ver.getAttribute("data-ver-campanha")); return; }
-      var menu = e.target.closest("[data-campanha-menu]");
-      if (menu) { campanhaMenu(menu, menu.getAttribute("data-campanha-menu")); return; }
       if (e.target.closest("[data-nova-mensagem]")) { mostrarView("composer"); }
     });
 

@@ -8,6 +8,7 @@
 
   var u = Painel.util;
   var camada = 0;
+  var camadas = [];
   var icone = Painel.icons.icone;
 
   var PAGINAS = {
@@ -37,7 +38,7 @@
         var p = PAGINAS[chave];
         var ativo = chave === atual ? " is-active" : "";
         var badge = chave === "leads"
-          ? '<span class="nav-item__badge" data-sidebar-leads>—</span>'
+          ? '<span class="nav-item__badge" data-sidebar-leads hidden>—</span>'
           : chave === "followups"
             ? '<span class="nav-item__badge nav-item__badge--alert" data-sidebar-tarefas hidden>0</span>'
             : "";
@@ -84,7 +85,10 @@
       var total = res.stats.total || 0;
       var ativos = res.stats.abertos || 0;
       var leadsEl = document.querySelector("[data-sidebar-leads]");
-      if (leadsEl) leadsEl.textContent = u.formatarNumero(total);
+      if (leadsEl) {
+        leadsEl.textContent = u.formatarNumero(total);
+        leadsEl.hidden = false;
+      }
       var ativosEl = document.querySelector("[data-sidebar-ativos]");
       if (ativosEl) ativosEl.textContent = u.formatarNumero(ativos);
       var progress = document.querySelector("[data-sidebar-progress]");
@@ -114,13 +118,31 @@
 
     el.innerHTML =
       '<button class="icon-btn sidebar-toggle" type="button" data-sidebar-toggle aria-label="Abrir menu">' + icone("menu") + "</button>" +
-      '<div class="topbar__crumbs"><a href="index.html">AssinaSoft</a>' + icone("chevron-right") +
+      '<div class="topbar__crumbs"><span class="topbar__workspace">Painel Comercial</span>' + icone("chevron-right") +
         "<strong>" + atual.label + "</strong></div>" +
       '<div class="topbar__right">' +
         '<button class="search-trigger" type="button" data-cmd-open aria-label="Buscar no painel">' +
           icone("search") + '<span class="search-trigger__label">Buscar no painel…</span><kbd>Ctrl K</kbd>' +
         "</button>" +
-        '<button class="icon-btn" type="button" data-help aria-label="Ajuda e atalhos">' + icone("help") + "</button>" +
+        '<div class="dropdown">' +
+          '<button class="icon-btn" type="button" data-panel="help" aria-label="Ajuda e atalhos" aria-haspopup="true">' + icone("help") + "</button>" +
+          '<div class="dropdown-panel dropdown-panel--wide" id="panel-help">' +
+            '<div class="dropdown-panel__head"><strong>Ajuda e atalhos</strong><span class="xs faint">Painel Comercial</span></div>' +
+            '<div class="help-panel">' +
+              '<div class="help-panel__section">' +
+                '<span class="help-panel__label">Atalhos de teclado</span>' +
+                '<div class="help-shortcut"><span>Busca global</span><kbd>Ctrl + K</kbd></div>' +
+                '<div class="help-shortcut"><span>Fechar janelas</span><kbd>ESC</kbd></div>' +
+                '<div class="help-shortcut"><span>Salvar formulário</span><kbd>Ctrl + Enter</kbd></div>' +
+              "</div>" +
+              '<div class="help-panel__section">' +
+                '<span class="help-panel__label">Envio de mensagens</span>' +
+                '<p class="xs faint">Nesta demonstração, os envios pelo WhatsApp são simulados e ficam registrados no histórico do lead.</p>' +
+              "</div>" +
+            "</div>" +
+            '<div class="dropdown-panel__foot"><a class="text-link xs" href="mailto:contato@assinasoft.com.br">Falar com o suporte</a></div>' +
+          "</div>" +
+        "</div>" +
         '<div class="dropdown">' +
           '<button class="icon-btn" type="button" data-panel="notif" aria-label="Notificações" aria-haspopup="true" data-notif-bell>' + icone("bell") + "</button>" +
           '<div class="dropdown-panel dropdown-panel--wide" id="panel-notif">' +
@@ -242,7 +264,7 @@
     var layer = document.getElementById("cmd-layer");
     if (!layer) return;
     layer.hidden = true;
-    document.body.classList.remove("no-scroll");
+    liberarScroll();
     document.querySelectorAll(".cmd__item").forEach(function (b) { b.style.display = ""; });
     document.querySelectorAll(".cmd__label").forEach(function (b) { b.style.display = ""; });
   }
@@ -345,30 +367,6 @@
     });
   }
 
-  function abrirAjuda() {
-    ui.modal({
-      title: "Ajuda e atalhos",
-      subtitle: "Atalhos e informações do Painel Comercial.",
-      body:
-        '<div class="form-section__title" style="margin-top:0">Atalhos de teclado</div>' +
-        '<div class="summary-list">' +
-          '<div class="summary-row"><span>Busca global</span><strong>Ctrl + K</strong></div>' +
-          '<div class="summary-row"><span>Fechar janelas</span><strong>ESC</strong></div>' +
-          '<div class="summary-row"><span>Salvar formulário</span><strong>Ctrl + Enter</strong></div>' +
-        "</div>" +
-        '<div class="form-section" style="margin-top:20px;padding-top:16px">' +
-          '<div class="form-section__title">Envio de mensagens</div>' +
-          '<p class="small muted" style="line-height:1.6">Nesta versão de demonstração, os envios pelo WhatsApp são simulados e registrados no histórico do lead. A integração real será feita no backend em PHP/CakePHP.</p>' +
-        "</div>" +
-        '<div class="form-section" style="margin-top:16px;padding-top:16px">' +
-          '<div class="form-section__title">Suporte</div>' +
-          '<p class="small muted" style="line-height:1.6">Fale com o time pelo e-mail <a class="text-link" href="mailto:contato@assinasoft.com.br">contato@assinasoft.com.br</a>.</p>' +
-        "</div>",
-      size: "sm",
-      footer: '<button class="btn btn--secondary" type="button" data-close>Fechar</button>'
-    });
-  }
-
   /* Overlay mobile --------------------------------------------------------- */
 
   function renderOverlay() {
@@ -390,6 +388,8 @@
   function fecharMenuFlutuante() {
     var m = document.querySelector(".floating-menu");
     if (m) m.remove();
+    document.removeEventListener("click", fecharAoClicarFora);
+    window.removeEventListener("scroll", fecharMenuFlutuante);
   }
 
   function menuFlutuante(anchor, itens) {
@@ -405,6 +405,7 @@
       b.innerHTML = icone(item.icone || "chevron-right") + "<span>" + u.escaparHTML(item.label) + "</span>";
       b.addEventListener("click", function () {
         fecharMenuFlutuante();
+        try { anchor.focus(); } catch (e) { /* ignora */ }
         item.acao();
       });
       menu.appendChild(b);
@@ -421,7 +422,9 @@
     menu.style.top = top + "px";
 
     setTimeout(function () {
-      document.addEventListener("click", fecharAoClicarFora, { once: true });
+      if (document.querySelector(".floating-menu") === menu) {
+        document.addEventListener("click", fecharAoClicarFora, { once: true });
+      }
     }, 0);
     window.addEventListener("scroll", fecharMenuFlutuante, { once: true });
   }
@@ -434,12 +437,82 @@
 
   function bloquearScroll() { document.body.classList.add("no-scroll"); }
   function liberarScroll() {
-    if (!document.querySelector(".layer")) document.body.classList.remove("no-scroll");
+    if (!document.querySelector(".layer:not([hidden])")) document.body.classList.remove("no-scroll");
+  }
+
+  function camadaTopo() {
+    return camadas.length ? camadas[camadas.length - 1] : null;
+  }
+
+  function focaveis(layer) {
+    return Array.prototype.slice.call(layer.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(function (el) {
+      return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    });
+  }
+
+  function prenderFoco(e, layer) {
+    var itens = focaveis(layer);
+    if (!itens.length) {
+      e.preventDefault();
+      layer.focus();
+      return;
+    }
+    var primeiro = itens[0];
+    var ultimo = itens[itens.length - 1];
+    var ativo = document.activeElement;
+    var dentro = layer.contains(ativo);
+
+    if (e.shiftKey) {
+      if (!dentro || ativo === primeiro) {
+        e.preventDefault();
+        ultimo.focus();
+      }
+      return;
+    }
+    if (!dentro || ativo === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  function fecharCamada(item) {
+    if (!item || !item.layer.isConnected) return;
+    var indice = camadas.indexOf(item);
+    if (indice !== -1) camadas.splice(indice, 1);
+    item.layer.remove();
+    camada = Math.max(0, camada - 1);
+    liberarScroll();
+    var alvo = item.anterior;
+    if ((!alvo || !alvo.isConnected) && item.focoSeletor) {
+      try { alvo = document.querySelector(item.focoSeletor); } catch (e) { alvo = null; }
+    }
+    if (alvo && alvo.isConnected && alvo.focus) {
+      try { alvo.focus(); } catch (e) { /* ignora */ }
+    }
+    if (item.opts.onClose) item.opts.onClose();
+  }
+
+  function seletorFoco(el) {
+    if (!el || !el.getAttribute) return null;
+    var attrs = ["data-open", "data-menu", "data-card-menu", "data-campanha-menu", "data-select", "data-ver", "data-ver-campanha", "data-task", "data-tarefa", "data-edit", "data-editar", "data-add-etapa", "data-add-origem", "data-add-sistema", "data-add-membro"];
+    for (var i = 0; i < attrs.length; i++) {
+      var valor = el.getAttribute(attrs[i]);
+      if (valor) {
+        try { return "[" + attrs[i] + '="' + CSS.escape(valor) + '"]'; } catch (e) { /* ignora */ }
+      }
+    }
+    if (el.id) {
+      try { return "#" + CSS.escape(el.id); } catch (e) { /* ignora */ }
+    }
+    return null;
   }
 
   function modal(opts) {
     opts = opts || {};
     camada++;
+    var anterior = document.activeElement;
     var layer = document.createElement("div");
     layer.className = "layer";
     layer.style.zIndex = String(100 + camada * 2);
@@ -457,27 +530,29 @@
     document.body.appendChild(layer);
     bloquearScroll();
 
-    function fechar() {
-      layer.remove();
-      camada = Math.max(0, camada - 1);
-      liberarScroll();
-      if (opts.onClose) opts.onClose();
-    }
+    var item = {
+      layer: layer,
+      opts: opts,
+      anterior: anterior,
+      focoSeletor: seletorFoco(anterior),
+      fechar: function () { fecharCamada(item); }
+    };
+    camadas.push(item);
 
-    layer.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", fechar); });
-    layer.addEventListener("keydown", function (e) { if (e.key === "Escape" && !opts.locked) fechar(); });
+    layer.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", item.fechar); });
     setTimeout(function () {
       var foco = layer.querySelector("input:not([type=hidden]), select, textarea, button.btn--primary, button.btn--secondary");
       if (foco) foco.focus();
     }, 60);
 
-    if (opts.onMount) opts.onMount(layer, fechar);
-    return { el: layer, close: fechar, body: layer.querySelector(".modal__body") };
+    if (opts.onMount) opts.onMount(layer, item.fechar);
+    return { el: layer, close: item.fechar, body: layer.querySelector(".modal__body") };
   }
 
   function drawer(opts) {
     opts = opts || {};
     camada++;
+    var anterior = document.activeElement;
     var layer = document.createElement("div");
     layer.className = "layer";
     layer.style.zIndex = String(100 + camada * 2);
@@ -493,22 +568,23 @@
     document.body.appendChild(layer);
     bloquearScroll();
 
-    function fechar() {
-      layer.remove();
-      camada = Math.max(0, camada - 1);
-      liberarScroll();
-      if (opts.onClose) opts.onClose();
-    }
+    var item = {
+      layer: layer,
+      opts: opts,
+      anterior: anterior,
+      focoSeletor: seletorFoco(anterior),
+      fechar: function () { fecharCamada(item); }
+    };
+    camadas.push(item);
 
-    layer.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", fechar); });
-    layer.addEventListener("keydown", function (e) { if (e.key === "Escape") fechar(); });
+    layer.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", item.fechar); });
     setTimeout(function () {
       var foco = layer.querySelector("input:not([type=hidden]), select, textarea");
       if (foco) foco.focus();
     }, 70);
 
-    if (opts.onMount) opts.onMount(layer, fechar);
-    return { el: layer, close: fechar, body: layer.querySelector(".drawer__body") };
+    if (opts.onMount) opts.onMount(layer, item.fechar);
+    return { el: layer, close: item.fechar, body: layer.querySelector(".drawer__body") };
   }
 
   function confirmar(opts) {
@@ -602,12 +678,6 @@
       if (e.target.closest("[data-logout]")) {
         e.preventDefault();
         Painel.auth.sair();
-        return;
-      }
-
-      if (e.target.closest("[data-help]")) {
-        e.preventDefault();
-        abrirAjuda();
         return;
       }
 

@@ -84,7 +84,7 @@
 
   function linhaInfo(ico, label, valor, href) {
     var conteudo = valor
-      ? (href ? '<a href="' + href + '">' + u.escaparHTML(valor) + "</a>" : u.escaparHTML(valor))
+      ? (href ? '<a href="' + u.escaparHTML(href) + '">' + u.escaparHTML(valor) + "</a>" : u.escaparHTML(valor))
       : '<span class="faint">Não informado</span>';
     return '<div class="detail-info">' + icone(ico) + '<span><small>' + label + "</small><strong>" + conteudo + "</strong></span></div>";
   }
@@ -93,6 +93,7 @@
 
   function formularioHTML(lead, listas) {
     lead = lead || {};
+    var editando = !!lead.id;
     var possui = lead.possuiSistema || "nao_informado";
     var sistemasSelecionados = lead.sistemaIds || [];
     return '<form id="lead-form" class="lead-form" novalidate>' +
@@ -169,10 +170,10 @@
         '<div class="form-section__title">Observações</div>' +
         '<label class="field field--full"><span class="field__label">Anotações internas</span>' +
           '<textarea class="textarea" name="observacoes" rows="4" placeholder="Contexto da conversa, necessidades, objeções...">' + u.escaparHTML(lead.observacoes || "") + "</textarea></label>" +
-        '<label class="check check--box switch-row" style="margin-top:14px">' +
+        (editando ? '<label class="check check--box switch-row" style="margin-top:14px">' +
           '<input type="checkbox" name="naoContatar"' + (lead.naoContatar ? " checked" : "") + ">" +
           '<span class="switch"></span><span class="switch-row__text"><strong>Não contatar</strong>' +
-          "<p>Impede o envio de mensagens em campanhas e individuais.</p></span></label>" +
+          "<p>Impede o envio de mensagens em campanhas e individuais.</p></span></label>" : "") +
       "</div>" +
       "</form>";
   }
@@ -181,13 +182,23 @@
     var field = form.querySelector('[data-field="' + campo + '"]');
     if (!field) return;
     field.classList.add("has-error");
+    var controle = field.querySelector("input, select, textarea");
+    if (controle) controle.setAttribute("aria-invalid", "true");
     var el = field.querySelector(".field__error");
     if (el) el.textContent = mensagem;
   }
 
   function limparErros(form) {
     form.querySelectorAll(".field.has-error").forEach(function (f) { f.classList.remove("has-error"); });
+    form.querySelectorAll("[aria-invalid]").forEach(function (c) { c.removeAttribute("aria-invalid"); });
     form.querySelectorAll(".field__error").forEach(function (e) { e.textContent = ""; });
+  }
+
+  function focarPrimeiroErro(form) {
+    var primeiroErro = form.querySelector('.field.has-error input, .field.has-error select, .field.has-error textarea');
+    if (!primeiroErro) return;
+    try { primeiroErro.focus({ preventScroll: true }); } catch (e) { primeiroErro.focus(); }
+    primeiroErro.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
   function abrirFormulario(lead, opts) {
@@ -214,7 +225,12 @@
       });
 
       form.addEventListener("input", function (e) {
-        if (e.target.closest(".field")) e.target.closest(".field").classList.remove("has-error");
+        if (e.target.closest(".field")) {
+          var campo = e.target.closest(".field");
+          campo.classList.remove("has-error");
+          var controle = campo.querySelector("input, select, textarea");
+          if (controle) controle.removeAttribute("aria-invalid");
+        }
       });
 
       form.addEventListener("submit", function (e) {
@@ -255,7 +271,7 @@
           proximoContato: form.elements.proximoContato.value ? new Date(form.elements.proximoContato.value + "T10:00:00").toISOString() : "",
           observacoes: form.elements.observacoes.value.trim(),
           tags: form.elements.tags.value,
-          naoContatar: form.elements.naoContatar.checked
+          naoContatar: form.elements.naoContatar ? form.elements.naoContatar.checked : !!(lead && lead.naoContatar)
         };
 
         var ok = true;
@@ -263,7 +279,10 @@
         if (!dados.telefone) { marcarErro(form, "telefone", "Informe o WhatsApp do lead."); ok = false; }
         else if (!u.telefoneValido(dados.telefone)) { marcarErro(form, "telefone", "Telefone inválido. Use DDD + número."); ok = false; }
         if (dados.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) { marcarErro(form, "email", "Informe um e-mail válido."); ok = false; }
-        if (!ok) return;
+        if (!ok) {
+          focarPrimeiroErro(form);
+          return;
+        }
 
         btnSalvar.disabled = true;
         btnSalvar.classList.add("is-loading");
@@ -278,6 +297,7 @@
           btnSalvar.disabled = false;
           btnSalvar.classList.remove("is-loading");
           if (err.campo) marcarErro(form, err.campo, err.message);
+          if (err.campo) focarPrimeiroErro(form);
           Painel.ui.toast(err.message || "Não foi possível salvar o lead.", "error");
         });
       }
@@ -503,21 +523,33 @@
           var etapaId = e.target.value;
           Painel.api.leads.mover(id, etapaId).then(function (lead) {
             Painel.ui.toast("Lead movido para " + (lead.etapa ? lead.etapa.nome : "nova etapa") + ".", "success");
-            recarregar();
+            recarregar().then(function () {
+              var seletor = d.el.querySelector("[data-detail-etapa]");
+              if (seletor) seletor.focus();
+            });
           }).catch(function (err) {
             Painel.ui.toast(err.message || "Não foi possível mover o lead.", "error");
-            recarregar();
+            recarregar().then(function () {
+              var seletor = d.el.querySelector("[data-detail-etapa]");
+              if (seletor) seletor.focus();
+            });
           });
           return;
         }
         if (e.target.matches("[data-tarefa-check]")) {
           var tarefaId = e.target.getAttribute("data-tarefa-check");
           Painel.api.tarefas.concluir(tarefaId, e.target.checked).then(function () {
-            recarregar();
             Painel.ui.toast(e.target.checked ? "Tarefa concluída." : "Tarefa reaberta.", "success");
+            recarregar().then(function () {
+              var check = d.el.querySelector('[data-tarefa-check="' + CSS.escape(tarefaId) + '"]');
+              if (check) check.focus();
+            });
           }).catch(function (err) {
             Painel.ui.toast(err.message || "Não foi possível atualizar a tarefa.", "error");
-            recarregar();
+            recarregar().then(function () {
+              var check = d.el.querySelector('[data-tarefa-check="' + CSS.escape(tarefaId) + '"]');
+              if (check) check.focus();
+            });
           });
         }
       });
@@ -708,7 +740,7 @@
             var btn = layer.querySelector("[data-salvar-tarefa]");
             btn.addEventListener("click", function () {
               if (!form.reportValidity()) return;
-              form.querySelectorAll(".field.has-error").forEach(function (f) { f.classList.remove("has-error"); });
+              limparErros(form);
               var dados = {
                 leadId: form.elements.leadId.value,
                 titulo: form.elements.titulo.value.trim(),
@@ -718,9 +750,8 @@
                 responsavel: form.elements.responsavel.value
               };
               if (!dados.titulo) {
-                var f = form.querySelector('[data-field="titulo"]');
-                f.classList.add("has-error");
-                f.querySelector(".field__error").textContent = "Informe o título.";
+                marcarErro(form, "titulo", "Informe o título.");
+                focarPrimeiroErro(form);
                 return;
               }
               btn.disabled = true;
@@ -733,6 +764,7 @@
               }).catch(function (err) {
                 btn.disabled = false;
                 btn.classList.remove("is-loading");
+                if (err.campo) { marcarErro(form, err.campo, err.message); focarPrimeiroErro(form); }
                 Painel.ui.toast(err.message || "Não foi possível agendar.", "error");
               });
             });

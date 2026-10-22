@@ -612,6 +612,9 @@
 
 .switch-row > input { position: absolute; opacity: 0; pointer-events: none; }
 .switch-row .switch { flex: none; margin-top: 2px; }
+.switch-row input:checked + .switch { background: var(--brand-600); }
+.switch-row input:checked + .switch::after { transform: translateX(16px); }
+.switch-row input:focus-visible + .switch { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 .switch-row__text { display: flex; flex: 1; flex-direction: column; gap: 2px; }
 .switch-row__text strong { color: var(--ink-800); font-size: var(--fs-sm); font-weight: 600; }
 .switch-row__text p { margin: 0; color: var(--ink-500); font-size: var(--fs-xs); line-height: 1.4; }
@@ -1537,6 +1540,20 @@
 
 .template-list { display: flex; flex-direction: column; gap: 7px; }
 .template-loading { min-height: 100px; }
+
+.drawer--templates .drawer__body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer--templates .template-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  padding-right: 2px;
+}
 
 .template-item {
   padding: 9px 10px;

@@ -450,6 +450,11 @@
   color: var(--ink-700);
 }
 
+.topbar__workspace {
+  color: var(--ink-500);
+  font-weight: 500;
+}
+
 .topbar__crumbs .icon {
   width: 12px;
   height: 12px;
@@ -1787,6 +1792,65 @@
   background: var(--border);
 }
 
+.help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.help-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.help-panel__label {
+  color: var(--ink-400);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.help-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--ink-600);
+  font-size: var(--fs-xs);
+}
+
+.help-shortcut kbd,
+.help-panel__section kbd {
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-bottom-color: var(--border-dark);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-500);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.help-panel__section p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+@media (max-width: 560px) {
+  #panel-help {
+    position: fixed;
+    top: calc(var(--topbar-h) + 6px);
+    right: 12px;
+    left: auto;
+    width: min(344px, calc(100vw - 24px));
+  }
+}
+
 .notif-item {
   display: flex;
   gap: 9px;
@@ -2755,6 +2819,7 @@
 
 @media (max-width: 640px) {
   .topbar__crumbs a,
+  .topbar__crumbs .topbar__workspace,
   .topbar__crumbs .icon {
     display: none;
   }
