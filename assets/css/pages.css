@@ -512,7 +512,7 @@
 
 .donut-foot a {
   color: var(--brand-700);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .conn-panel {
@@ -577,7 +577,7 @@
   background: rgba(74, 222, 154, 0.08);
   color: #86e5b5;
   font-size: 9.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .conn-panel__status i {
@@ -651,7 +651,7 @@
   gap: 4px;
   color: #a9e2cf;
   font-size: 10.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .conn-panel__foot a:hover {
@@ -717,7 +717,7 @@
 
 .activity-item__text strong {
   color: var(--ink-800);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .activity-item__text time {
@@ -921,12 +921,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: 1px;
-  opacity: 0;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.table tbody tr:hover .row-actions,
-.table tbody tr:focus-within .row-actions {
   opacity: 1;
 }
 
@@ -1077,7 +1071,7 @@
 }
 
 .import-file strong {
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .import-file span {
@@ -1277,7 +1271,7 @@
 .recipient-item__text strong {
   color: var(--ink-800);
   font-size: var(--fs-xs);
-  font-weight: 550;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1420,7 +1414,7 @@
 .parsed-row__status {
   margin-left: auto;
   font-size: 9.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .parsed-row__status--ok {
@@ -1450,7 +1444,7 @@
 .optout-row__text strong {
   display: block;
   font-size: var(--fs-xs);
-  font-weight: 550;
+  font-weight: 600;
   color: var(--ink-700);
 }
 
@@ -1592,7 +1586,7 @@
   display: block;
   color: var(--ink-700);
   font-size: 10.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .message-editor {
@@ -1750,7 +1744,7 @@
 .preview-recipient__text strong {
   color: var(--ink-700);
   font-size: 10px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .preview-recipient__text small {
@@ -1879,7 +1873,7 @@
 
 .review-block strong {
   color: var(--ink-800);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .schedule-options {
@@ -1919,7 +1913,7 @@
 .radio-card__text strong {
   display: block;
   font-size: var(--fs-xs);
-  font-weight: 550;
+  font-weight: 600;
   color: var(--ink-800);
 }
 
@@ -2108,7 +2102,7 @@
 .campaign-name strong {
   color: var(--ink-900);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2473,7 +2467,7 @@
 .filters-bar .field__label {
   font-size: 10px;
   color: var(--ink-400);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .filters-bar .select {
@@ -2490,7 +2484,7 @@
 
 .report-kpis {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -2781,7 +2775,7 @@
 .brand-upload__text strong {
   display: block;
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .brand-upload__text p {
@@ -3026,7 +3020,7 @@
   background: var(--surface-3);
   color: var(--ink-600);
   font-size: 10px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .team-role--admin {
@@ -3468,10 +3462,6 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
-  }
-
-  .report-kpis {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .report-charts {

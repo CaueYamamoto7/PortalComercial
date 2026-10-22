@@ -95,7 +95,7 @@
   margin-top: 3px;
   color: #7c8a83;
   font-size: 9.5px;
-  font-weight: 550;
+  font-weight: 600;
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -230,7 +230,7 @@
 .nav-item.is-active {
   background: rgba(53, 160, 135, 0.13);
   color: #eaf7f2;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .nav-item.is-active::before {
@@ -344,7 +344,7 @@
 .conn-card__text strong {
   color: #dbe4df;
   font-size: 10.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .conn-card__text small {
@@ -394,7 +394,7 @@
 .sidebar__user-text strong {
   color: #e8eeeb;
   font-size: 11.5px;
-  font-weight: 550;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -432,9 +432,8 @@
   gap: 14px;
   height: var(--topbar-h);
   padding: 0 var(--gutter);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(10px);
 }
 
 .topbar__crumbs {
@@ -463,7 +462,7 @@
 
 .topbar__crumbs strong {
   color: var(--ink-800);
-  font-weight: 550;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -526,7 +525,7 @@
   color: var(--ink-400);
   font-family: var(--font-sans);
   font-size: 9.5px;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .icon-btn {
@@ -629,7 +628,7 @@
   border: 1px solid transparent;
   border-radius: var(--r-sm);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
@@ -772,7 +771,7 @@
   gap: 4px;
   color: var(--ink-700);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .field__req {
@@ -1007,7 +1006,7 @@
   display: block;
   color: var(--ink-800);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .switch-row__text p {
@@ -1234,7 +1233,7 @@
   border: 1px solid transparent;
   border-radius: 5px;
   font-size: var(--fs-xs);
-  font-weight: 550;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
@@ -1383,25 +1382,25 @@
 }
 
 .table thead th {
-  height: 34px;
-  padding: 0 12px;
+  height: 38px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
-  color: var(--ink-400);
-  font-size: 10px;
+  color: var(--ink-500);
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.045em;
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .table thead th:first-child {
-  padding-left: 18px;
+  padding-left: 20px;
 }
 
 .table thead th:last-child {
-  padding-right: 18px;
+  padding-right: 22px;
 }
 
 .table th.th--right,
@@ -1417,25 +1416,29 @@
 
 .table th.th--actions,
 .table td.td--actions {
-  width: 44px;
-  padding-right: 12px;
+  width: 104px;
+  padding-right: 22px;
   text-align: right;
 }
 
 .table tbody td {
-  height: 52px;
-  padding: 8px 12px;
+  height: 54px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--ink-700);
   vertical-align: middle;
 }
 
 .table tbody td:first-child {
-  padding-left: 18px;
+  padding-left: 20px;
 }
 
 .table tbody td:last-child {
-  padding-right: 18px;
+  padding-right: 22px;
+}
+
+.table tbody td.td--actions {
+  padding-right: 22px;
 }
 
 .table tbody tr {
@@ -1482,7 +1485,7 @@
 .cell-main__text strong {
   color: var(--ink-900);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1776,7 +1779,7 @@
 
 .dropdown-item__text strong {
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
   color: inherit;
 }
 
@@ -2211,7 +2214,7 @@
   margin-bottom: 1px;
   color: #fff;
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .toast__close {
@@ -2550,7 +2553,7 @@
 .step__text strong {
   color: var(--ink-400);
   font-size: var(--fs-xs);
-  font-weight: 550;
+  font-weight: 600;
   transition: color var(--base) var(--ease);
 }
 
@@ -2634,7 +2637,7 @@
 
 .dropzone strong {
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .dropzone p {
@@ -2672,7 +2675,7 @@
 
 .notice strong {
   color: var(--ink-800);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .notice--warning {
@@ -2718,7 +2721,7 @@
 
 .text-link {
   color: var(--brand-700);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .text-link:hover {
