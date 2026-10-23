@@ -72,8 +72,8 @@ class DashboardController extends AppController
 
         $ascendente = in_array($tipo, ['responder', 'sem_mensagem'], true);
         usort($leads, function (array $a, array $b) use ($ascendente): int {
-            $da = strtotime($a['conversa']['ultimaMensagemEm'] ?? $a['criadoEm']) ?: 0;
-            $db = strtotime($b['conversa']['ultimaMensagemEm'] ?? $b['criadoEm']) ?: 0;
+            $da = $this->timestampConversa($a);
+            $db = $this->timestampConversa($b);
 
             return $ascendente ? $da <=> $db : $db <=> $da;
         });
@@ -88,5 +88,25 @@ class DashboardController extends AppController
             'total' => $total,
             'conversas' => $service->contagensConversas($todos),
         ]);
+    }
+
+    private function timestampConversa(array $lead): int
+    {
+        $valor = $lead['conversa']['ultimaMensagemEm'] ?? null;
+        if (!$valor) {
+            $valor = $lead['criadoEm'] ?? null;
+        }
+
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->getTimestamp();
+        }
+
+        if (!$valor) {
+            return 0;
+        }
+
+        $timestamp = strtotime((string)$valor);
+
+        return $timestamp === false ? 0 : $timestamp;
     }
 }
