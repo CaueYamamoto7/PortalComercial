@@ -72,10 +72,16 @@
                     <label class="field"><span class="field__label">Prioridade</span><select class="select" id="msg-prioridade">
                       <option value="">Todas</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option>
                     </select></label>
-                    <label class="field field--wide"><span class="field__label">Buscar</span>
-                      <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>
-                        <input class="input" id="msg-busca" type="search" placeholder="Nome, empresa, cidade ou tag…" autocomplete="off"></div>
-                    </label>
+                    <div class="field field--wide">
+                      <span class="field__label">Buscar</span>
+                      <div class="search-inline">
+                        <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>
+                          <input class="input" id="msg-busca" type="search" placeholder="Nome, empresa, cidade ou tag…" autocomplete="off"></div>
+                        <button class="btn btn--secondary btn--sm search-submit" type="button" data-buscar-publico>
+                          <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>Pesquisar
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="audience-count">
@@ -191,6 +197,9 @@
               <div class="card__actions">
                 <div class="input-wrap history-search"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>
                   <input class="input" id="history-busca" type="search" placeholder="Buscar campanha…" autocomplete="off"></div>
+                <button class="btn btn--secondary btn--sm search-submit" type="button" data-buscar-historico>
+                  <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>Pesquisar
+                </button>
                 <select class="select select--sm" id="history-status" aria-label="Filtrar por status">
                   <option value="">Todos os status</option>
                   <option value="concluida">Concluídas</option>

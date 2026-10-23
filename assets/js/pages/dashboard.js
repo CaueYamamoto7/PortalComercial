@@ -214,6 +214,8 @@
           '<div class="conv-toolbar">' +
             '<div class="input-wrap">' + ui.icone("search") +
               '<input class="input" type="search" data-conv-busca placeholder="Buscar por nome, empresa, telefone…" autocomplete="off"></div>' +
+            '<button class="btn btn--secondary btn--sm search-submit" type="button" data-conv-pesquisar>' +
+              ui.icone("search") + "Pesquisar</button>" +
             '<select class="select select--sm" data-conv-responsavel aria-label="Filtrar por responsável">' +
               '<option value="">Todos os responsáveis</option>' +
               equipe.map(function (m) { return '<option value="' + u.escaparHTML(m.nome) + '">' + u.escaparHTML(m.nome) + "</option>"; }).join("") +
@@ -261,10 +263,25 @@
         });
       }
 
-      d.el.querySelector("[data-conv-busca]").addEventListener("input", u.debounce(function (e) {
-        estado.q = e.target.value;
+      var convBusca = d.el.querySelector("[data-conv-busca]");
+      var convBuscaDebounce = u.debounce(function () {
+        estado.q = convBusca.value;
         carregarLista();
-      }, 220));
+      }, 220);
+      convBusca.addEventListener("input", convBuscaDebounce);
+
+      function pesquisarConversasAgora() {
+        convBuscaDebounce.cancel();
+        estado.q = convBusca.value;
+        carregarLista();
+      }
+
+      convBusca.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        pesquisarConversasAgora();
+      });
+      d.el.querySelector("[data-conv-pesquisar]").addEventListener("click", pesquisarConversasAgora);
 
       d.el.querySelector("[data-conv-responsavel]").addEventListener("change", function (e) {
         estado.responsavel = e.target.value;

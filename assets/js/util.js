@@ -390,12 +390,20 @@
 
   function debounce(fn, wait) {
     var timer = null;
-    return function () {
+    function debounced() {
       var ctx = this;
       var args = arguments;
       clearTimeout(timer);
-      timer = setTimeout(function () { fn.apply(ctx, args); }, wait || 250);
+      timer = setTimeout(function () {
+        timer = null;
+        fn.apply(ctx, args);
+      }, wait || 250);
+    }
+    debounced.cancel = function () {
+      clearTimeout(timer);
+      timer = null;
     };
+    return debounced;
   }
 
   function uid(prefixo) {

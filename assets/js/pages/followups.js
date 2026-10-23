@@ -148,10 +148,24 @@
     });
 
     var busca = el("followup-busca");
-    busca.addEventListener("input", u.debounce(function () {
+    var buscaDebounce = u.debounce(function () {
       estado.q = busca.value.trim();
       render();
-    }, 220));
+    }, 220);
+    busca.addEventListener("input", buscaDebounce);
+
+    function pesquisarAgora() {
+      buscaDebounce.cancel();
+      estado.q = busca.value.trim();
+      render();
+    }
+
+    busca.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      pesquisarAgora();
+    });
+    document.querySelector("[data-buscar]").addEventListener("click", pesquisarAgora);
 
     el("followup-responsavel").addEventListener("change", function (e) {
       estado.responsavel = e.target.value;

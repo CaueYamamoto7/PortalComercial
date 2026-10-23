@@ -504,10 +504,25 @@
         renderPublico();
       });
     });
-    el("msg-busca").addEventListener("input", u.debounce(function (e) {
-      filtros.q = e.target.value.trim();
+    var msgBusca = el("msg-busca");
+    var msgBuscaDebounce = u.debounce(function () {
+      filtros.q = msgBusca.value.trim();
       renderPublico();
-    }, 220));
+    }, 220);
+    msgBusca.addEventListener("input", msgBuscaDebounce);
+
+    function pesquisarPublicoAgora() {
+      msgBuscaDebounce.cancel();
+      filtros.q = msgBusca.value.trim();
+      renderPublico();
+    }
+
+    msgBusca.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      pesquisarPublicoAgora();
+    });
+    document.querySelector("[data-buscar-publico]").addEventListener("click", pesquisarPublicoAgora);
     document.querySelector("[data-limpar-publico]").addEventListener("click", limparFiltrosPublico);
 
     el("audience-list").addEventListener("change", function (e) {
@@ -547,11 +562,27 @@
     });
     el("msg-enviar").addEventListener("click", enviar);
 
-    el("history-busca").addEventListener("input", u.debounce(function (e) {
-      history.q = e.target.value.trim();
+    var historyBusca = el("history-busca");
+    var historyBuscaDebounce = u.debounce(function () {
+      history.q = historyBusca.value.trim();
       history.page = 1;
       carregarHistorico();
-    }, 260));
+    }, 260);
+    historyBusca.addEventListener("input", historyBuscaDebounce);
+
+    function pesquisarHistoricoAgora() {
+      historyBuscaDebounce.cancel();
+      history.q = historyBusca.value.trim();
+      history.page = 1;
+      carregarHistorico();
+    }
+
+    historyBusca.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      pesquisarHistoricoAgora();
+    });
+    document.querySelector("[data-buscar-historico]").addEventListener("click", pesquisarHistoricoAgora);
     el("history-status").addEventListener("change", function (e) {
       history.status = e.target.value;
       history.page = 1;

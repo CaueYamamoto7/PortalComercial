@@ -901,6 +901,22 @@
   height: 15px;
 }
 
+.search-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-inline .input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-submit {
+  flex: none;
+  white-space: nowrap;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

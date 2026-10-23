@@ -172,6 +172,7 @@ class LeadService
         $etapasPorId = array_column($cat['etapas'], null, 'id');
 
         $q = $this->normalizar((string)($params['q'] ?? ''));
+        $qDigitos = preg_replace('/\D+/', '', $q) ?? '';
         $etapa = (string)($params['etapa'] ?? '');
         $sistema = (string)($params['sistema'] ?? '');
         $origem = (string)($params['origem'] ?? '');
@@ -186,6 +187,7 @@ class LeadService
 
         $resultado = array_values(array_filter($leads, function (array $lead) use (
             $q,
+            $qDigitos,
             $etapa,
             $sistema,
             $origem,
@@ -221,7 +223,7 @@ class LeadService
                     implode(' ', $nomesSistemas),
                 ]));
                 $achou = str_contains($alvo, $q)
-                    || ($q !== '' && str_contains(preg_replace('/\D+/', '', $lead['telefone']) ?? '', preg_replace('/\D+/', '', $q) ?? ''));
+                    || ($qDigitos !== '' && str_contains(preg_replace('/\D+/', '', $lead['telefone']) ?? '', $qDigitos));
                 if (!$achou) {
                     return false;
                 }
@@ -477,9 +479,18 @@ class LeadService
             if ($norm !== false) {
                 $valor = preg_replace('/\p{Mn}+/u', '', $norm) ?? $valor;
             }
+        } else {
+            $valor = strtr($valor, [
+                'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a',
+                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+                'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+                'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+                'ç' => 'c', 'ñ' => 'n',
+            ]);
         }
 
-        return $valor;
+        return preg_replace('/\s+/', ' ', $valor) ?? $valor;
     }
 
     public function diasParaContato(?DateTime $data): ?int
