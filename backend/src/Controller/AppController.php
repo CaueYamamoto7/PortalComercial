@@ -4,7 +4,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Exception\ApiException;
+use App\Service\AccessControl;
+use App\Service\AuditLogger;
+use App\Service\LeadQueryService;
 use App\Service\LeadService;
+use App\Service\LeadWriteService;
 use Cake\Controller\Controller;
 use Cake\Http\Response;
 use Cake\I18n\DateTime;
@@ -15,6 +19,10 @@ use Cake\I18n\DateTime;
 abstract class AppController extends Controller
 {
     protected ?LeadService $leads = null;
+    protected ?LeadQueryService $queries = null;
+    protected ?LeadWriteService $writes = null;
+    protected ?AccessControl $accessControl = null;
+    protected ?AuditLogger $audit = null;
 
     public function initialize(): void
     {
@@ -29,6 +37,83 @@ abstract class AppController extends Controller
         }
 
         return $this->leads;
+    }
+
+    protected function queryService(): LeadQueryService
+    {
+        if ($this->queries === null) {
+            $this->queries = new LeadQueryService($this->service(), $this->access());
+        }
+
+        return $this->queries;
+    }
+
+    protected function writeService(): LeadWriteService
+    {
+        if ($this->writes === null) {
+            $this->writes = new LeadWriteService($this->access());
+        }
+
+        return $this->writes;
+    }
+
+    protected function access(): AccessControl
+    {
+        if ($this->accessControl === null) {
+            $this->accessControl = new AccessControl();
+        }
+
+        return $this->accessControl;
+    }
+
+    protected function audit(): AuditLogger
+    {
+        if ($this->audit === null) {
+            $this->audit = new AuditLogger();
+        }
+
+        return $this->audit;
+    }
+
+    protected function perPage(mixed $valor, int $padrao = 12, ?int $max = null): int
+    {
+        $max = $max ?? LeadQueryService::PER_PAGE_MAX;
+        $perPage = (int)($valor ?: $padrao);
+
+        return max(1, min($max, $perPage));
+    }
+
+    protected function exigirAdmin(): void
+    {
+        if (!$this->access()->canManageTeam($this->identidade())) {
+            $this->erro('Apenas administradores podem executar esta ação.', null, 403);
+        }
+    }
+
+    protected function exigirGestor(): void
+    {
+        if (!$this->access()->canManageCatalog($this->identidade())) {
+            $this->erro('Você não tem permissão para esta ação.', null, 403);
+        }
+    }
+
+    protected function corValida(mixed $valor, string $padrao = '#0B6B57'): string
+    {
+        $cor = strtoupper(trim((string)$valor));
+
+        return preg_match('/^#[0-9A-F]{6}$/', $cor) ? $cor : $padrao;
+    }
+
+    protected function registroAuditoria(string $acao, string $entidade, ?string $entidadeId = null, array $meta = []): void
+    {
+        $this->audit()->log(
+            $this->identidade(),
+            $acao,
+            $entidade,
+            $entidadeId,
+            $meta,
+            $this->request->clientIp()
+        );
     }
 
     protected function respond(mixed $data, int $status = 200): Response
@@ -178,6 +263,10 @@ abstract class AppController extends Controller
             'direcao' => $direcao,
         ]);
         $table->saveOrFail($entity);
+
+        if ($tipo === 'mensagem') {
+            $this->writeService()->atualizarContadores($leadId);
+        }
 
         return $this->interacaoOut($entity);
     }

@@ -14,12 +14,18 @@ return function (RouteBuilder $routes): void {
         $builder->post('/auth/logout', ['controller' => 'Auth', 'action' => 'logout']);
         $builder->get('/auth/session', ['controller' => 'Auth', 'action' => 'session']);
 
+        $builder->get('/bootstrap', ['controller' => 'Bootstrap', 'action' => 'index']);
+        $builder->get('/resumo', ['controller' => 'Bootstrap', 'action' => 'resumo']);
+        $builder->get('/catalogos', ['controller' => 'Bootstrap', 'action' => 'catalogos']);
+
         $builder->get('/dashboard', ['controller' => 'Dashboard', 'action' => 'index']);
         $builder->get('/dashboard/conversas', ['controller' => 'Dashboard', 'action' => 'conversas']);
 
         $builder->get('/leads', ['controller' => 'Leads', 'action' => 'index']);
         $builder->post('/leads', ['controller' => 'Leads', 'action' => 'add']);
         $builder->post('/leads/importar', ['controller' => 'Leads', 'action' => 'importar']);
+        $builder->post('/leads/lote', ['controller' => 'Leads', 'action' => 'lote']);
+        $builder->get('/leads/exportar', ['controller' => 'Leads', 'action' => 'exportar']);
         $builder->get('/leads/{id}', ['controller' => 'Leads', 'action' => 'view'])->setPass(['id']);
         $builder->put('/leads/{id}', ['controller' => 'Leads', 'action' => 'edit'])->setPass(['id']);
         $builder->delete('/leads/{id}', ['controller' => 'Leads', 'action' => 'delete'])->setPass(['id']);
@@ -36,6 +42,8 @@ return function (RouteBuilder $routes): void {
 
         $builder->get('/mensagens', ['controller' => 'Campaigns', 'action' => 'index']);
         $builder->post('/mensagens', ['controller' => 'Campaigns', 'action' => 'add']);
+        $builder->get('/mensagens/{id}', ['controller' => 'Campaigns', 'action' => 'view'])->setPass(['id']);
+        $builder->post('/mensagens/publico', ['controller' => 'Campaigns', 'action' => 'publico']);
         $builder->post('/mensagens/individual', ['controller' => 'Campaigns', 'action' => 'individual']);
         $builder->post('/mensagens/{id}/cancelar', ['controller' => 'Campaigns', 'action' => 'cancelar'])
             ->setPass(['id']);
@@ -49,6 +57,7 @@ return function (RouteBuilder $routes): void {
 
         $builder->get('/configuracoes', ['controller' => 'Settings', 'action' => 'index']);
         $builder->put('/perfil', ['controller' => 'Settings', 'action' => 'perfil']);
+        $builder->put('/preferencias', ['controller' => 'Settings', 'action' => 'preferencias']);
         $builder->put('/senha', ['controller' => 'Settings', 'action' => 'alterarSenha']);
         $builder->put('/configuracoes/{secao}', ['controller' => 'Settings', 'action' => 'save'])
             ->setPass(['secao']);

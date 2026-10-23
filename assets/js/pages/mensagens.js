@@ -22,48 +22,42 @@
 
   function statusCampanha(status) {
     var mapa = {
+      registrada: { label: "Registrada", cls: "badge--info" },
       concluida: { label: "Concluída", cls: "badge--success" },
       em_andamento: { label: "Em andamento", cls: "badge--info" },
       agendada: { label: "Agendada", cls: "badge--warning" },
       falha: { label: "Falha", cls: "badge--danger" },
       cancelada: { label: "Cancelada", cls: "badge--neutral" }
     };
-    return mapa[status] || mapa.concluida;
+    return mapa[status] || mapa.registrada;
   }
 
   function podeCancelar(status) {
-    return ["agendada", "em_andamento"].indexOf(status) !== -1;
+    return ["registrada", "agendada", "em_andamento"].indexOf(status) !== -1;
   }
 
   /* Público ---------------------------------------------------------------- */
 
+  var publico = { total: 0, bloqueados: null, amostra: [], limitado: false };
+  var seqPublico = 0;
+
   function preencherFiltros(cfg) {
+    cfg = cfg || {};
+    var responsaveis = cfg.responsaveis || cfg.equipe || [];
     el("msg-etapa").innerHTML = '<option value="">Todas as etapas</option>' +
-      cfg.etapas.map(function (e) { return '<option value="' + e.id + '">' + u.escaparHTML(e.nome) + "</option>"; }).join("");
+      (cfg.etapas || []).map(function (e) { return '<option value="' + e.id + '">' + u.escaparHTML(e.nome) + "</option>"; }).join("");
     el("msg-sistema").innerHTML = '<option value="">Todos os sistemas</option>' +
-      cfg.sistemas.filter(function (s) { return s.ativo; }).map(function (s) { return '<option value="' + s.id + '">' + u.escaparHTML(s.nome) + "</option>"; }).join("");
+      (cfg.sistemas || []).filter(function (s) { return s.ativo; }).map(function (s) { return '<option value="' + s.id + '">' + u.escaparHTML(s.nome) + "</option>"; }).join("");
     el("msg-origem").innerHTML = '<option value="">Todas as origens</option>' +
-      cfg.origens.filter(function (o) { return o.ativo; }).map(function (o) { return '<option value="' + o.id + '">' + u.escaparHTML(o.nome) + "</option>"; }).join("");
+      (cfg.origens || []).filter(function (o) { return o.ativo; }).map(function (o) { return '<option value="' + o.id + '">' + u.escaparHTML(o.nome) + "</option>"; }).join("");
     el("msg-responsavel").innerHTML = '<option value="">Todos os responsáveis</option>' +
-      cfg.equipe.filter(function (m) { return m.status === "ativo"; }).map(function (m) { return '<option value="' + u.escaparHTML(m.nome) + '">' + u.escaparHTML(m.nome) + "</option>"; }).join("");
+      responsaveis.filter(function (m) { return m.status !== "inativo"; }).map(function (m) { return '<option value="' + u.escaparHTML(m.nome) + '">' + u.escaparHTML(m.nome) + "</option>"; }).join("");
   }
 
-  function filtrarLeads() {
-    var q = u.normalizarTexto(filtros.q);
-    var digitosBusca = u.somenteDigitos(filtros.q);
-    return leads.filter(function (l) {
-      if (filtros.etapa && l.etapaId !== filtros.etapa) return false;
-      if (filtros.sistema && (l.sistemaIds || []).indexOf(filtros.sistema) === -1) return false;
-      if (filtros.origem && l.origemId !== filtros.origem) return false;
-      if (filtros.responsavel && l.responsavel !== filtros.responsavel) return false;
-      if (filtros.possuiSistema && l.possuiSistema !== filtros.possuiSistema) return false;
-      if (filtros.prioridade && l.prioridade !== filtros.prioridade) return false;
-      if (q) {
-        var alvo = u.normalizarTexto([l.nome, l.empresa, l.cidade, l.responsavel, l.email, (l.tags || []).join(" "), (l.sistemasNomes || []).join(" ")].join(" "));
-        if (alvo.indexOf(q) === -1 && (!digitosBusca || u.somenteDigitos(l.telefone).indexOf(digitosBusca) === -1)) return false;
-      }
-      return true;
-    });
+  function paramsFiltros() {
+    var p = {};
+    Object.keys(filtros).forEach(function (k) { if (filtros[k]) p[k] = filtros[k]; });
+    return p;
   }
 
   function elegivelLead(l) {
@@ -77,19 +71,39 @@
     return "Encerrado";
   }
 
-  function publicoAtual() {
-    var filtrados = filtrarLeads();
-    if (modo === "filtros") {
-      return filtrados.filter(elegivelLead);
-    }
-    return leads.filter(function (l) { return selecionados[l.id] && elegivelLead(l); });
+  function idsSelecionados() {
+    return Object.keys(selecionados).filter(function (id) { return selecionados[id]; });
   }
 
-  function amostra() {
-    var pub = publicoAtual();
-    if (pub.length) return pub[0];
-    var filtrados = filtrarLeads().filter(elegivelLead);
-    return filtrados[0] || leads[0] || null;
+  function totalPublico() {
+    return modo === "manual" ? idsSelecionados().length : (publico.total || 0);
+  }
+
+  function mesclarLeads(novos) {
+    var mapa = {};
+    leads.concat(novos || []).forEach(function (l) { mapa[l.id] = l; });
+    leads = Object.keys(mapa).map(function (id) { return mapa[id]; });
+  }
+
+  function carregarLeadsManuais() {
+    var p = paramsFiltros();
+    p.page = 1;
+    p.perPage = 100;
+    return api.leads.listar(p).then(function (res) {
+      leads = res.data;
+      return res;
+    });
+  }
+
+  function carregarLeadsPorIds(ids) {
+    if (!ids || !ids.length) return Promise.resolve();
+    var faltantes = ids.filter(function (id) {
+      return !leads.some(function (l) { return l.id === id; });
+    });
+    if (!faltantes.length) return Promise.resolve();
+    return api.leads.listar({ ids: faltantes.join(","), perPage: 100 }).then(function (res) {
+      mesclarLeads(res.data);
+    });
   }
 
   function itemManual(l) {
@@ -105,35 +119,67 @@
     "</label>";
   }
 
-  function renderPublico() {
-    var filtrados = filtrarLeads();
-    var pub = publicoAtual();
-    var bloqueados = filtrados.filter(function (l) { return !elegivelLead(l); }).length;
-    el("msg-publico").textContent = u.formatarNumero(pub.length);
-    el("msg-publico-nota").textContent = bloqueados
-      ? "· " + bloqueados + " contato(s) fora do público de envio"
-      : (modo === "manual" ? "· seleção manual" : "· todos os filtrados serão incluídos");
-    el("resumo-publico").textContent = u.formatarNumero(pub.length);
-    el("resumo-bloqueados").textContent = u.formatarNumero(bloqueados);
-    el("msg-excluidos").hidden = !bloqueados;
-    if (bloqueados) el("msg-excluidos").textContent = bloqueados + " contato(s) do filtro estão encerrados, são clientes ou estão marcados como “não contatar” e serão ignorados no envio.";
-
-    var manual = el("audience-manual");
-    manual.hidden = modo !== "manual";
+  function amostra() {
     if (modo === "manual") {
-      el("audience-list").innerHTML = filtrados.length
-        ? filtrados.map(itemManual).join("")
-        : '<div class="empty empty--compact"><p>Nenhum lead com esses filtros.</p></div>';
+      for (var i = 0; i < leads.length; i++) {
+        if (selecionados[leads[i].id] && elegivelLead(leads[i])) return leads[i];
+      }
+      return leads[0] || null;
+    }
+    return (publico.amostra || [])[0] || null;
+  }
+
+  function renderPublico() {
+    if (modo === "manual") {
+      var ids = idsSelecionados();
+      var bloqueados = leads.filter(function (l) { return !elegivelLead(l); }).length;
+      el("msg-publico").textContent = u.formatarNumero(ids.length);
+      el("msg-publico-nota").textContent = "· seleção manual";
+      el("resumo-publico").textContent = u.formatarNumero(ids.length);
+      el("resumo-bloqueados").textContent = u.formatarNumero(bloqueados);
+      el("msg-excluidos").hidden = !bloqueados;
+      if (bloqueados) el("msg-excluidos").textContent = bloqueados + " contato(s) desta página estão encerrados, são clientes ou estão marcados como “não contatar” e serão ignorados no envio.";
+      el("audience-manual").hidden = false;
+      el("audience-list").innerHTML = leads.length
+        ? leads.map(itemManual).join("")
+        : '<div class="empty empty--compact"><p>Carregando contatos…</p></div>';
+      atualizarMensagem();
+      return;
     }
 
-    atualizarMensagem();
+    el("audience-manual").hidden = true;
+    var seq = ++seqPublico;
+    api.mensagens.publico({ filtros: paramsFiltros() }).then(function (res) {
+      if (seq !== seqPublico) return;
+      publico = res;
+      el("msg-publico").textContent = u.formatarNumero(res.total);
+      el("msg-publico-nota").textContent = res.limitado
+        ? "· máximo de 5.000 contatos por campanha"
+        : "· todos os filtrados elegíveis serão incluídos";
+      el("resumo-publico").textContent = u.formatarNumero(res.total);
+      el("resumo-bloqueados").textContent = (res.bloqueados === null || res.bloqueados === undefined)
+        ? "—"
+        : u.formatarNumero(res.bloqueados);
+      el("msg-excluidos").hidden = !res.bloqueados;
+      if (res.bloqueados) el("msg-excluidos").textContent = res.bloqueados + " contato(s) do filtro estão encerrados, são clientes ou estão marcados como “não contatar” e serão ignorados no envio.";
+      atualizarMensagem();
+    }).catch(function (err) {
+      if (seq !== seqPublico) return;
+      publico = { total: 0, bloqueados: null, amostra: [], limitado: false };
+      ui.toast(err.message || "Não foi possível calcular o público.", "error");
+      atualizarMensagem();
+    });
   }
 
   function limparFiltrosPublico() {
     filtros = { q: "", etapa: "", sistema: "", origem: "", responsavel: "", possuiSistema: "", prioridade: "" };
     ["msg-etapa", "msg-sistema", "msg-origem", "msg-responsavel", "msg-possui", "msg-prioridade"].forEach(function (id) { el(id).value = ""; });
     el("msg-busca").value = "";
-    renderPublico();
+    if (modo === "manual") {
+      carregarLeadsManuais().then(renderPublico);
+    } else {
+      renderPublico();
+    }
   }
 
   /* Mensagem --------------------------------------------------------------- */
@@ -146,11 +192,11 @@
 
   function atualizarMensagem() {
     var texto = el("msg-texto").value;
-    var pub = publicoAtual();
+    var total = totalPublico();
     var seg = u.contarSegmentos(texto);
     el("msg-chars").textContent = texto.length + " caractere" + (texto.length === 1 ? "" : "s");
     el("msg-segs").textContent = seg + " segmento" + (seg === 1 ? "" : "s");
-    el("resumo-segmentos").textContent = u.formatarNumero(seg * pub.length);
+    el("resumo-segmentos").textContent = u.formatarNumero(seg * total);
     el("resumo-responsavel").textContent = Painel.auth.usuario().nome;
 
     var s = amostra();
@@ -185,42 +231,50 @@
   function enviar() {
     var nome = el("msg-nome").value.trim();
     var mensagem = el("msg-texto").value.trim();
-    var pub = publicoAtual();
+    var total = totalPublico();
     var agendar = el("msg-agendar").checked;
     var data = el("msg-data").value;
 
     if (!nome) { ui.toast("Dê um nome para a campanha.", "warning"); el("msg-nome").focus(); return; }
-    if (!mensagem) { ui.toast("Escreva a mensagem antes de enviar.", "warning"); el("msg-texto").focus(); return; }
-    if (!pub.length) { ui.toast("Nenhum contato selecionado para o envio.", "warning"); return; }
+    if (!mensagem) { ui.toast("Escreva a mensagem antes de registrar.", "warning"); el("msg-texto").focus(); return; }
+    if (!total) { ui.toast("Nenhum contato selecionado para a campanha.", "warning"); return; }
     if (agendar && !data) { ui.toast("Informe a data e hora do agendamento.", "warning"); el("msg-data").focus(); return; }
 
-    if (!agendar && pub.length > 1) {
+    if (!agendar && total > 1) {
       ui.confirmar({
-        titulo: "Enviar mensagem",
-        texto: "A mensagem será enviada para <strong>" + pub.length + " contato(s)</strong>. Deseja continuar?",
-        acao: "Enviar agora"
-      }).then(function (ok) { if (ok) executarEnvio(nome, mensagem, pub, agendar, data); });
+        titulo: "Registrar campanha",
+        texto: "A campanha será registrada para <strong>" + total + " contato(s)</strong>. O envio pelo WhatsApp ainda não está integrado. Deseja continuar?",
+        acao: "Registrar campanha"
+      }).then(function (ok) { if (ok) executarEnvio(nome, mensagem, agendar, data); });
       return;
     }
-    executarEnvio(nome, mensagem, pub, agendar, data);
+    executarEnvio(nome, mensagem, agendar, data);
   }
 
-  function executarEnvio(nome, mensagem, pub, agendar, data) {
+  function executarEnvio(nome, mensagem, agendar, data) {
     var btn = el("msg-enviar");
-    btn.disabled = true;
-    btn.classList.add("is-loading");
-    api.mensagens.criar({
+    var payload = {
       nome: nome,
       mensagem: mensagem,
       templateId: el("msg-template").value || null,
-      leadIds: pub.map(function (l) { return l.id; }),
       agendadaPara: agendar && data ? new Date(data).toISOString() : null
-    }).then(function (campanha) {
+    };
+
+    if (modo === "manual") {
+      payload.leadIds = idsSelecionados();
+    } else {
+      payload.filtros = paramsFiltros();
+      if (!Object.keys(payload.filtros).length) payload.filtros.etapa = "abertos";
+    }
+
+    btn.disabled = true;
+    btn.classList.add("is-loading");
+    api.mensagens.criar(payload).then(function (campanha) {
       btn.disabled = false;
       btn.classList.remove("is-loading");
-      ui.toast(campanha.status === "agendada"
-        ? "Campanha agendada para " + u.formatarDataHoraCurta(campanha.agendadaPara) + "."
-        : "Mensagem enviada para " + campanha.publico + " contato(s).", "success");
+      ui.toast(campanha.agendadaPara
+        ? "Campanha registrada e agendada para " + u.formatarDataHoraCurta(campanha.agendadaPara) + "."
+        : "Campanha registrada para " + campanha.publico + " contato(s).", "success");
       el("msg-nome").value = "";
       el("msg-texto").value = "";
       el("msg-template").value = "";
@@ -233,7 +287,7 @@
     }).catch(function (err) {
       btn.disabled = false;
       btn.classList.remove("is-loading");
-      ui.toast(err.message || "Não foi possível enviar a mensagem.", "error");
+      ui.toast(err.message || "Não foi possível registrar a campanha.", "error");
     });
   }
 
@@ -241,7 +295,7 @@
 
   function renderHistorico(res) {
     var contagens = res.contagens || {};
-    ["todas", "concluida", "em_andamento", "agendada"].forEach(function (k) {
+    ["todas", "registrada", "agendada", "cancelada"].forEach(function (k) {
       var node = document.querySelector('[data-hstat="' + k + '"]');
       if (node) node.textContent = u.formatarNumero(contagens[k] || 0);
     });
@@ -294,8 +348,7 @@
   }
 
   function verCampanha(id) {
-    api.mensagens.listar({ perPage: 1000 }).then(function (res) {
-      var c = res.data.filter(function (x) { return x.id === id; })[0];
+    api.mensagens.obter(id).then(function (c) {
       if (!c) { ui.toast("Campanha não encontrada.", "error"); return; }
       var st = statusCampanha(c.status);
       var taxa = c.enviados ? Math.round((c.entregues / c.enviados) * 100) : 0;
@@ -347,16 +400,20 @@
     modo = "manual";
     document.querySelectorAll("[data-modo]").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-modo") === "manual"); });
     selecionados = {};
-    (c.leadIds || []).forEach(function (id) {
-      var l = leads.filter(function (x) { return x.id === id; })[0];
-      if (l && elegivelLead(l)) selecionados[id] = true;
+    carregarLeadsPorIds(c.leadIds || []).then(function () {
+      (c.leadIds || []).forEach(function (id) {
+        var l = leads.filter(function (x) { return x.id === id; })[0];
+        if (l && elegivelLead(l)) selecionados[id] = true;
+      });
+      el("msg-nome").value = "Cópia de " + c.nome;
+      el("msg-texto").value = c.mensagem;
+      el("msg-template").value = c.templateId || "";
+      atualizarMensagem();
+      renderPublico();
+      ui.toast("Mensagem carregada no compositor.", "info");
+    }).catch(function (err) {
+      ui.toast(err.message || "Não foi possível carregar o público da campanha.", "error");
     });
-    el("msg-nome").value = "Cópia de " + c.nome;
-    el("msg-texto").value = c.mensagem;
-    el("msg-template").value = c.templateId || "";
-    atualizarMensagem();
-    renderPublico();
-    ui.toast("Mensagem carregada no compositor.", "info");
   }
 
   /* Templates -------------------------------------------------------------- */
@@ -494,27 +551,43 @@
       btn.addEventListener("click", function () {
         modo = btn.getAttribute("data-modo");
         document.querySelectorAll("[data-modo]").forEach(function (b) { b.classList.toggle("is-active", b === btn); });
-        renderPublico();
+        if (modo === "manual") {
+          carregarLeadsManuais().then(renderPublico).catch(function (err) {
+            ui.toast(err.message || "Não foi possível carregar os contatos.", "error");
+          });
+        } else {
+          renderPublico();
+        }
       });
     });
+
+    function atualizarPublico() {
+      if (modo === "manual") {
+        carregarLeadsManuais().then(renderPublico).catch(function (err) {
+          ui.toast(err.message || "Não foi possível carregar os contatos.", "error");
+        });
+      } else {
+        renderPublico();
+      }
+    }
 
     [["etapa", "msg-etapa"], ["sistema", "msg-sistema"], ["origem", "msg-origem"], ["responsavel", "msg-responsavel"], ["possuiSistema", "msg-possui"], ["prioridade", "msg-prioridade"]].forEach(function (par) {
       el(par[1]).addEventListener("change", function (e) {
         filtros[par[0]] = e.target.value;
-        renderPublico();
+        atualizarPublico();
       });
     });
     var msgBusca = el("msg-busca");
     var msgBuscaDebounce = u.debounce(function () {
       filtros.q = msgBusca.value.trim();
-      renderPublico();
+      atualizarPublico();
     }, 220);
     msgBusca.addEventListener("input", msgBuscaDebounce);
 
     function pesquisarPublicoAgora() {
       msgBuscaDebounce.cancel();
       filtros.q = msgBusca.value.trim();
-      renderPublico();
+      atualizarPublico();
     }
 
     msgBusca.addEventListener("keydown", function (e) {
@@ -534,7 +607,7 @@
     });
 
     document.querySelector("[data-selecionar-visiveis]").addEventListener("click", function () {
-      filtrarLeads().forEach(function (l) { if (elegivelLead(l)) selecionados[l.id] = true; });
+      leads.forEach(function (l) { if (elegivelLead(l)) selecionados[l.id] = true; });
       renderPublico();
     });
     document.querySelector("[data-limpar-selecao]").addEventListener("click", function () {
@@ -617,13 +690,12 @@
     bind();
 
     Promise.all([
-      api.leads.listar({ perPage: 1000 }),
-      api.configuracoes.obter(),
+      api.bootstrap(),
       api.mensagens.templates()
     ]).then(function (res) {
-      leads = res[0].data;
-      preencherFiltros(res[1]);
-      templates = res[2];
+      var dados = res[0] || {};
+      preencherFiltros(dados.catalogos || {});
+      templates = res[1] || [];
       preencherTemplates();
 
       var qs = new URLSearchParams(window.location.search);
@@ -631,20 +703,23 @@
       if (ids.length) {
         modo = "manual";
         document.querySelectorAll("[data-modo]").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-modo") === "manual"); });
-        ids.forEach(function (id) {
-          var l = leads.filter(function (x) { return x.id === id; })[0];
-          if (l && elegivelLead(l)) selecionados[id] = true;
+        carregarLeadsPorIds(ids).then(function () {
+          ids.forEach(function (id) {
+            var l = leads.filter(function (x) { return x.id === id; })[0];
+            if (l && elegivelLead(l)) selecionados[id] = true;
+          });
+          if (ids.length === 1) {
+            var unico = leads.filter(function (x) { return x.id === ids[0]; })[0];
+            if (unico) el("msg-nome").value = "Mensagem para " + unico.nome;
+          }
+          renderPublico();
         });
-        if (ids.length === 1) {
-          var unico = leads.filter(function (x) { return x.id === ids[0]; })[0];
-          if (unico) el("msg-nome").value = "Mensagem para " + unico.nome;
-        }
       } else {
         el("msg-nome").value = "Campanha " + u.formatarData(new Date());
+        renderPublico();
       }
 
       if (qs.get("tab") === "historico") mostrarView("historico");
-      renderPublico();
     }).catch(function (err) {
       ui.toast(err.message || "Não foi possível carregar a base de leads.", "error");
     });

@@ -10,7 +10,7 @@ class InteractionsController extends AppController
     public function add(string $leadId): Response
     {
         $this->request->allowMethod(['post']);
-        $lead = $this->fetchTable('Leads')->find()->where(['id' => $leadId])->first();
+        $lead = $this->queryService()->findLead($leadId, $this->identidade());
         if (!$lead) {
             $this->erro('Lead não encontrado.', null, 404);
         }
@@ -29,19 +29,22 @@ class InteractionsController extends AppController
             $this->texto($dados['tipo'] ?? '') ?: 'nota',
             $titulo ?: 'Interação',
             $descricao,
-            (string)$lead->get('responsavel'),
+            (string)$lead['responsavel'],
             $data,
             isset($dados['canal']) ? $this->texto($dados['canal']) : null,
             isset($dados['direcao']) ? $this->texto($dados['direcao']) : null
         );
 
-        $lead->set('ultimo_contato', $data);
-        $lead->set('atualizado_em', $data);
-        if (array_key_exists('proximoContato', $dados)) {
-            $lead->set('proximo_contato', $this->data($dados['proximoContato']));
+        $table = $this->fetchTable('Leads');
+        $entity = $table->find()->where(['id' => $leadId])->first();
+        if ($entity) {
+            $entity->set('ultimo_contato', $data);
+            $entity->set('atualizado_em', $data);
+            if (array_key_exists('proximoContato', $dados)) {
+                $entity->set('proximo_contato', $this->data($dados['proximoContato']));
+            }
+            $table->saveOrFail($entity);
         }
-        $this->fetchTable('Leads')->saveOrFail($lead);
-        $this->service()->invalidar();
 
         return $this->respond($interacao);
     }

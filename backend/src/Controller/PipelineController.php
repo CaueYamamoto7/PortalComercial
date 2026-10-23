@@ -7,28 +7,48 @@ use Cake\Http\Response;
 
 class PipelineController extends AppController
 {
+    private const LIMITE = 2000;
+
     public function index(): Response
     {
         $params = (array)$this->request->getQueryParams();
-        $service = $this->service();
-        $leads = $service->filtrar($service->todosEnriquecidos(), $params);
+        unset($params['etapa']);
+        $identidade = $this->identidade();
+
+        $query = $this->queryService()->baseQuery($params, $identidade);
+        $total = (clone $query)->count();
+        $rows = $query
+            ->orderBy(['Leads.atualizado_em' => 'DESC'])
+            ->limit(self::LIMITE)
+            ->all()
+            ->toList();
+
+        $leads = [];
+        foreach ($rows as $row) {
+            $lead = $this->service()->leadOut(
+                $this->service()->enriquecer($this->service()->leadBaseOut($row))
+            );
+            $leads[$lead['id']] = $lead;
+        }
 
         $ordemPrioridade = ['alta' => 0, 'media' => 1, 'baixa' => 2];
         $etapas = [];
-        $total = 0;
-        foreach ($service->catalogo()['etapas'] as $etapa) {
+        $carregados = 0;
+        foreach ($this->service()->catalogo()['etapas'] as $etapa) {
             $daEtapa = array_values(array_filter($leads, fn ($lead) => $lead['etapaId'] === $etapa['id']));
             usort($daEtapa, fn ($a, $b) => ($ordemPrioridade[$a['prioridade']] ?? 9) <=> ($ordemPrioridade[$b['prioridade']] ?? 9));
-            $etapa['leads'] = $service->leadsOut($daEtapa);
+            $etapa['leads'] = $daEtapa;
             $etapa['total'] = count($daEtapa);
-            $total += $etapa['total'];
+            $carregados += $etapa['total'];
             $etapas[] = $etapa;
         }
 
         return $this->respond([
             'etapas' => $etapas,
             'total' => $total,
-            'facets' => $service->facets(),
+            'carregados' => $carregados,
+            'truncado' => $total > self::LIMITE,
+            'facets' => $this->queryService()->facets($params, $identidade),
         ]);
     }
 }

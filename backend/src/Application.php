@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\HostHeaderMiddleware;
 use App\Middleware\JsonErrorMiddleware;
 use Cake\Core\Configure;
 use Cake\Core\ContainerInterface;
@@ -39,6 +40,7 @@ class Application extends BaseApplication
 
         $middlewareQueue
             ->add(new ErrorHandlerMiddleware(Configure::read('Error'), $this))
+            ->add(new HostHeaderMiddleware())
             ->add(new AssetMiddleware([
                 'cacheTime' => Configure::read('Asset.cacheTime'),
             ]))

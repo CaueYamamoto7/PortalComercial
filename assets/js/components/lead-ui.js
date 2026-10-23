@@ -38,7 +38,7 @@
 
   function etapaBadge(etapa) {
     if (!etapa) return "";
-    var cor = etapa.cor || "#64748B";
+    var cor = u.corSegura(etapa.cor, "#64748B");
     return '<span class="badge badge--etapa" style="color:' + cor + ";background:" + cor + '18;border-color:' + cor + '33">' +
       '<span class="badge__dot" style="background:' + cor + '"></span>' + u.escaparHTML(etapa.nome) + "</span>";
   }
@@ -72,7 +72,7 @@
     var limite = max || lista.length;
     var visiveis = lista.slice(0, limite);
     var html = visiveis.map(function (s) {
-      return '<span class="tag tag--sistema"><i style="background:' + (s.cor || "#0B6B57") + '"></i>' + u.escaparHTML(s.nome) + "</span>";
+      return '<span class="tag tag--sistema"><i style="background:' + u.corSegura(s.cor, "#0B6B57") + '"></i>' + u.escaparHTML(s.nome) + "</span>";
     }).join("");
     if (lista.length > limite) html += '<span class="tag tag--muted">+' + (lista.length - limite) + "</span>";
     return html || '<span class="faint xs">Não informado</span>';
@@ -132,7 +132,7 @@
               var marcado = sistemasSelecionados.indexOf(s.id) !== -1;
               return '<label class="system-pick' + (marcado ? " is-checked" : "") + '">' +
                 '<input type="checkbox" name="sistemaIds" value="' + s.id + '"' + (marcado ? " checked" : "") + ">" +
-                '<i style="background:' + s.cor + '"></i><span>' + u.escaparHTML(s.nome) + "</span>" + icone("check") + "</label>";
+                '<i style="background:' + u.corSegura(s.cor, "#0B6B57") + '"></i><span>' + u.escaparHTML(s.nome) + "</span>" + icone("check") + "</label>";
             }).join("") + "</div></div>" +
           '<label class="field"><span class="field__label">Já possui sistema parecido?</span>' +
             '<select class="select" name="possuiSistema">' +

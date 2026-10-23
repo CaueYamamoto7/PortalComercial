@@ -81,7 +81,7 @@
     var lista = ordenarEtapas();
     el("lista-etapas").innerHTML = lista.map(function (etapa, idx) {
       return '<div class="settings-item">' +
-        '<span class="settings-item__dot" style="background:' + etapa.cor + '"></span>' +
+        '<span class="settings-item__dot" style="background:' + u.corSegura(etapa.cor) + '"></span>' +
         '<div class="settings-item__main"><strong>' + u.escaparHTML(etapa.nome) + "</strong>" +
           '<small>Tipo: ' + (etapa.tipo === "ganho" ? "Ganho" : etapa.tipo === "perdido" ? "Perdido" : "Em aberto") + " · Ordem " + (idx + 1) + "</small></div>" +
         '<div class="settings-item__actions">' +
@@ -100,7 +100,7 @@
       size: "sm",
       body: '<form id="etapa-form" class="form-grid">' +
         '<label class="field field--full"><span class="field__label">Nome <em class="field__req">*</em></span><input class="input" name="nome" value="' + u.escaparHTML(etapa ? etapa.nome : "") + '" placeholder="Ex.: Contato feito"></label>' +
-        '<label class="field"><span class="field__label">Cor</span><input class="input input--color" type="color" name="cor" value="' + (etapa ? etapa.cor : "#0B6B57") + '"></label>' +
+        '<label class="field"><span class="field__label">Cor</span><input class="input input--color" type="color" name="cor" value="' + u.corSegura(etapa ? etapa.cor : "", "#0B6B57") + '"></label>' +
         '<label class="field"><span class="field__label">Tipo</span><select class="select" name="tipo">' +
           '<option value="aberto"' + (etapa && etapa.tipo === "aberto" ? " selected" : "") + ">Em aberto</option>" +
           '<option value="ganho"' + (etapa && etapa.tipo === "ganho" ? " selected" : "") + ">Ganho</option>" +
@@ -136,7 +136,7 @@
   function renderSistemas() {
     el("lista-sistemas").innerHTML = config.sistemas.map(function (s) {
       return '<div class="settings-item' + (!s.ativo ? " is-inactive" : "") + '">' +
-        '<span class="settings-item__swatch" style="background:' + s.cor + '"></span>' +
+        '<span class="settings-item__swatch" style="background:' + u.corSegura(s.cor, "#0B6B57") + '"></span>' +
         '<div class="settings-item__main"><strong>' + u.escaparHTML(s.nome) + (s.ativo ? "" : ' <span class="badge badge--neutral">Arquivado</span>') + "</strong>" +
           "<small>" + u.escaparHTML(s.descricao || "Sem descrição") + "</small></div>" +
         '<div class="settings-item__actions">' +
@@ -154,7 +154,7 @@
       body: '<form id="sistema-form" class="form-grid">' +
         '<label class="field field--full"><span class="field__label">Nome <em class="field__req">*</em></span><input class="input" name="nome" value="' + u.escaparHTML(sistema ? sistema.nome : "") + '" placeholder="Ex.: AssinaPDF"></label>' +
         '<label class="field field--full"><span class="field__label">Descrição</span><textarea class="textarea" name="descricao" rows="3">' + u.escaparHTML(sistema ? sistema.descricao : "") + "</textarea></label>" +
-        '<label class="field"><span class="field__label">Cor</span><input class="input input--color" type="color" name="cor" value="' + (sistema ? sistema.cor : "#0B6B57") + '"></label>' +
+        '<label class="field"><span class="field__label">Cor</span><input class="input input--color" type="color" name="cor" value="' + u.corSegura(sistema ? sistema.cor : "", "#0B6B57") + '"></label>' +
         '<label class="field"><span class="field__label">Situação</span><select class="select" name="ativo">' +
           '<option value="1"' + (!sistema || sistema.ativo ? " selected" : "") + ">Ativo</option>" +
           '<option value="0"' + (sistema && !sistema.ativo ? " selected" : "") + ">Arquivado</option>" +

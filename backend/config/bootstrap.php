@@ -162,10 +162,11 @@ if (!$fullBaseUrl) {
 
     /*
      * Development mode fallback: Use HTTP_HOST for convenience.
-     * WARNING: This is ONLY safe in development. In production, the
-     * HostHeaderMiddleware will reject requests when fullBaseUrl is not configured.
+     * In production the fallback is intentionally disabled: accepting an
+     * arbitrary Host header would defeat HostHeaderMiddleware and enable
+     * Host Header Injection (password reset links, absolute URLs, caches).
      */
-    if ($httpHost) {
+    if ($httpHost && Configure::read('debug')) {
         $s = null;
         if (env('HTTPS') || env('HTTP_X_FORWARDED_PROTO') === 'https') {
             $s = 's';

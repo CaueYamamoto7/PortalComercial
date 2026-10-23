@@ -16,10 +16,10 @@
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/pages.css">
   <link rel="stylesheet" href="assets/css/crm.css">
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/util.js"></script>
-  <script src="assets/js/store.js"></script>
-  <script src="assets/js/auth.js"></script>
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/util.js"></script>
+  <script defer src="assets/js/store.js"></script>
+  <script defer src="assets/js/auth.js"></script>
 </head>
 <body>
   <div class="app">
@@ -183,9 +183,9 @@
         <section id="view-historico" hidden>
           <div class="history-stats">
             <div class="lead-stat"><span class="lead-stat__label">Campanhas</span><strong data-hstat="todas">—</strong><small>no total</small></div>
-            <div class="lead-stat"><span class="lead-stat__label">Concluídas</span><strong data-hstat="concluida" class="is-success">—</strong><small>enviadas</small></div>
-            <div class="lead-stat"><span class="lead-stat__label">Em andamento</span><strong data-hstat="em_andamento" class="is-info">—</strong><small>processando</small></div>
+            <div class="lead-stat"><span class="lead-stat__label">Registradas</span><strong data-hstat="registrada" class="is-info">—</strong><small>sem envio integrado</small></div>
             <div class="lead-stat"><span class="lead-stat__label">Agendadas</span><strong data-hstat="agendada" class="is-warning">—</strong><small>aguardando</small></div>
+            <div class="lead-stat"><span class="lead-stat__label">Canceladas</span><strong data-hstat="cancelada">—</strong><small>encerradas</small></div>
           </div>
 
           <section class="card">
@@ -202,6 +202,7 @@
                 </button>
                 <select class="select select--sm" id="history-status" aria-label="Filtrar por status">
                   <option value="">Todos os status</option>
+                  <option value="registrada">Registradas</option>
                   <option value="concluida">Concluídas</option>
                   <option value="em_andamento">Em andamento</option>
                   <option value="agendada">Agendadas</option>
@@ -239,11 +240,10 @@
     </div>
   </div>
 
-  <script src="assets/js/icons.js"></script>
-  <script src="assets/js/api.js"></script>
-  <script src="assets/js/charts.js"></script>
-  <script src="assets/js/ui.js"></script>
-  <script src="assets/js/components/lead-ui.js"></script>
-  <script src="assets/js/pages/mensagens.js"></script>
+  <script defer src="assets/js/icons.js"></script>
+  <script defer src="assets/js/api.js"></script>
+  <script defer src="assets/js/ui.js"></script>
+  <script defer src="assets/js/components/lead-ui.js"></script>
+  <script defer src="assets/js/pages/mensagens.js"></script>
 </body>
 </html>

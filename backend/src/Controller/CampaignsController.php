@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
 class CampaignsController extends AppController
@@ -10,43 +11,109 @@ class CampaignsController extends AppController
     public function index(): Response
     {
         $params = (array)$this->request->getQueryParams();
-        $service = $this->service();
-        $todas = $this->fetchTable('Campaigns')->find()->orderBy(['criada_em' => 'DESC'])->all()->toList();
+        $table = $this->fetchTable('Campaigns');
 
-        $q = $service->normalizar((string)($params['q'] ?? ''));
+        $base = $table->find();
+        if (!$this->access()->canSeeAllLeads($this->identidade())) {
+            $base->where(['responsavel' => $this->usuarioNome()]);
+        }
+        $query = clone $base;
         $status = (string)($params['status'] ?? '');
-
-        $filtradas = array_values(array_filter($todas, function ($row) use ($q, $status, $service): bool {
-            if ($status !== '' && (string)$row->get('status') !== $status) {
-                return false;
-            }
-            if ($q !== '') {
-                $alvo = $service->normalizar($row->get('nome') . ' ' . $row->get('mensagem'));
-                if (!str_contains($alvo, $q)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }));
-
-        $contagens = ['todas' => count($todas), 'concluida' => 0, 'em_andamento' => 0, 'agendada' => 0, 'falha' => 0];
-        foreach ($todas as $row) {
-            $s = (string)$row->get('status');
-            if (array_key_exists($s, $contagens)) {
-                $contagens[$s]++;
-            }
+        if ($status !== '') {
+            $query->where(['status' => $status]);
+        }
+        $q = trim((string)($params['q'] ?? ''));
+        if ($q !== '') {
+            $query->where(['OR' => [
+                'nome LIKE' => '%' . $q . '%',
+                'mensagem LIKE' => '%' . $q . '%',
+            ]]);
         }
 
-        $total = count($filtradas);
-        $pagina = $service->paginar($filtradas, (int)($params['page'] ?? 1), (int)($params['perPage'] ?? 10));
+        $total = (clone $query)->count();
+        $perPage = $this->perPage($params['perPage'] ?? 10, 10);
+        $page = max(1, (int)($params['page'] ?? 1));
+        $paginas = max(1, (int)ceil($total / $perPage));
+        $page = min($page, $paginas);
+
+        $rows = $query
+            ->orderBy(['criada_em' => 'DESC'])
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->all()
+            ->toList();
+
+        $contagens = ['todas' => (clone $base)->count()];
+        $grupos = (clone $base)
+            ->select(['status', 'total' => $table->find()->func()->count('id')])
+            ->groupBy(['status'])
+            ->all();
+        foreach ($grupos as $grupo) {
+            $contagens[(string)$grupo->get('status')] = (int)$grupo->get('total');
+        }
 
         return $this->respond([
-            'data' => array_map(fn ($row) => $this->campanhaOut($row), $pagina['data']),
-            'meta' => $pagina['meta'],
+            'data' => array_map(fn ($row) => $this->campanhaOut($row), $rows),
+            'meta' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'paginas' => $paginas,
+            ],
             'contagens' => $contagens,
             'total' => $total,
         ]);
+    }
+
+    /** Prévia do público, sem carregar todos os leads. */
+    public function publico(): Response
+    {
+        $this->request->allowMethod(['post']);
+        $dados = (array)$this->request->getData();
+        $filtros = (array)($dados['filtros'] ?? []);
+        $leadIds = $this->lista($dados['leadIds'] ?? []);
+        if ($leadIds) {
+            $filtros['ids'] = implode(',', $leadIds);
+        }
+
+        $audiencia = $this->queryService()->audienciaQuery($filtros, $this->identidade());
+        $total = (clone $audiencia)->count();
+        $limitado = $total > 5000;
+        $totalFiltrado = $this->queryService()->baseQuery($filtros, $this->identidade())->count();
+        $amostra = (clone $audiencia)->orderBy(['Leads.id' => 'ASC'])->limit(20)->all()->toList();
+        $leads = [];
+        foreach ($amostra as $row) {
+            $lead = $this->service()->enriquecer($this->service()->leadBaseOut($row));
+            $leads[] = [
+                'id' => $lead['id'],
+                'nome' => $lead['nome'],
+                'empresa' => $lead['empresa'],
+                'telefone' => $lead['telefone'],
+                'sistemasNomes' => $lead['sistemasNomes'],
+            ];
+        }
+
+        return $this->respond([
+            'total' => $total,
+            'limitado' => $limitado,
+            'limite' => 5000,
+            'bloqueados' => $limitado ? null : max(0, $totalFiltrado - $total),
+            'amostra' => $leads,
+        ]);
+    }
+
+    public function view(string $id): Response
+    {
+        $query = $this->fetchTable('Campaigns')->find()->where(['id' => $id]);
+        if (!$this->access()->canSeeAllLeads($this->identidade())) {
+            $query->where(['responsavel' => (string)($this->identidade()['nome'] ?? '')]);
+        }
+        $entity = $query->first();
+        if (!$entity) {
+            $this->erro('Campanha não encontrada.', null, 404);
+        }
+
+        return $this->respond($this->campanhaOut($entity));
     }
 
     public function add(): Response
@@ -63,71 +130,84 @@ class CampaignsController extends AppController
             $this->erro('Escreva a mensagem.', 'mensagem');
         }
 
-        $service = $this->service();
-        $leads = [];
-        foreach ($service->todosEnriquecidos() as $lead) {
-            $leads[$lead['id']] = $lead;
+        $filtros = (array)($dados['filtros'] ?? []);
+        $leadIds = $this->lista($dados['leadIds'] ?? []);
+        if ($leadIds) {
+            $filtros['ids'] = implode(',', $leadIds);
+        } elseif (!$filtros) {
+            $this->erro('Selecione o público da campanha.', 'leads');
         }
 
-        $leadIds = [];
-        foreach ($this->lista($dados['leadIds'] ?? []) as $id) {
-            $lead = $leads[$id] ?? null;
-            if (!$lead || $lead['naoContatar'] || ($lead['etapa']['tipo'] ?? 'aberto') !== 'aberto') {
-                continue;
-            }
-            $leadIds[] = $id;
+        $linhas = $this->queryService()->audiencia($filtros, $this->identidade(), 5001);
+        if (!$linhas) {
+            $this->erro('Nenhum lead elegível para esta campanha.', 'leads');
         }
-        if (!$leadIds) {
-            $this->erro('Selecione pelo menos um lead que aceite receber mensagens.', 'leads');
+        if (count($linhas) > 5000) {
+            $this->erro('O público máximo por campanha é 5.000 leads.', 'leads');
+        }
+
+        $templateId = $this->texto($dados['templateId'] ?? '') ?: null;
+        if ($templateId) {
+            $template = $this->fetchTable('Templates')->find()->where(['id' => $templateId])->first();
+            if (!$template) {
+                $this->erro('Template inválido.', 'templateId');
+            }
         }
 
         $agora = $this->agora();
         $agendada = $this->data($dados['agendadaPara'] ?? null);
-        $status = $agendada && $agendada > $agora ? 'agendada' : 'concluida';
-        $falhas = $status === 'concluida' ? min(1, (int)floor(count($leadIds) * 0.03)) : 0;
-        $enviados = $status === 'concluida' ? count($leadIds) : 0;
-
         $table = $this->fetchTable('Campaigns');
         $entity = $table->newEntity([
             'nome' => $nome,
-            'template_id' => $this->texto($dados['templateId'] ?? '') ?: null,
+            'template_id' => $templateId,
             'mensagem' => $mensagem,
-            'status' => $status,
+            // Sem integração real de WhatsApp, o status honesto é "registrada".
+            'status' => 'registrada',
             'canal' => 'WhatsApp',
-            'lead_ids' => array_values($leadIds),
-            'publico' => count($leadIds),
-            'enviados' => $enviados,
-            'entregues' => $status === 'concluida' ? count($leadIds) - $falhas : 0,
-            'falhas' => $falhas,
+            'lead_ids' => array_values(array_map(fn ($row) => (string)$row->get('id'), $linhas)),
+            'publico' => count($linhas),
+            'enviados' => 0,
+            'entregues' => 0,
+            'falhas' => 0,
             'criada_em' => $agora,
-            'agendada_para' => $status === 'agendada' ? $agendada : null,
+            'agendada_para' => $agendada,
             'responsavel' => $this->usuarioNome(),
         ]);
-        $table->saveOrFail($entity);
 
-        if ($status === 'concluida') {
-            $leadsTable = $this->fetchTable('Leads');
-            foreach ($leadIds as $leadId) {
-                $lead = $leadsTable->find()->where(['id' => $leadId])->first();
-                if (!$lead) {
-                    continue;
-                }
-                $lead->set('ultimo_contato', $agora);
-                $lead->set('atualizado_em', $agora);
-                $leadsTable->saveOrFail($lead);
-                $this->registrarInteracao(
-                    $leadId,
-                    'mensagem',
-                    'Mensagem enviada — ' . $nome,
-                    'Mensagem enviada por WhatsApp na campanha “' . $nome . '”.',
-                    (string)$entity->get('responsavel'),
-                    $agora,
-                    'WhatsApp',
-                    'saida'
+        $conn = ConnectionManager::get('default');
+        $conn->begin();
+        try {
+            $table->saveOrFail($entity);
+            $campaignId = (string)$entity->get('id');
+
+            foreach ($linhas as $row) {
+                $lead = $this->service()->enriquecer($this->service()->leadBaseOut($row));
+                $texto = $this->renderizarMensagem($mensagem, $lead);
+                $conn->execute(
+                    'INSERT INTO campaign_recipients '
+                    . '(id, campaign_id, lead_id, status, mensagem, erro, enviado_em, criado_em) '
+                    . 'VALUES (:id, :campaign_id, :lead_id, :status, :mensagem, NULL, NULL, :criado_em)',
+                    [
+                        'id' => 'rc_' . bin2hex(random_bytes(8)),
+                        'campaign_id' => $campaignId,
+                        'lead_id' => (string)$lead['id'],
+                        'status' => 'pendente',
+                        'mensagem' => $texto,
+                        'criado_em' => $agora->format('Y-m-d H:i:s'),
+                    ]
                 );
             }
-            $service->invalidar();
+
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollback();
+            throw $e;
         }
+
+        $this->registroAuditoria('campanha.criar', 'campaign', (string)$entity->get('id'), [
+            'publico' => count($linhas),
+            'status' => 'registrada',
+        ]);
 
         return $this->respond($this->campanhaOut($entity), 201);
     }
@@ -138,16 +218,14 @@ class CampaignsController extends AppController
         $dados = (array)$this->request->getData();
 
         $leadId = $this->texto($dados['leadId'] ?? '');
-        $lead = $this->fetchTable('Leads')->find()->where(['id' => $leadId])->first();
+        $lead = $this->queryService()->findLead($leadId, $this->identidade());
         if (!$lead) {
             $this->erro('Lead não encontrado.', null, 404);
         }
-        if ($lead->get('nao_contatar')) {
+        if ($lead['naoContatar']) {
             $this->erro('Este lead está marcado como “não contatar”.', 'lead');
         }
-
-        $etapa = $this->fetchTable('Stages')->find()->where(['id' => $lead->get('etapa_id')])->first();
-        if ($etapa && $etapa->get('tipo') === 'perdido') {
+        if (($lead['etapa']['tipo'] ?? 'aberto') === 'perdido') {
             $this->erro('Esta oportunidade foi encerrada como perdida. Reative o contato antes de enviar mensagens.', 'lead');
         }
 
@@ -168,10 +246,15 @@ class CampaignsController extends AppController
             'saida'
         );
 
-        $lead->set('ultimo_contato', $agora);
-        $lead->set('atualizado_em', $agora);
-        $this->fetchTable('Leads')->saveOrFail($lead);
-        $this->service()->invalidar();
+        $table = $this->fetchTable('Leads');
+        $entity = $table->find()->where(['id' => $leadId])->first();
+        if ($entity) {
+            $entity->set('ultimo_contato', $agora);
+            $entity->set('atualizado_em', $agora);
+            $table->saveOrFail($entity);
+        }
+
+        $this->registroAuditoria('mensagem.individual', 'lead', $leadId);
 
         return $this->respond($interacao, 201);
     }
@@ -180,17 +263,52 @@ class CampaignsController extends AppController
     {
         $this->request->allowMethod(['post']);
         $table = $this->fetchTable('Campaigns');
-        $entity = $table->find()->where(['id' => $id])->first();
+        $query = $table->find()->where(['id' => $id]);
+        if (!$this->access()->canSeeAllLeads($this->identidade())) {
+            $query->where(['responsavel' => $this->usuarioNome()]);
+        }
+        $entity = $query->first();
         if (!$entity) {
             $this->erro('Campanha não encontrada.', null, 404);
         }
-        if (!in_array((string)$entity->get('status'), ['agendada', 'em_andamento'], true)) {
+        if (!in_array((string)$entity->get('status'), ['registrada', 'agendada', 'em_andamento'], true)) {
             $this->erro('Esta campanha não pode mais ser cancelada.');
         }
 
         $entity->set('status', 'cancelada');
         $table->saveOrFail($entity);
+        ConnectionManager::get('default')->execute(
+            "UPDATE campaign_recipients SET status = 'cancelado' WHERE campaign_id = :id AND status = 'pendente'",
+            ['id' => $id]
+        );
+        $this->registroAuditoria('campanha.cancelar', 'campaign', $id);
 
         return $this->respond($this->campanhaOut($entity));
+    }
+
+    /** @param array<string, mixed> $lead */
+    private function renderizarMensagem(string $conteudo, array $lead): string
+    {
+        return (string)preg_replace_callback(
+            '/\{\{\s*([a-z_]+)\s*\}\}/i',
+            function (array $m) use ($lead): string {
+                $chave = mb_strtolower($m[1]);
+                $valor = match ($chave) {
+                    'primeiro_nome' => explode(' ', trim((string)$lead['nome']))[0] ?? '',
+                    'sistema_interesse' => implode(', ', $lead['sistemasNomes'] ?? []) ?: 'nossos sistemas',
+                    'telefone' => (string)$lead['telefone'],
+                    'nome' => (string)$lead['nome'],
+                    'empresa' => (string)$lead['empresa'],
+                    'cargo' => (string)$lead['cargo'],
+                    'cidade' => (string)$lead['cidade'],
+                    'email' => (string)$lead['email'],
+                    'responsavel' => (string)$lead['responsavel'],
+                    default => '',
+                };
+
+                return $valor !== '' ? $valor : $m[0];
+            },
+            $conteudo
+        );
     }
 }

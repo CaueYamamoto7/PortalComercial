@@ -61,11 +61,18 @@
     },
 
     verificar: function () {
-      if (!Painel.api || !Painel.api.auth) return Promise.resolve(auth.sessao());
-      return Painel.api.auth.sessao().then(function (resposta) {
-        if (resposta && resposta.autenticado && resposta.usuario) {
-          var sessao = Object.assign({}, auth.sessao() || {}, resposta.usuario);
+      if (!Painel.api) return Promise.resolve(auth.sessao());
+      var carregar = Painel.api.bootstrap || Painel.api.auth.sessao;
+      return carregar().then(function (resposta) {
+        var usuario = resposta && resposta.usuario;
+        if (usuario) {
+          var sessao = Object.assign({}, auth.sessao() || {}, usuario, {
+            desde: (auth.sessao() || {}).desde || new Date().toISOString()
+          });
           Painel.store.setSession(sessao);
+          if (resposta && resposta.preferencias) {
+            document.documentElement.classList.toggle("tables-compact", !!resposta.preferencias.tabelaCompacta);
+          }
           return sessao;
         }
         Painel.store.clearSession();

@@ -48,11 +48,11 @@
 
   function renderSistemas(dados) {
     Painel.charts.hbar(el("rel-sistemas"), dados.porSistema.map(function (s) {
-      return { label: s.nome, valor: s.total, cor: s.cor };
+      return { label: s.nome, valor: s.total, cor: u.corSegura(s.cor, "#0B6B57") };
     }));
     el("rel-sistemas-tabela").innerHTML = '<table><thead><tr><th>Sistema</th><th>Leads</th><th>Ganhos</th><th>Conversão</th></tr></thead><tbody>' +
       dados.porSistema.map(function (s) {
-        return "<tr><td><span class=\"chart-dot\" style=\"background:" + s.cor + "\"></span>" + u.escaparHTML(s.nome) + "</td><td>" + s.total + "</td><td>" + s.ganhos + "</td><td><strong>" + u.formatarNumero(s.taxa, 1) + "%</strong></td></tr>";
+        return "<tr><td><span class=\"chart-dot\" style=\"background:" + u.corSegura(s.cor, "#0B6B57") + "\"></span>" + u.escaparHTML(s.nome) + "</td><td>" + s.total + "</td><td>" + s.ganhos + "</td><td><strong>" + u.formatarNumero(s.taxa, 1) + "%</strong></td></tr>";
       }).join("") + "</tbody></table>";
   }
 

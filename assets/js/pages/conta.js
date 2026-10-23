@@ -7,8 +7,6 @@
 
   var u = Painel.util;
   var ui = Painel.ui;
-  var store = Painel.store;
-  var chave = Painel.config.storage.conta;
 
   function normalizar(texto) {
     return String(texto || "").trim();
@@ -25,7 +23,7 @@
         nome: sessao.nome || "",
         email: sessao.email || "",
         cargo: sessao.cargo || "",
-        telefone: ""
+        telefone: sessao.telefone || ""
       },
       preferencias: {
         notifLeads: true,
@@ -37,17 +35,18 @@
     };
   }
 
-  function carregarDados() {
-    var salvos = store.get(chave) || {};
+  function carregarDados(bootstrap) {
     var padrao = dadosPadrao();
+    var sessao = (bootstrap && bootstrap.usuario) || Painel.auth.usuario();
     return {
-      perfil: Object.assign({}, padrao.perfil, salvos.perfil || {}),
-      preferencias: Object.assign({}, padrao.preferencias, salvos.preferencias || {})
+      perfil: Object.assign({}, padrao.perfil, {
+        nome: sessao.nome || "",
+        email: sessao.email || "",
+        cargo: sessao.cargo || "",
+        telefone: sessao.telefone || ""
+      }),
+      preferencias: Object.assign({}, padrao.preferencias, (bootstrap && bootstrap.preferencias) || {})
     };
-  }
-
-  function salvarDados(dados) {
-    return store.set(chave, dados);
   }
 
   function campo(nome, raiz) {
@@ -95,7 +94,7 @@
       campo("nome", perfil).value = dados.perfil.nome;
       campo("email", perfil).value = dados.perfil.email;
       campo("cargo", perfil).value = dados.perfil.cargo || "";
-      campo("telefone", perfil).value = dados.perfil.telefone || "";
+      campo("telefone", perfil).value = dados.perfil.telefone ? u.formatarTelefone(dados.perfil.telefone) : "";
     }
 
     var prefs = dados.preferencias;
@@ -132,22 +131,27 @@
       return;
     }
 
-    var dados = carregarDados();
     var botao = document.querySelector("[data-salvar-perfil]");
     if (botao) {
       botao.disabled = true;
       botao.classList.add("is-loading");
     }
 
-    Painel.api.conta.salvarPerfil({ nome: nome, email: email, cargo: cargo }).then(function (membro) {
-      dados.perfil = { nome: nome, email: email, cargo: cargo, telefone: telefone };
-      salvarDados(dados);
-      preencherResumo(dados.perfil);
+    Painel.api.conta.salvarPerfil({ nome: nome, email: email, cargo: cargo, telefone: telefone }).then(function (membro) {
+      var perfil = {
+        nome: membro.nome || nome,
+        email: membro.email || email,
+        cargo: membro.cargo || cargo,
+        telefone: membro.telefone || telefone
+      };
+      campo("telefone", form).value = perfil.telefone ? u.formatarTelefone(perfil.telefone) : "";
+      preencherResumo(perfil);
 
       var sessao = Painel.auth.usuario();
-      sessao.nome = membro.nome || nome;
-      sessao.email = membro.email || email;
-      sessao.cargo = membro.cargo || cargo;
+      sessao.nome = perfil.nome;
+      sessao.email = perfil.email;
+      sessao.cargo = perfil.cargo;
+      sessao.telefone = perfil.telefone;
       sessao.iniciais = membro.iniciais || u.iniciais(nome);
       Painel.store.setSession(sessao);
 
@@ -157,6 +161,7 @@
     }).catch(function (err) {
       if (err.campo === "email") marcarErro(campo("email", form), true);
       if (err.campo === "nome") marcarErro(campo("nome", form), true);
+      if (err.campo === "telefone") marcarErro(campo("telefone", form), true);
       ui.toast(err.message || "Não foi possível salvar o perfil.", "error");
     }).then(function () {
       if (botao) {
@@ -167,19 +172,32 @@
   }
 
   function salvarPreferencias() {
-    var dados = carregarDados();
     var prefs = {};
     document.querySelectorAll("[name=notifLeads]").forEach(function (el) { prefs.notifLeads = !!el.checked; });
     document.querySelectorAll("[name=notifFollowups]").forEach(function (el) { prefs.notifFollowups = !!el.checked; });
     document.querySelectorAll("[name=tabelaCompacta]").forEach(function (el) { prefs.tabelaCompacta = !!el.checked; });
     var idioma = document.querySelector("[name=idioma]");
     var fuso = document.querySelector("[name=fuso]");
-    prefs.idioma = idioma ? idioma.value : dados.preferencias.idioma;
-    prefs.fuso = fuso ? fuso.value : dados.preferencias.fuso;
-    dados.preferencias = prefs;
-    salvarDados(dados);
-    document.documentElement.classList.toggle("tables-compact", !!prefs.tabelaCompacta);
-    ui.toast("Preferências salvas.", "success");
+    prefs.idioma = idioma ? idioma.value : "pt-BR";
+    prefs.fuso = fuso ? fuso.value : "America/Sao_Paulo";
+
+    var botao = document.querySelector("[data-salvar-preferencias]");
+    if (botao) {
+      botao.disabled = true;
+      botao.classList.add("is-loading");
+    }
+
+    Painel.api.conta.salvarPreferencias(prefs).then(function (salvas) {
+      document.documentElement.classList.toggle("tables-compact", !!salvas.tabelaCompacta);
+      ui.toast("Preferências salvas.", "success");
+    }).catch(function (err) {
+      ui.toast(err.message || "Não foi possível salvar as preferências.", "error");
+    }).then(function () {
+      if (botao) {
+        botao.disabled = false;
+        botao.classList.remove("is-loading");
+      }
+    });
   }
 
   function alterarSenha() {
@@ -262,9 +280,13 @@
   }
 
   function iniciar() {
-    var dados = carregarDados();
-    preencherFormulario(dados);
-    bind();
+    Painel.api.bootstrap().then(function (bootstrap) {
+      preencherFormulario(carregarDados(bootstrap));
+      bind();
+    }).catch(function () {
+      preencherFormulario(carregarDados(null));
+      bind();
+    });
   }
 
   if (document.readyState === "loading") {

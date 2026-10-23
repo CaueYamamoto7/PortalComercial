@@ -197,20 +197,19 @@
 
   function exportar(ids) {
     var p = params();
-    p.page = 1;
-    p.perPage = 1000;
+    delete p.page;
+    delete p.perPage;
     if (ids) p.ids = ids.join(",");
-    api.leads.listar(p).then(function (res) {
-      if (!res.data.length) {
-        ui.toast("Nenhum lead para exportar com os filtros atuais.", "warning");
-        return;
-      }
-      var nome = "leads-assinasoft-" + u.paraInputDate(new Date()) + ".csv";
-      u.baixarCSV(nome, COLUNAS_EXPORT, res.data);
-      ui.toast(res.data.length + " lead(s) exportado(s).", "success");
-    }).catch(function (err) {
-      ui.toast(err.message || "Não foi possível exportar.", "error");
-    });
+    var qs = Object.keys(p).map(function (k) {
+      return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]);
+    }).join("&");
+    var a = document.createElement("a");
+    a.href = Painel.config.apiBase + "/leads/exportar" + (qs ? "?" + qs : "");
+    a.download = "leads-assinasoft-" + u.paraInputDate(new Date()) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    ui.toast("Exportação iniciada.", "success");
   }
 
   function abrirEdicao(id) {
@@ -250,7 +249,7 @@
             lead = res.lead;
             return ui.confirmar({
               titulo: "Excluir lead",
-              texto: "Excluir <strong>" + u.escaparHTML(lead.nome) + "</strong> e todo o histórico? Esta ação não pode ser desfeita.",
+              texto: "Excluir <strong>" + u.escaparHTML(lead.nome) + "</strong>? O lead sai das listas e fica retido por 90 dias para auditoria.",
               acao: "Excluir",
               perigo: true
             });
@@ -732,11 +731,7 @@
             acao: "Marcar não contatar"
           }).then(function (ok) {
             if (!ok) return;
-            api.leads.listar({ ids: ids.join(","), perPage: 1000 }).then(function (res) {
-              return Promise.all(res.data.map(function (l) {
-                return api.leads.atualizar(l.id, Object.assign({}, l, { naoContatar: true }));
-              }));
-            }).then(function () {
+            api.leads.lote({ acao: "naoContatar", ids: ids, valor: true }).then(function () {
               ui.toast(ids.length + " lead(s) marcado(s) como não contatar.", "success");
               limparSelecao();
               carregar();
@@ -749,12 +744,12 @@
         if (acao === "excluir") {
           ui.confirmar({
             titulo: "Excluir leads",
-            texto: "Excluir <strong>" + ids.length + " lead(s)</strong> e todo o histórico? Esta ação não pode ser desfeita.",
+            texto: "Excluir <strong>" + ids.length + " lead(s)</strong>? Eles saem das listas e ficam retidos por 90 dias para auditoria.",
             acao: "Excluir leads",
             perigo: true
           }).then(function (ok) {
             if (!ok) return;
-            Promise.all(ids.map(function (id) { return api.leads.remover(id); })).then(function () {
+            api.leads.lote({ acao: "excluir", ids: ids }).then(function () {
               ui.toast(ids.length + " lead(s) excluído(s).", "success");
               limparSelecao();
               carregar();

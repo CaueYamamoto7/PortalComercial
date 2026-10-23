@@ -151,6 +151,21 @@
       .replace(/'/g, "&#039;");
   }
 
+  /** Aceita apenas cores hexadecimais de 6 dígitos vindas de dados dinâmicos. */
+  function corSegura(v, fallback) {
+    var s = String(v === null || v === undefined ? "" : v).trim();
+    if (/^#[0-9a-f]{6}$/i.test(s)) return s;
+    return fallback || "#64748B";
+  }
+
+  /** Permite apenas destinos relativos ou http(s), bloqueando javascript: e data:. */
+  function hrefSeguro(v, fallback) {
+    var s = String(v === null || v === undefined ? "" : v).trim();
+    if (!s) return fallback || "#";
+    if (/^(?:https?:\/\/|\/(?!\/)|#|[\w.-]+\.html(?:[?#].*)?$)/i.test(s)) return s;
+    return fallback || "#";
+  }
+
   function normalizarTexto(v) {
     return String(v || "")
       .normalize("NFD")
@@ -455,6 +470,8 @@
     primeiroNome: primeiroNome,
     tomAvatar: tomAvatar,
     escaparHTML: escaparHTML,
+    corSegura: corSegura,
+    hrefSeguro: hrefSeguro,
     normalizarTexto: normalizarTexto,
     normalizarChave: normalizarChave,
     truncar: truncar,

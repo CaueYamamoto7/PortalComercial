@@ -15,7 +15,6 @@ class LeadService
 
     private ?array $catalogo = null;
     private ?array $leadsCache = null;
-    private ?array $mensagensCache = null;
 
     public function __construct()
     {
@@ -46,7 +45,6 @@ class LeadService
     {
         $this->catalogo = null;
         $this->leadsCache = null;
-        $this->mensagensCache = null;
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -56,37 +54,13 @@ class LeadService
             return $this->leadsCache;
         }
 
-        $rows = $this->fetchTable('Leads')->find()->all()->toList();
+        $rows = $this->fetchTable('Leads')->find()
+            ->where(['deleted_at IS' => null])
+            ->all()
+            ->toList();
         $this->leadsCache = array_map(fn ($row) => $this->leadBaseOut($row), $rows);
 
         return $this->leadsCache;
-    }
-
-    /** @return array<string, array<int, array<string, mixed>>> */
-    private function mensagens(): array
-    {
-        if ($this->mensagensCache !== null) {
-            return $this->mensagensCache;
-        }
-
-        $rows = $this->fetchTable('Interactions')->find()
-            ->where(['tipo' => 'mensagem'])
-            ->orderBy(['data' => 'ASC'])
-            ->all()
-            ->toList();
-
-        $porLead = [];
-        foreach ($rows as $row) {
-            $porLead[(string)$row->get('lead_id')][] = [
-                'texto' => (string)($row->get('descricao') ?: $row->get('titulo') ?: ''),
-                'data' => $this->iso($row->get('data')),
-                'direcao' => $row->get('direcao') ?: 'saida',
-            ];
-        }
-
-        $this->mensagensCache = $porLead;
-
-        return $porLead;
     }
 
     public function enriquecer(array $lead): array
@@ -123,19 +97,10 @@ class LeadService
 
     public function conversa(array $lead, ?array $etapa): array
     {
-        $mensagens = $this->mensagens()[$lead['id']] ?? [];
-
-        $enviadas = 0;
-        $recebidas = 0;
-        $ultima = null;
-        foreach ($mensagens as $msg) {
-            if ($msg['direcao'] === 'entrada') {
-                $recebidas++;
-            } else {
-                $enviadas++;
-            }
-            $ultima = $msg;
-        }
+        $enviadas = (int)($lead['mensagensEnviadas'] ?? 0);
+        $recebidas = (int)($lead['mensagensRecebidas'] ?? 0);
+        $ultimaDirecao = $lead['ultimaMensagemDirecao'] ?? null;
+        $ultimaEm = $lead['ultimaMensagemEm'] ?? null;
 
         $tipo = $etapa['tipo'] ?? 'aberto';
         if ($lead['naoContatar'] || $tipo === 'perdido') {
@@ -144,7 +109,7 @@ class LeadService
             $status = 'cliente';
         } elseif ($enviadas === 0) {
             $status = 'sem_mensagem';
-        } elseif ($ultima && $ultima['direcao'] === 'entrada') {
+        } elseif ($ultimaDirecao === 'entrada') {
             $status = 'responder';
         } elseif ($recebidas > 0) {
             $status = 'em_conversa';
@@ -158,9 +123,9 @@ class LeadService
             'recebidas' => $recebidas,
             'respondeu' => $recebidas > 0,
             'conversaAberta' => $tipo === 'aberto' && $recebidas > 0,
-            'ultimaDirecao' => $ultima['direcao'] ?? null,
-            'ultimaMensagemEm' => $ultima['data'] ?? null,
-            'ultimaMensagem' => $ultima,
+            'ultimaDirecao' => $ultimaDirecao,
+            'ultimaMensagemEm' => $this->iso($ultimaEm),
+            'ultimaMensagem' => null,
             'podeEnviar' => $status !== 'recusado',
         ];
     }
@@ -417,13 +382,17 @@ class LeadService
     {
         $cat = $this->catalogo();
         $tags = [];
-        foreach ($this->todos() as $lead) {
-            foreach ($lead['tags'] as $tag) {
-                $tags[(string)$tag] = true;
-            }
+        try {
+            $rows = \Cake\Datasource\ConnectionManager::get('default')
+                ->execute('SELECT DISTINCT tag FROM lead_tags ORDER BY tag')
+                ->fetchAll('assoc');
+            $tags = array_values(array_filter(array_map(
+                fn ($row) => (string)$row['tag'],
+                $rows
+            ), fn ($tag) => $tag !== ''));
+        } catch (\Throwable) {
+            // Banco ainda sem a migration de relações: mantém facets vazias.
         }
-        $tags = array_keys($tags);
-        usort($tags, 'strcasecmp');
 
         return [
             'etapas' => $cat['etapas'],
@@ -436,13 +405,14 @@ class LeadService
 
     public function leadCompleto(string $id): ?array
     {
-        foreach ($this->todos() as $lead) {
-            if ($lead['id'] === $id) {
-                return $this->enriquecer($lead);
-            }
+        $row = $this->fetchTable('Leads')->find()
+            ->where(['id' => $id, 'deleted_at IS' => null])
+            ->first();
+        if (!$row) {
+            return null;
         }
 
-        return null;
+        return $this->enriquecer($this->leadBaseOut($row));
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -551,6 +521,10 @@ class LeadService
             'criadoEm' => $row->get('criado_em'),
             'atualizadoEm' => $row->get('atualizado_em'),
             'motivoPerda' => (string)$row->get('motivo_perda'),
+            'mensagensEnviadas' => (int)$row->get('mensagens_enviadas'),
+            'mensagensRecebidas' => (int)$row->get('mensagens_recebidas'),
+            'ultimaMensagemEm' => $row->get('ultima_mensagem_em'),
+            'ultimaMensagemDirecao' => $row->get('ultima_mensagem_direcao') ?: null,
         ];
     }
 

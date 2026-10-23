@@ -3,12 +3,16 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\PreferencesService;
+use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
 class SettingsController extends AppController
 {
     public function index(): Response
     {
+        $this->exigirGestor();
+        $identidade = $this->identidade();
         $service = $this->service();
         $cat = $service->catalogo();
 
@@ -22,20 +26,22 @@ class SettingsController extends AppController
             ->toList();
         $equipe = $this->fetchTable('Users')->find()->orderBy(['nome' => 'ASC'])->all()->toList();
 
+        $isAdmin = $this->access()->isAdmin($identidade);
+
         return $this->respond([
-            'empresa' => $this->textoConfig('empresa'),
+            'empresa' => $isAdmin ? $this->textoConfig('empresa') : [],
             'mensagens' => $this->textoConfig('mensagens'),
             'sistemas' => array_map(fn ($row) => $service->sistemaOut($row), $sistemas),
             'etapas' => $cat['etapas'],
             'origens' => array_map(fn ($row) => $service->origemOut($row), $origens),
-            'equipe' => array_map(fn ($row) => $this->membroDetalhado($row), $equipe),
-            'counts' => [
-                'leads' => $this->fetchTable('Leads')->find()->count(),
+            'equipe' => $isAdmin ? array_map(fn ($row) => $this->membroDetalhado($row), $equipe) : [],
+            'counts' => $isAdmin ? [
+                'leads' => $this->fetchTable('Leads')->find()->where(['deleted_at IS' => null])->count(),
                 'interacoes' => $this->fetchTable('Interactions')->find()->count(),
                 'tarefas' => $this->fetchTable('Tasks')->find()->count(),
                 'campanhas' => $this->fetchTable('Campaigns')->find()->count(),
                 'templates' => $this->fetchTable('Templates')->find()->count(),
-            ],
+            ] : [],
             'sessao' => $this->sessao(),
         ]);
     }
@@ -46,14 +52,48 @@ class SettingsController extends AppController
         if (!in_array($secao, ['empresa', 'mensagens'], true)) {
             $this->erro('Seção de configuração inválida.');
         }
+        if ($secao === 'empresa') {
+            $this->exigirAdmin();
+        } else {
+            $this->exigirGestor();
+        }
+
+        $dados = (array)$this->request->getData();
+        $permitidos = $secao === 'empresa'
+            ? ['nome', 'documento', 'email', 'telefone', 'site', 'cidade', 'uf']
+            : ['limiteDiario', 'intervalo', 'inicio', 'fim'];
+        $novos = [];
+        foreach ($permitidos as $chave) {
+            if (array_key_exists($chave, $dados)) {
+                $novos[$chave] = is_scalar($dados[$chave]) ? trim((string)$dados[$chave]) : '';
+            }
+        }
+
+        if ($secao === 'empresa') {
+            if (($novos['nome'] ?? '') === '' || mb_strlen($novos['nome']) > 190) {
+                $this->erro('Informe o nome da empresa.', 'nome');
+            }
+            if (($novos['email'] ?? '') !== '' && !filter_var($novos['email'], FILTER_VALIDATE_EMAIL)) {
+                $this->erro('Informe um e-mail válido.', 'email');
+            }
+            if (isset($novos['uf'])) {
+                $novos['uf'] = mb_substr(mb_strtoupper($novos['uf']), 0, 2);
+            }
+        } else {
+            $novos['limiteDiario'] = max(1, min(2000, (int)($novos['limiteDiario'] ?? 300)));
+            $novos['intervalo'] = max(1, min(120, (int)($novos['intervalo'] ?? 10)));
+            foreach (['inicio', 'fim'] as $campo) {
+                if (isset($novos[$campo]) && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $novos[$campo])) {
+                    $this->erro('Horário inválido.', $campo);
+                }
+            }
+        }
 
         $table = $this->fetchTable('Settings');
         $setting = $table->find()->where(['id' => $secao])->first();
         $atual = $setting ? (array)$setting->get('valor') : [];
-        $dados = (array)$this->request->getData();
-
-        foreach ($dados as $chave => $valor) {
-            $atual[(string)$chave] = $valor;
+        foreach ($novos as $chave => $valor) {
+            $atual[$chave] = $valor;
         }
 
         if ($setting) {
@@ -62,6 +102,7 @@ class SettingsController extends AppController
             $setting = $table->newEntity(['id' => $secao, 'valor' => $atual]);
         }
         $table->saveOrFail($setting);
+        $this->registroAuditoria('configuracao.salvar', 'settings', $secao);
 
         return $this->respond($atual);
     }
@@ -87,6 +128,7 @@ class SettingsController extends AppController
     public function deleteSystem(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        $this->exigirGestor();
         $table = $this->fetchTable('Systems');
         $sistema = $table->find()->where(['id' => $id])->first();
         if (!$sistema) {
@@ -94,22 +136,26 @@ class SettingsController extends AppController
         }
 
         $emUso = false;
-        foreach ($this->service()->todos() as $lead) {
-            if (in_array($id, $lead['sistemaIds'], true)) {
-                $emUso = true;
-                break;
-            }
+        try {
+            $emUso = (bool)ConnectionManager::get('default')
+                ->execute('SELECT 1 FROM lead_systems WHERE system_id = :id LIMIT 1', ['id' => $id])
+                ->fetch();
+        } catch (\Throwable) {
+            $emUso = $this->fetchTable('Leads')->find()
+                ->where(['sistema_ids LIKE' => '%' . $id . '%'])
+                ->count() > 0;
         }
 
-        $this->service()->invalidar();
         if ($emUso) {
             $sistema->set('ativo', false);
             $table->saveOrFail($sistema);
+            $this->registroAuditoria('sistema.arquivar', 'system', $id);
 
             return $this->respond(['arquivado' => true]);
         }
 
         $table->delete($sistema);
+        $this->registroAuditoria('sistema.excluir', 'system', $id);
 
         return $this->respond(['removido' => true]);
     }
@@ -135,23 +181,28 @@ class SettingsController extends AppController
     public function deleteSource(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        $this->exigirGestor();
         $table = $this->fetchTable('Sources');
         $origem = $table->find()->where(['id' => $id])->first();
         if (!$origem) {
             $this->erro('Origem não encontrada.', null, 404);
         }
 
-        $emUso = $this->fetchTable('Leads')->find()->where(['origem_id' => $id])->count() > 0;
+        $emUso = $this->fetchTable('Leads')->find()
+            ->where(['origem_id' => $id, 'deleted_at IS' => null])
+            ->count() > 0;
         if ($emUso) {
             $origem->set('ativo', false);
             $table->saveOrFail($origem);
             $this->service()->invalidar();
+            $this->registroAuditoria('origem.arquivar', 'source', $id);
 
             return $this->respond(['arquivado' => true]);
         }
 
         $table->delete($origem);
         $this->service()->invalidar();
+        $this->registroAuditoria('origem.excluir', 'source', $id);
 
         return $this->respond(['removido' => true]);
     }
@@ -177,6 +228,7 @@ class SettingsController extends AppController
     public function reorderStages(): Response
     {
         $this->request->allowMethod(['post']);
+        $this->exigirGestor();
         $ids = $this->lista($this->request->getData('ids'));
         $table = $this->fetchTable('Stages');
         $etapas = $table->find()->all()->toList();
@@ -208,6 +260,7 @@ class SettingsController extends AppController
     public function deleteStage(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        $this->exigirGestor();
         $table = $this->fetchTable('Stages');
         $etapa = $table->find()->where(['id' => $id])->first();
         if (!$etapa) {
@@ -237,6 +290,7 @@ class SettingsController extends AppController
             $table->saveOrFail($restante);
         }
         $this->service()->invalidar();
+        $this->registroAuditoria('etapa.excluir', 'stage', $id, ['movidos' => $movidos]);
 
         return $this->respond([
             'removido' => true,
@@ -273,25 +327,59 @@ class SettingsController extends AppController
             $this->erro('Já existe um usuário com este e-mail.', 'email');
         }
 
+        $telefone = $this->texto($dados['telefone'] ?? $usuario->get('telefone'));
+        if ($telefone !== '') {
+            $telefone = $this->normalizarTelefone($telefone);
+            if (!$this->telefoneValido($telefone)) {
+                $this->erro('Informe um WhatsApp válido com DDD.', 'telefone');
+            }
+        }
+
+        $nomeAnterior = (string)$usuario->get('nome');
         $usuario->set('nome', $nome);
         $usuario->set('email', $email);
         $usuario->set('cargo', $this->texto($dados['cargo'] ?? $usuario->get('cargo')));
+        $usuario->set('telefone', $telefone !== '' ? $telefone : null);
         $usuario->set('iniciais', $this->iniciais($nome));
         $usuario->set('atualizado_em', $this->agora());
         $table->saveOrFail($usuario);
+
+        if ($nomeAnterior !== $nome) {
+            $this->fetchTable('Leads')->updateAll(['responsavel' => $nome], ['responsavel' => $nomeAnterior]);
+            $this->fetchTable('Tasks')->updateAll(['responsavel' => $nome], ['responsavel' => $nomeAnterior]);
+            $this->fetchTable('Campaigns')->updateAll(['responsavel' => $nome], ['responsavel' => $nomeAnterior]);
+        }
 
         $this->request->getSession()->write('Auth', [
             'id' => (string)$usuario->get('id'),
             'nome' => (string)$usuario->get('nome'),
             'email' => (string)$usuario->get('email'),
             'cargo' => (string)$usuario->get('cargo'),
+            'telefone' => (string)($usuario->get('telefone') ?? ''),
             'perfil' => (string)$usuario->get('perfil'),
+            'role' => $this->access()->roleFromIdentity(['perfil' => (string)$usuario->get('perfil'), 'role' => $usuario->get('role')]),
             'iniciais' => (string)$usuario->get('iniciais'),
             'status' => (string)$usuario->get('status'),
         ]);
         $this->service()->invalidar();
+        $this->registroAuditoria('perfil.salvar', 'user', (string)$usuario->get('id'));
 
         return $this->respond($this->membroDetalhado($usuario));
+    }
+
+    public function preferencias(): Response
+    {
+        $this->request->allowMethod(['put', 'patch']);
+        $identidade = $this->identidade();
+        $userId = (string)($identidade['id'] ?? '');
+        if ($userId === '') {
+            $this->erro('Sessão inválida.', null, 401);
+        }
+
+        $prefs = (new PreferencesService())->salvar($userId, (array)$this->request->getData());
+        $this->registroAuditoria('preferencias.salvar', 'user', $userId);
+
+        return $this->respond($prefs);
     }
 
     public function alterarSenha(): Response
@@ -331,6 +419,7 @@ class SettingsController extends AppController
         $table->saveOrFail($usuario);
 
         $this->request->getSession()->renew();
+        $this->registroAuditoria('senha.alterar', 'user', (string)$usuario->get('id'));
 
         return $this->respond(['ok' => true]);
     }
@@ -338,6 +427,7 @@ class SettingsController extends AppController
     public function addMember(): Response
     {
         $this->request->allowMethod(['post']);
+        $this->exigirAdmin();
         $dados = (array)$this->request->getData();
 
         $nome = $this->texto($dados['nome'] ?? '');
@@ -353,20 +443,25 @@ class SettingsController extends AppController
             $this->erro('Já existe um membro com este e-mail.', 'email');
         }
 
+        [$perfil, $role] = $this->resolverPerfil($this->texto($dados['perfil'] ?? ''));
+
         $table = $this->fetchTable('Users');
         $entity = $table->newEntity([
             'nome' => $nome,
             'email' => $email,
             'senha_hash' => '',
-            'cargo' => $this->texto($dados['perfil'] ?? '') ?: 'Consultor comercial',
-            'perfil' => $this->texto($dados['perfil'] ?? '') ?: 'Consultor comercial',
+            'cargo' => $perfil,
+            'perfil' => $perfil,
+            'role' => $role,
             'status' => 'convite',
+            'must_change_password' => true,
             'iniciais' => $this->iniciais($nome),
             'criado_em' => $this->agora(),
             'atualizado_em' => $this->agora(),
         ]);
         $table->saveOrFail($entity);
         $this->service()->invalidar();
+        $this->registroAuditoria('equipe.adicionar', 'user', (string)$entity->get('id'), ['role' => $role]);
 
         return $this->respond($this->membroDetalhado($entity), 201);
     }
@@ -374,6 +469,7 @@ class SettingsController extends AppController
     public function deleteMember(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        $this->exigirAdmin();
         $table = $this->fetchTable('Users');
         $membro = $table->find()->where(['id' => $id])->first();
         if (!$membro) {
@@ -384,13 +480,18 @@ class SettingsController extends AppController
         if ((string)$membro->get('id') === (string)($identidade['id'] ?? '')) {
             $this->erro('Não é possível remover o próprio usuário.');
         }
-        $admins = $table->find()->where(['perfil' => 'Administrador'])->count();
-        if ((string)$membro->get('perfil') === 'Administrador' && $admins <= 1) {
+        $role = $this->access()->roleFromIdentity([
+            'perfil' => (string)$membro->get('perfil'),
+            'role' => $membro->get('role'),
+        ]);
+        $admins = $table->find()->where(['role' => 'admin'])->count();
+        if ($role === 'admin' && $admins <= 1) {
             $this->erro('Não é possível remover a administradora da conta.');
         }
 
         $table->delete($membro);
         $this->service()->invalidar();
+        $this->registroAuditoria('equipe.remover', 'user', $id);
 
         return $this->respond(['removido' => true]);
     }
@@ -399,6 +500,7 @@ class SettingsController extends AppController
 
     private function salvarSistema(array $dados, ?string $id): Response
     {
+        $this->exigirGestor();
         $nome = $this->texto($dados['nome'] ?? '');
         if ($nome === '') {
             $this->erro('Informe o nome do sistema.', 'nome');
@@ -424,14 +526,14 @@ class SettingsController extends AppController
         if ($entity) {
             $entity->set('nome', $nome);
             $entity->set('descricao', $this->texto($dados['descricao'] ?? ''));
-            $entity->set('cor', $this->texto($dados['cor'] ?? '') ?: (string)$entity->get('cor'));
+            $entity->set('cor', $this->corValida($dados['cor'] ?? '', (string)$entity->get('cor')));
             $entity->set('ativo', ($dados['ativo'] ?? true) !== false);
             $status = 200;
         } else {
             $entity = $table->newEntity([
                 'nome' => $nome,
                 'descricao' => $this->texto($dados['descricao'] ?? ''),
-                'cor' => $this->texto($dados['cor'] ?? '') ?: '#0B6B57',
+                'cor' => $this->corValida($dados['cor'] ?? '', '#0B6B57'),
                 'ativo' => true,
                 'criado_em' => $this->agora(),
             ]);
@@ -439,12 +541,14 @@ class SettingsController extends AppController
         }
         $table->saveOrFail($entity);
         $this->service()->invalidar();
+        $this->registroAuditoria('sistema.salvar', 'system', (string)$entity->get('id'));
 
         return $this->respond($this->service()->sistemaOut($entity), $status);
     }
 
     private function salvarOrigem(array $dados, ?string $id): Response
     {
+        $this->exigirGestor();
         $nome = $this->texto($dados['nome'] ?? '');
         if ($nome === '') {
             $this->erro('Informe o nome da origem.', 'nome');
@@ -479,12 +583,14 @@ class SettingsController extends AppController
         }
         $table->saveOrFail($entity);
         $this->service()->invalidar();
+        $this->registroAuditoria('origem.salvar', 'source', (string)$entity->get('id'));
 
         return $this->respond($this->service()->origemOut($entity), $status);
     }
 
     private function salvarEtapa(array $dados, ?string $id): Response
     {
+        $this->exigirGestor();
         $nome = $this->texto($dados['nome'] ?? '');
         if ($nome === '') {
             $this->erro('Informe o nome da etapa.', 'nome');
@@ -521,14 +627,14 @@ class SettingsController extends AppController
 
         if ($entity) {
             $entity->set('nome', $nome);
-            $entity->set('cor', $this->texto($dados['cor'] ?? '') ?: (string)$entity->get('cor'));
+            $entity->set('cor', $this->corValida($dados['cor'] ?? '', (string)$entity->get('cor')));
             $entity->set('tipo', $tipo);
             $status = 200;
         } else {
             $max = $table->find()->select(['max' => $table->find()->func()->max('ordem')])->first();
             $entity = $table->newEntity([
                 'nome' => $nome,
-                'cor' => $this->texto($dados['cor'] ?? '') ?: '#0B6B57',
+                'cor' => $this->corValida($dados['cor'] ?? '', '#0B6B57'),
                 'tipo' => $tipo,
                 'ordem' => (int)($max?->get('max') ?? -1) + 1,
             ]);
@@ -536,6 +642,7 @@ class SettingsController extends AppController
         }
         $table->saveOrFail($entity);
         $this->service()->invalidar();
+        $this->registroAuditoria('etapa.salvar', 'stage', (string)$entity->get('id'));
 
         return $this->respond($this->service()->etapaOut($entity), $status);
     }
@@ -551,8 +658,27 @@ class SettingsController extends AppController
     {
         $membro = $this->service()->membroOut($row);
         $membro['cargo'] = (string)$row->get('cargo');
+        $membro['telefone'] = (string)($row->get('telefone') ?? '');
+        $membro['role'] = $this->access()->roleFromIdentity([
+            'perfil' => (string)$row->get('perfil'),
+            'role' => $row->get('role'),
+        ]);
 
         return $membro;
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function resolverPerfil(string $perfil): array
+    {
+        $normalizado = $this->service()->normalizar($perfil);
+        if (str_contains($normalizado, 'admin')) {
+            return ['Administrador', 'admin'];
+        }
+        if (str_contains($normalizado, 'gestor')) {
+            return ['Gestor comercial', 'gestor'];
+        }
+
+        return ['Consultor comercial', 'consultor'];
     }
 
     private function sessao(): array
@@ -566,6 +692,7 @@ class SettingsController extends AppController
             'cargo' => (string)($identidade['cargo'] ?? ''),
             'empresa' => (string)($empresa['nome'] ?? ''),
             'iniciais' => (string)($identidade['iniciais'] ?? ''),
+            'role' => $this->access()->roleFromIdentity($identidade),
             'lembrar' => false,
             'desde' => $this->agora()->format('c'),
         ];

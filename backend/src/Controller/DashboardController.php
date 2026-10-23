@@ -9,29 +9,45 @@ class DashboardController extends AppController
 {
     public function index(): Response
     {
-        $service = $this->service();
-        $leads = $service->todosEnriquecidos();
-        $porId = [];
-        foreach ($leads as $lead) {
-            $porId[$lead['id']] = $lead;
-        }
+        $identidade = $this->identidade();
+        $tasksTable = $this->fetchTable('Tasks');
+        $taskQuery = $tasksTable->find()
+            ->innerJoin(['LeadTarefa' => 'leads'], [
+                'LeadTarefa.id = Tasks.lead_id',
+                'LeadTarefa.deleted_at IS' => null,
+            ])
+            ->innerJoin(['EtapaTarefa' => 'stages'], [
+                'EtapaTarefa.id = LeadTarefa.etapa_id',
+                'EtapaTarefa.tipo' => 'aberto',
+            ])
+            ->where(['Tasks.status' => 'pendente']);
+        $this->access()->scopeTasks($taskQuery, $identidade);
 
-        $tarefas = $this->fetchTable('Tasks')->find()
-            ->where(['status' => 'pendente'])
-            ->orderBy(['data' => 'ASC'])
+        $tarefasTotal = (clone $taskQuery)->count();
+        $tarefasRows = $taskQuery
+            ->orderBy(['Tasks.data' => 'ASC'])
+            ->limit(6)
             ->all()
             ->toList();
 
-        $abertas = [];
-        foreach ($tarefas as $tarefa) {
-            $lead = $porId[(string)$tarefa->get('lead_id')] ?? null;
-            if (!$lead || ($lead['etapa']['tipo'] ?? 'aberto') !== 'aberto') {
-                continue;
-            }
-            $abertas[] = $this->tarefaEnriquecida($tarefa, $lead);
+        $leads = $this->carregarLeads(array_map(
+            fn ($row) => (string)$row->get('lead_id'),
+            $tarefasRows
+        ), $identidade);
+
+        $tarefas = [];
+        foreach ($tarefasRows as $row) {
+            $tarefas[] = $this->tarefaEnriquecida(
+                $row,
+                $leads[(string)$row->get('lead_id')] ?? null
+            );
         }
 
-        $campanhas = $this->fetchTable('Campaigns')->find()
+        $campanhasQuery = $this->fetchTable('Campaigns')->find();
+        if (!$this->access()->canSeeAllLeads($identidade)) {
+            $campanhasQuery->where(['responsavel' => $this->usuarioNome()]);
+        }
+        $campanhas = $campanhasQuery
             ->orderBy(['criada_em' => 'DESC'])
             ->limit(4)
             ->all()
@@ -39,10 +55,10 @@ class DashboardController extends AppController
 
         return $this->respond([
             'periodo' => (string)($this->request->getQuery('periodo') ?? '30'),
-            'stats' => $service->stats($leads),
-            'conversas' => $service->contagensConversas($leads),
-            'tarefas' => array_slice($abertas, 0, 6),
-            'tarefasTotal' => count($abertas),
+            'stats' => $this->queryService()->stats([], $identidade),
+            'conversas' => $this->queryService()->contagensConversas([], $identidade),
+            'tarefas' => $tarefas,
+            'tarefasTotal' => $tarefasTotal,
             'campanhas' => array_map(fn ($row) => $this->campanhaOut($row), $campanhas),
         ]);
     }
@@ -50,63 +66,50 @@ class DashboardController extends AppController
     public function conversas(): Response
     {
         $params = (array)$this->request->getQueryParams();
-        $service = $this->service();
-        $todos = $service->todosEnriquecidos();
-
         $tipo = (string)($params['tipo'] ?? '');
-        $filtros = $params;
-        unset($filtros['tipo'], $filtros['page'], $filtros['perPage']);
-        $leads = $service->filtrar($todos, $filtros);
 
-        $mapa = [
-            'sem_mensagem' => fn ($lead) => $lead['conversa']['status'] === 'sem_mensagem',
-            'aguardando' => fn ($lead) => $lead['conversa']['status'] === 'aguardando',
-            'responder' => fn ($lead) => $lead['conversa']['status'] === 'responder',
-            'abertas' => fn ($lead) => $lead['conversa']['conversaAberta'],
-            'clientes' => fn ($lead) => $lead['conversa']['status'] === 'cliente',
-            'recusados' => fn ($lead) => $lead['conversa']['status'] === 'recusado',
-        ];
-        if (isset($mapa[$tipo])) {
-            $leads = array_values(array_filter($leads, $mapa[$tipo]));
+        $filtros = $params;
+        unset($filtros['tipo'], $filtros['page'], $filtros['perPage'], $filtros['sort'], $filtros['direction']);
+
+        if (in_array($tipo, ['responder', 'sem_mensagem'], true)) {
+            $params['sort'] = 'ultimaMensagemEm';
+            $params['direction'] = 'asc';
+        }
+        if ($tipo !== '') {
+            $params['tipo'] = $tipo;
         }
 
-        $ascendente = in_array($tipo, ['responder', 'sem_mensagem'], true);
-        usort($leads, function (array $a, array $b) use ($ascendente): int {
-            $da = $this->timestampConversa($a);
-            $db = $this->timestampConversa($b);
-
-            return $ascendente ? $da <=> $db : $db <=> $da;
-        });
-
-        $total = count($leads);
-        $pagina = $service->paginar($leads, (int)($params['page'] ?? 1), (int)($params['perPage'] ?? 100));
+        $pagina = $this->queryService()->paginar($params, $this->identidade());
 
         return $this->respond([
             'tipo' => $tipo,
-            'data' => $service->leadsOut($pagina['data']),
+            'data' => $pagina['data'],
             'meta' => $pagina['meta'],
-            'total' => $total,
-            'conversas' => $service->contagensConversas($todos),
+            'total' => $pagina['meta']['total'],
+            'conversas' => $this->queryService()->contagensConversas($filtros, $this->identidade()),
         ]);
     }
 
-    private function timestampConversa(array $lead): int
+    /** @param array<int, string> $ids @param array<string, mixed> $identidade */
+    private function carregarLeads(array $ids, array $identidade): array
     {
-        $valor = $lead['conversa']['ultimaMensagemEm'] ?? null;
-        if (!$valor) {
-            $valor = $lead['criadoEm'] ?? null;
+        $ids = array_values(array_unique(array_filter($ids)));
+        if (!$ids) {
+            return [];
         }
 
-        if ($valor instanceof \DateTimeInterface) {
-            return $valor->getTimestamp();
+        $query = $this->fetchTable('Leads')->find()
+            ->where(['Leads.id IN' => $ids, 'Leads.deleted_at IS' => null]);
+        $this->access()->scopeLeads($query, $identidade);
+
+        $resultado = [];
+        foreach ($query->all() as $row) {
+            $lead = $this->service()->leadOut(
+                $this->service()->enriquecer($this->service()->leadBaseOut($row))
+            );
+            $resultado[(string)$row->get('id')] = $lead;
         }
 
-        if (!$valor) {
-            return 0;
-        }
-
-        $timestamp = strtotime((string)$valor);
-
-        return $timestamp === false ? 0 : $timestamp;
+        return $resultado;
     }
 }

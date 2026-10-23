@@ -94,7 +94,7 @@
           " L" + (x + barW - r) + "," + (yBase - altura) +
           " Q" + (x + barW) + "," + (yBase - altura) + " " + (x + barW) + "," + (yBase - altura + r) +
           " L" + (x + barW) + "," + yBase + " Z";
-        svg.appendChild(el("path", { d: path, fill: p.cor || opts.cor || "var(--brand-500)", opacity: "0.9" }));
+        svg.appendChild(el("path", { d: path, fill: u.corSegura(p.cor, opts.cor || "var(--brand-500)"), opacity: "0.9" }));
       }
 
       var hit = el("rect", { x: P.l + band * i, y: P.t, width: band, height: innerH + P.b, fill: "transparent" });
@@ -159,7 +159,7 @@
       var comprimento = Math.max(0, frac * c - 2.5);
       svg.appendChild(el("circle", {
         cx: size / 2, cy: size / 2, r: r, fill: "none",
-        stroke: seg.cor, "stroke-width": stroke,
+        stroke: u.corSegura(seg.cor), "stroke-width": stroke,
         "stroke-dasharray": comprimento + " " + (c - comprimento),
         "stroke-dashoffset": -offset, "stroke-linecap": "butt"
       }));
@@ -209,8 +209,8 @@
       var pct = max ? Math.max(4, (e.valor / max) * 100) : 4;
       return '<button class="funnel-row" type="button" data-etapa="' + u.escaparHTML(e.id || e.nome) + '"' +
         (opts.interativo ? "" : " tabindex=\"-1\"") + ">" +
-        '<span class="funnel-row__label"><i style="background:' + e.cor + '"></i>' + u.escaparHTML(e.nome) + "</span>" +
-        '<span class="funnel-row__track"><i style="width:' + pct + "%;background:" + e.cor + '"></i></span>' +
+        '<span class="funnel-row__label"><i style="background:' + u.corSegura(e.cor) + '"></i>' + u.escaparHTML(e.nome) + "</span>" +
+        '<span class="funnel-row__track"><i style="width:' + pct + "%;background:" + u.corSegura(e.cor) + '"></i></span>' +
         '<strong class="funnel-row__value">' + u.formatarNumero(e.valor) + "</strong>" +
         "</button>";
     }).join("");
@@ -223,8 +223,8 @@
     container.innerHTML = itens.map(function (i) {
       var pct = Math.max(3, (i.valor / max) * 100);
       return '<div class="hbar-row">' +
-        '<span class="hbar-row__label">' + (i.cor ? '<i style="background:' + i.cor + '"></i>' : "") + u.escaparHTML(i.label) + "</span>" +
-        '<span class="hbar-row__track"><i style="width:' + pct + "%;background:" + (i.cor || opts.cor || "var(--brand-500)") + '"></i></span>' +
+        '<span class="hbar-row__label">' + (i.cor ? '<i style="background:' + u.corSegura(i.cor) + '"></i>' : "") + u.escaparHTML(i.label) + "</span>" +
+        '<span class="hbar-row__track"><i style="width:' + pct + "%;background:" + u.corSegura(i.cor, opts.cor || "var(--brand-500)") + '"></i></span>' +
         '<strong class="hbar-row__value">' + u.formatarNumero(i.valor) + (opts.sufixo || "") + "</strong>" +
         "</div>";
     }).join("") || '<div class="chart__empty">Sem dados para exibir.</div>';

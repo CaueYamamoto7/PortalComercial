@@ -37,18 +37,21 @@ class TemplatesController extends AppController
     public function delete(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        $this->exigirGestor();
         $table = $this->fetchTable('Templates');
         $entity = $table->find()->where(['id' => $id])->first();
         if (!$entity) {
             $this->erro('Template não encontrado.', null, 404);
         }
         $table->delete($entity);
+        $this->registroAuditoria('template.excluir', 'template', $id);
 
         return $this->respond(['removido' => true]);
     }
 
     private function salvar(array $dados, ?string $id): Response
     {
+        $this->exigirGestor();
         $nome = $this->texto($dados['nome'] ?? '');
         if ($nome === '') {
             $this->erro('Informe o nome do template.', 'nome');
@@ -80,6 +83,7 @@ class TemplatesController extends AppController
         }
 
         $table->saveOrFail($entity);
+        $this->registroAuditoria('template.salvar', 'template', (string)$entity->get('id'));
 
         return $this->respond($this->templateOut($entity), $status);
     }

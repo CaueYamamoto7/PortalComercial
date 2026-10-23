@@ -3,41 +3,29 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
-use Cake\I18n\DateTime;
 
 class LeadsController extends AppController
 {
     public function index(): Response
     {
         $params = (array)$this->request->getQueryParams();
-        $service = $this->service();
+        $identidade = $this->identidade();
 
-        $todos = array_map(fn ($lead) => $service->enriquecer($lead), $service->todos());
-        $filtrados = $service->filtrar($todos, $params);
-        $filtrados = $service->ordenar(
-            $filtrados,
-            (string)($params['sort'] ?? 'atualizadoEm'),
-            (string)($params['direction'] ?? 'desc')
-        );
-        $pagina = $service->paginar(
-            $filtrados,
-            (int)($params['page'] ?? 1),
-            (int)($params['perPage'] ?? 12)
-        );
+        $pagina = $this->queryService()->paginar($params, $identidade);
 
         return $this->respond([
-            'data' => $this->serializarLeads($pagina['data']),
+            'data' => $pagina['data'],
             'meta' => $pagina['meta'],
-            'stats' => $service->stats($todos),
-            'facets' => $service->facets(),
+            'stats' => $this->queryService()->stats($params, $identidade),
+            'facets' => $this->queryService()->facets($params, $identidade),
         ]);
     }
 
     public function view(string $id): Response
     {
-        $service = $this->service();
-        $lead = $service->leadCompleto($id);
+        $lead = $this->queryService()->findLead($id, $this->identidade());
         if (!$lead) {
             $this->erro('Lead não encontrado.', null, 404);
         }
@@ -54,10 +42,12 @@ class LeadsController extends AppController
             ->all()
             ->toList();
 
+        $leadOut = $this->service()->leadOut($lead);
+
         return $this->respond([
-            'lead' => $this->serializarLead($lead),
+            'lead' => $leadOut,
             'interacoes' => array_map(fn ($row) => $this->interacaoOut($row), $interacoes),
-            'tarefas' => array_map(fn ($row) => $this->tarefaEnriquecida($row, $lead), $tarefas),
+            'tarefas' => array_map(fn ($row) => $this->tarefaEnriquecida($row, $leadOut), $tarefas),
         ]);
     }
 
@@ -69,9 +59,7 @@ class LeadsController extends AppController
         $campos = $this->montarLead($dados);
         $this->validarLead($campos, null);
 
-        $table = $this->fetchTable('Leads');
-        $entity = $table->newEntity($campos);
-        $table->saveOrFail($entity);
+        $entity = $this->writeService()->criar($campos, $this->identidade());
 
         $this->registrarInteracao(
             (string)$entity->get('id'),
@@ -81,16 +69,21 @@ class LeadsController extends AppController
             (string)$entity->get('responsavel'),
             $entity->get('criado_em')
         );
-        $this->service()->invalidar();
+        $this->registroAuditoria('lead.criar', 'lead', (string)$entity->get('id'));
 
-        return $this->respond($this->serializarLead($this->service()->leadCompleto((string)$entity->get('id'))), 201);
+        return $this->respond(
+            $this->service()->leadOut($this->service()->leadCompleto((string)$entity->get('id'))),
+            201
+        );
     }
 
     public function edit(string $id): Response
     {
         $this->request->allowMethod(['put', 'patch']);
         $table = $this->fetchTable('Leads');
-        $entity = $table->find()->where(['id' => $id])->first();
+        $query = $table->find()->where(['id' => $id, 'deleted_at IS' => null]);
+        $this->access()->scopeLeads($query, $this->identidade());
+        $entity = $query->first();
         if (!$entity) {
             $this->erro('Lead não encontrado.', null, 404);
         }
@@ -102,8 +95,7 @@ class LeadsController extends AppController
 
         $etapaAnterior = (string)$entity->get('etapa_id');
 
-        $table->patchEntity($entity, $campos);
-        $table->saveOrFail($entity);
+        $entity = $this->writeService()->atualizar($entity, $campos, $this->identidade());
 
         if ($etapaAnterior !== (string)$entity->get('etapa_id')) {
             $etapa = $this->fetchTable('Stages')->find()->where(['id' => $entity->get('etapa_id')])->first();
@@ -116,16 +108,20 @@ class LeadsController extends AppController
                 $entity->get('atualizado_em')
             );
         }
-        $this->service()->invalidar();
+        $this->registroAuditoria('lead.editar', 'lead', $id);
 
-        return $this->respond($this->serializarLead($this->service()->leadCompleto($id)));
+        return $this->respond(
+            $this->service()->leadOut($this->service()->leadCompleto($id))
+        );
     }
 
     public function mover(string $id): Response
     {
         $this->request->allowMethod(['post']);
         $table = $this->fetchTable('Leads');
-        $entity = $table->find()->where(['id' => $id])->first();
+        $query = $table->find()->where(['id' => $id, 'deleted_at IS' => null]);
+        $this->access()->scopeLeads($query, $this->identidade());
+        $entity = $query->first();
         if (!$entity) {
             $this->erro('Lead não encontrado.', null, 404);
         }
@@ -138,7 +134,7 @@ class LeadsController extends AppController
         }
 
         if ((string)$entity->get('etapa_id') === $etapaId) {
-            return $this->respond($this->serializarLead($this->service()->leadCompleto($id)));
+            return $this->respond($this->service()->leadOut($this->service()->leadCompleto($id)));
         }
 
         $agora = $this->agora();
@@ -157,26 +153,115 @@ class LeadsController extends AppController
             (string)$entity->get('responsavel'),
             $agora
         );
-        $this->service()->invalidar();
+        $this->registroAuditoria('lead.mover', 'lead', $id, ['etapaId' => $etapaId]);
 
-        return $this->respond($this->serializarLead($this->service()->leadCompleto($id)));
+        return $this->respond($this->service()->leadOut($this->service()->leadCompleto($id)));
+    }
+
+    /** Ação em lote com transação e limite de segurança. */
+    public function lote(): Response
+    {
+        $this->request->allowMethod(['post']);
+        $dados = (array)$this->request->getData();
+        $acao = (string)($dados['acao'] ?? '');
+        $ids = array_values(array_unique(array_filter(array_map(
+            'trim',
+            (array)($dados['ids'] ?? [])
+        ))));
+        if (!$ids) {
+            $this->erro('Selecione pelo menos um lead.', 'ids');
+        }
+        if (count($ids) > 500) {
+            $this->erro('Selecione no máximo 500 leads por lote.', 'ids');
+        }
+
+        $table = $this->fetchTable('Leads');
+        $query = $table->find()->where(['id IN' => $ids, 'deleted_at IS' => null]);
+        $this->access()->scopeLeads($query, $this->identidade());
+        $encontrados = $query->all()->toList();
+        $idsPermitidos = array_map(fn ($row) => (string)$row->get('id'), $encontrados);
+        if (count($idsPermitidos) !== count($ids)) {
+            $this->erro('Um ou mais leads não estão disponíveis para você.', 'ids', 403);
+        }
+
+        $conn = ConnectionManager::get('default');
+        $conn->begin();
+        try {
+            if ($acao === 'mover') {
+                $etapaId = $this->texto($dados['etapaId'] ?? '');
+                $etapa = $this->fetchTable('Stages')->find()->where(['id' => $etapaId])->first();
+                if (!$etapa) {
+                    $this->erro('Etapa inválida.', 'etapaId');
+                }
+                $agora = $this->agora();
+                foreach ($encontrados as $entity) {
+                    $entity->set('etapa_id', $etapaId);
+                    $entity->set('atualizado_em', $agora);
+                    $table->saveOrFail($entity);
+                    $this->registrarInteracao(
+                        (string)$entity->get('id'),
+                        'etapa',
+                        'Etapa alterada em lote',
+                        'Lead movido para ' . (string)$etapa->get('nome') . '.',
+                        (string)$entity->get('responsavel'),
+                        $agora
+                    );
+                }
+            } elseif ($acao === 'naoContatar') {
+                $valor = (bool)($dados['valor'] ?? true);
+                $table->updateAll(
+                    ['nao_contatar' => $valor, 'atualizado_em' => $this->agora()],
+                    ['id IN' => $idsPermitidos]
+                );
+            } elseif ($acao === 'prioridade') {
+                $prioridade = $this->texto($dados['prioridade'] ?? '');
+                if (!in_array($prioridade, ['alta', 'media', 'baixa'], true)) {
+                    $this->erro('Prioridade inválida.', 'prioridade');
+                }
+                $table->updateAll(
+                    ['prioridade' => $prioridade, 'atualizado_em' => $this->agora()],
+                    ['id IN' => $idsPermitidos]
+                );
+            } elseif ($acao === 'excluir') {
+                if (!$this->access()->canDeleteLead($this->identidade())) {
+                    $this->erro('Apenas administradores e gestores podem excluir leads.', null, 403);
+                }
+                $table->updateAll(
+                    ['deleted_at' => $this->agora(), 'atualizado_em' => $this->agora()],
+                    ['id IN' => $idsPermitidos]
+                );
+            } else {
+                $this->erro('Ação de lote inválida.', 'acao');
+            }
+
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollback();
+            throw $e;
+        }
+
+        $this->registroAuditoria('lead.lote.' . $acao, 'lead', null, ['ids' => $idsPermitidos]);
+
+        return $this->respond(['ok' => true, 'afetados' => count($idsPermitidos)]);
     }
 
     public function delete(string $id): Response
     {
         $this->request->allowMethod(['delete']);
+        if (!$this->access()->canDeleteLead($this->identidade())) {
+            $this->erro('Apenas administradores e gestores podem excluir leads.', null, 403);
+        }
+
         $table = $this->fetchTable('Leads');
-        $entity = $table->find()->where(['id' => $id])->first();
+        $entity = $table->find()->where(['id' => $id, 'deleted_at IS' => null])->first();
         if (!$entity) {
             $this->erro('Lead não encontrado.', null, 404);
         }
 
-        $this->fetchTable('Interactions')->deleteAll(['lead_id' => $id]);
-        $this->fetchTable('Tasks')->deleteAll(['lead_id' => $id]);
-        $table->delete($entity);
-        $this->service()->invalidar();
+        $this->writeService()->softDelete($id, $this->identidade());
+        $this->registroAuditoria('lead.excluir', 'lead', $id);
 
-        return $this->respond(['removido' => true]);
+        return $this->respond(['removido' => true, 'retencaoDias' => 90]);
     }
 
     public function importar(): Response
@@ -184,6 +269,9 @@ class LeadsController extends AppController
         $this->request->allowMethod(['post']);
         $dados = (array)$this->request->getData();
         $linhas = (array)($dados['linhas'] ?? []);
+        if (count($linhas) > 2000) {
+            $this->erro('Importe no máximo 2.000 linhas por vez.', 'linhas');
+        }
 
         $service = $this->service();
         $cat = $service->catalogo();
@@ -204,14 +292,6 @@ class LeadsController extends AppController
         }
         $equipe = array_column($cat['equipe'], 'nome');
 
-        $importados = 0;
-        $duplicados = 0;
-        $invalidos = 0;
-        $detalhes = [];
-        $table = $this->fetchTable('Leads');
-        $telefones = $table->find()->select(['telefone'])->all()->extract('telefone')->toList();
-        $telefones = array_map('strval', $telefones);
-
         $etapaPadrao = null;
         foreach ($cat['etapas'] as $etapa) {
             if ($etapa['tipo'] === 'aberto') {
@@ -220,117 +300,139 @@ class LeadsController extends AppController
             }
         }
 
-        foreach ($linhas as $indice => $linha) {
-            $linha = (array)$linha;
-            $numero = (int)$indice + 2;
-            $nome = $this->texto($linha['nome'] ?? $linha['name'] ?? '');
-            $telefone = $this->texto($linha['telefone'] ?? $linha['phone'] ?? $linha['celular'] ?? $linha['whatsapp'] ?? '');
-            $email = mb_strtolower($this->texto($linha['email'] ?? $linha['e_mail'] ?? $linha['mail'] ?? ''));
+        $table = $this->fetchTable('Leads');
+        $telefones = $table->find()->select(['telefone'])->all()->extract('telefone')->toList();
+        $telefones = array_map('strval', $telefones);
+        $telefones = array_fill_keys($telefones, true);
 
-            if ($nome === '') {
-                $invalidos++;
-                $detalhes[] = ['linha' => $numero, 'motivo' => 'Nome ausente'];
-                continue;
-            }
-            $telefone = $this->normalizarTelefone($telefone);
-            if (!$this->telefoneValido($telefone)) {
-                $invalidos++;
-                $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone inválido'];
-                continue;
-            }
-            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $invalidos++;
-                $detalhes[] = ['linha' => $numero, 'motivo' => 'E-mail inválido'];
-                continue;
-            }
-            if (in_array($telefone, $telefones, true)) {
-                $duplicados++;
-                $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone já cadastrado'];
-                continue;
-            }
+        $importados = 0;
+        $duplicados = 0;
+        $invalidos = 0;
+        $detalhes = [];
+        $conn = ConnectionManager::get('default');
+        $conn->begin();
 
-            $sistemaIds = [];
-            $sistemasRaw = $this->lista($linha['sistemas_interesse'] ?? $linha['sistemas'] ?? $linha['sistema'] ?? '');
-            foreach ($sistemasRaw as $valor) {
-                if (isset($sistemasPorId[$valor])) {
-                    $sistemaIds[] = $valor;
-                } elseif (isset($sistemasPorNome[$service->normalizar($valor)])) {
-                    $sistemaIds[] = $sistemasPorNome[$service->normalizar($valor)]['id'];
+        try {
+            foreach ($linhas as $indice => $linha) {
+                $linha = (array)$linha;
+                $numero = (int)$indice + 2;
+                $nome = $this->texto($linha['nome'] ?? $linha['name'] ?? '');
+                $telefone = $this->texto($linha['telefone'] ?? $linha['phone'] ?? $linha['celular'] ?? $linha['whatsapp'] ?? '');
+                $email = mb_strtolower($this->texto($linha['email'] ?? $linha['e_mail'] ?? $linha['mail'] ?? ''));
+
+                if ($nome === '') {
+                    $invalidos++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'Nome ausente'];
+                    continue;
                 }
+                $telefone = $this->normalizarTelefone($telefone);
+                if (!$this->telefoneValido($telefone)) {
+                    $invalidos++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone inválido'];
+                    continue;
+                }
+                if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $invalidos++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'E-mail inválido'];
+                    continue;
+                }
+                if (isset($telefones[$telefone])) {
+                    $duplicados++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone já cadastrado'];
+                    continue;
+                }
+
+                $sistemaIds = [];
+                $sistemasRaw = $this->lista($linha['sistemas_interesse'] ?? $linha['sistemas'] ?? $linha['sistema'] ?? '');
+                foreach ($sistemasRaw as $valor) {
+                    if (isset($sistemasPorId[$valor])) {
+                        $sistemaIds[] = $valor;
+                    } elseif (isset($sistemasPorNome[$service->normalizar($valor)])) {
+                        $sistemaIds[] = $sistemasPorNome[$service->normalizar($valor)]['id'];
+                    }
+                }
+
+                $origemTexto = $this->texto($linha['origem'] ?? '');
+                $origemId = isset($origensPorId[$origemTexto])
+                    ? $origemTexto
+                    : ($origensPorNome[$service->normalizar($origemTexto)]['id'] ?? 'org_outro');
+
+                $etapaTexto = $this->texto($linha['etapa'] ?? '');
+                $etapaId = isset($etapasPorId[$etapaTexto])
+                    ? $etapaTexto
+                    : ($etapasPorNome[$service->normalizar($etapaTexto)]['id'] ?? ($etapaPadrao['id'] ?? 'et_novo'));
+
+                $responsavel = $this->texto($linha['responsavel'] ?? '');
+                if (!$this->access()->canSeeAllLeads($this->identidade()) || !in_array($responsavel, $equipe, true)) {
+                    $responsavel = $this->usuarioNome();
+                }
+
+                $possui = $service->normalizar($this->texto($linha['possui_sistema'] ?? $linha['possui'] ?? ''));
+                if (str_starts_with($possui, 'sim')) {
+                    $possuiSistema = 'sim';
+                } elseif (str_starts_with($possui, 'nao')) {
+                    $possuiSistema = 'nao';
+                } else {
+                    $possuiSistema = 'nao_informado';
+                }
+
+                $prioridade = $service->normalizar($this->texto($linha['prioridade'] ?? ''));
+                if (!in_array($prioridade, ['alta', 'media', 'baixa'], true)) {
+                    $prioridade = 'media';
+                }
+
+                $agora = $this->agora();
+                $campos = [
+                    'nome' => $nome,
+                    'empresa' => $this->texto($linha['empresa'] ?? $linha['company'] ?? ''),
+                    'cargo' => $this->texto($linha['cargo'] ?? ''),
+                    'telefone' => $telefone,
+                    'email' => $email,
+                    'cidade' => $this->texto($linha['cidade'] ?? ''),
+                    'uf' => mb_substr(mb_strtoupper($this->texto($linha['uf'] ?? $linha['estado'] ?? '')), 0, 2),
+                    'origem_id' => $origemId,
+                    'origem_detalhe' => $this->texto($linha['evento'] ?? $linha['origem_detalhe'] ?? ''),
+                    'sistema_ids' => array_values(array_unique($sistemaIds)),
+                    'possui_sistema' => $possuiSistema,
+                    'sistema_atual' => $this->texto($linha['sistema_atual'] ?? ''),
+                    'etapa_id' => $etapaId,
+                    'prioridade' => $prioridade,
+                    'responsavel' => $responsavel,
+                    'proximo_contato' => $this->data($linha['proximo_contato'] ?? null),
+                    'ultimo_contato' => null,
+                    'observacoes' => $this->texto($linha['observacoes'] ?? $linha['notas'] ?? ''),
+                    'tags' => $this->lista($linha['tags'] ?? 'Importado'),
+                    'nao_contatar' => false,
+                    'criado_em' => $agora,
+                    'atualizado_em' => $agora,
+                    'motivo_perda' => '',
+                ];
+
+                $entity = $this->writeService()->criar($campos, $this->identidade());
+                $telefones[$telefone] = true;
+                $importados++;
+
+                $this->registrarInteracao(
+                    (string)$entity->get('id'),
+                    'nota',
+                    'Lead importado',
+                    'Cadastro criado por importação de planilha.',
+                    $responsavel,
+                    $agora
+                );
             }
 
-            $origemTexto = $this->texto($linha['origem'] ?? '');
-            $origemId = isset($origensPorId[$origemTexto])
-                ? $origemTexto
-                : ($origensPorNome[$service->normalizar($origemTexto)]['id'] ?? 'org_outro');
-
-            $etapaTexto = $this->texto($linha['etapa'] ?? '');
-            $etapaId = isset($etapasPorId[$etapaTexto])
-                ? $etapaTexto
-                : ($etapasPorNome[$service->normalizar($etapaTexto)]['id'] ?? ($etapaPadrao['id'] ?? 'et_novo'));
-
-            $responsavel = $this->texto($linha['responsavel'] ?? '');
-            if (!in_array($responsavel, $equipe, true)) {
-                $responsavel = $this->usuarioNome();
-            }
-
-            $possui = $service->normalizar($this->texto($linha['possui_sistema'] ?? $linha['possui'] ?? ''));
-            if (str_starts_with($possui, 'sim')) {
-                $possuiSistema = 'sim';
-            } elseif (str_starts_with($possui, 'nao') || str_starts_with($possui, 'não')) {
-                $possuiSistema = 'nao';
-            } else {
-                $possuiSistema = 'nao_informado';
-            }
-
-            $prioridade = $service->normalizar($this->texto($linha['prioridade'] ?? ''));
-            if (!in_array($prioridade, ['alta', 'media', 'baixa'], true)) {
-                $prioridade = 'media';
-            }
-
-            $agora = $this->agora();
-            $campos = [
-                'nome' => $nome,
-                'empresa' => $this->texto($linha['empresa'] ?? $linha['company'] ?? ''),
-                'cargo' => $this->texto($linha['cargo'] ?? ''),
-                'telefone' => $telefone,
-                'email' => $email,
-                'cidade' => $this->texto($linha['cidade'] ?? ''),
-                'uf' => mb_substr(mb_strtoupper($this->texto($linha['uf'] ?? $linha['estado'] ?? '')), 0, 2),
-                'origem_id' => $origemId,
-                'origem_detalhe' => $this->texto($linha['evento'] ?? $linha['origem_detalhe'] ?? ''),
-                'sistema_ids' => array_values(array_unique($sistemaIds)),
-                'possui_sistema' => $possuiSistema,
-                'sistema_atual' => $this->texto($linha['sistema_atual'] ?? ''),
-                'etapa_id' => $etapaId,
-                'prioridade' => $prioridade,
-                'responsavel' => $responsavel,
-                'proximo_contato' => $this->data($linha['proximo_contato'] ?? null),
-                'ultimo_contato' => null,
-                'observacoes' => $this->texto($linha['observacoes'] ?? $linha['notas'] ?? ''),
-                'tags' => $this->lista($linha['tags'] ?? 'Importado'),
-                'nao_contatar' => false,
-                'criado_em' => $agora,
-                'atualizado_em' => $agora,
-                'motivo_perda' => '',
-            ];
-
-            $entity = $table->newEntity($campos);
-            $table->saveOrFail($entity);
-            $telefones[] = $telefone;
-            $importados++;
-
-            $this->registrarInteracao(
-                (string)$entity->get('id'),
-                'nota',
-                'Lead importado',
-                'Cadastro criado por importação de planilha.',
-                $responsavel,
-                $agora
-            );
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollback();
+            throw $e;
         }
 
-        $this->service()->invalidar();
+        $this->registroAuditoria('lead.importar', 'lead', null, [
+            'importados' => $importados,
+            'duplicados' => $duplicados,
+            'invalidos' => $invalidos,
+        ]);
 
         return $this->respond([
             'importados' => $importados,
@@ -338,6 +440,85 @@ class LeadsController extends AppController
             'invalidos' => $invalidos,
             'detalhes' => $detalhes,
         ]);
+    }
+
+    /** Exporta o resultado filtrado como CSV, direto no backend. */
+    public function exportar(): Response
+    {
+        $params = (array)$this->request->getQueryParams();
+        $identidade = $this->identidade();
+        $query = $this->queryService()->baseQuery($params, $identidade);
+        $rows = $query
+            ->orderBy(['Leads.atualizado_em' => 'DESC'])
+            ->limit(10000)
+            ->all()
+            ->toList();
+
+        $cat = $this->service()->catalogo();
+        $etapas = array_column($cat['etapas'], null, 'id');
+        $sistemas = array_column($cat['sistemas'], null, 'id');
+        $origens = array_column($cat['origens'], null, 'id');
+        $possuiLabel = ['sim' => 'Sim', 'nao' => 'Não', 'nao_informado' => 'Não informado'];
+
+        $fp = fopen('php://temp', 'r+');
+        fwrite($fp, "\xEF\xBB\xBF");
+        fputcsv($fp, [
+            'Nome', 'Empresa', 'Cargo', 'WhatsApp', 'E-mail', 'Cidade', 'UF',
+            'Origem', 'Detalhe da origem', 'Sistemas', 'Possui sistema',
+            'Sistema atual', 'Etapa', 'Prioridade', 'Responsável',
+            'Próximo contato', 'Último contato', 'Tags', 'Observações',
+            'Não contatar',
+        ], ';');
+
+        foreach ($rows as $row) {
+            $lead = $this->service()->leadBaseOut($row);
+            $nomesSistemas = [];
+            foreach ($lead['sistemaIds'] as $sistemaId) {
+                $nomesSistemas[] = $sistemas[$sistemaId]['nome'] ?? $sistemaId;
+            }
+            fputcsv($fp, array_map([$this, 'celulaCSV'], [
+                $lead['nome'],
+                $lead['empresa'],
+                $lead['cargo'],
+                $lead['telefone'],
+                $lead['email'],
+                $lead['cidade'],
+                $lead['uf'],
+                $origens[$lead['origemId']]['nome'] ?? $lead['origemId'],
+                $lead['origemDetalhe'],
+                implode(', ', $nomesSistemas),
+                $possuiLabel[$lead['possuiSistema']] ?? $lead['possuiSistema'],
+                $lead['sistemaAtual'],
+                $etapas[$lead['etapaId']]['nome'] ?? $lead['etapaId'],
+                $lead['prioridade'],
+                $lead['responsavel'],
+                $lead['proximoContato']?->format('d/m/Y H:i') ?? '',
+                $lead['ultimoContato']?->format('d/m/Y H:i') ?? '',
+                implode(', ', $lead['tags']),
+                $lead['observacoes'],
+                $lead['naoContatar'] ? 'Sim' : 'Não',
+            ]), ';');
+        }
+
+        rewind($fp);
+        $csv = (string)stream_get_contents($fp);
+        fclose($fp);
+
+        return $this->response
+            ->withType('text/csv')
+            ->withHeader('Content-Disposition', 'attachment; filename="leads-assinasoft.csv"')
+            ->withStringBody($csv);
+    }
+
+    /** Evita injeção de fórmulas ao abrir o CSV no Excel/LibreOffice. */
+    private function celulaCSV(mixed $valor): string
+    {
+        $texto = (string)$valor;
+        if ($texto !== '' && in_array($texto[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'" . $texto;
+        }
+
+        return $texto;
     }
 
     // ------------------------------------------------------------------
@@ -349,6 +530,9 @@ class LeadsController extends AppController
 
         $etapaId = $this->texto($dados['etapaId'] ?? '') ?: ($b['etapaId'] ?? $this->etapaPadrao());
         $responsavel = $this->texto($dados['responsavel'] ?? '') ?: ($b['responsavel'] ?? $this->usuarioNome());
+        if (!$this->access()->canSeeAllLeads($this->identidade())) {
+            $responsavel = $this->usuarioNome();
+        }
         $origemId = $this->texto($dados['origemId'] ?? '') ?: ($b['origemId'] ?? 'org_outro');
 
         $possui = $this->texto($dados['possuiSistema'] ?? '');
@@ -440,20 +624,12 @@ class LeadsController extends AppController
 
     private function serializarLead(?array $lead): ?array
     {
-        if ($lead === null) {
-            return null;
-        }
-        $lead['proximoContato'] = $this->service()->iso($lead['proximoContato']);
-        $lead['ultimoContato'] = $this->service()->iso($lead['ultimoContato']);
-        $lead['criadoEm'] = $this->service()->iso($lead['criadoEm']);
-        $lead['atualizadoEm'] = $this->service()->iso($lead['atualizadoEm']);
-
-        return $lead;
+        return $this->service()->leadOut($lead);
     }
 
     /** @param array<int, array<string, mixed>> $leads */
     private function serializarLeads(array $leads): array
     {
-        return array_map(fn ($lead) => $this->serializarLead($lead), $leads);
+        return $this->service()->leadsOut($leads);
     }
 }

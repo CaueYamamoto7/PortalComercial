@@ -52,10 +52,11 @@
     if (!el) return;
     var atual = paginaAtual();
     var sessao = Painel.auth.usuario();
+    var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
     var grupos = [
       { nome: "Comercial", chaves: ["dashboard", "leads", "pipeline", "followups"] },
       { nome: "Relacionamento", chaves: ["mensagens", "relatorios"] },
-      { nome: "Sistema", chaves: ["configuracoes"] }
+      { nome: "Sistema", chaves: podeConfig ? ["configuracoes"] : [] }
     ];
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
@@ -80,10 +81,11 @@
 
   function carregarResumoSidebar() {
     var api = Painel.api;
-    if (!api) return;
-    api.leads.listar({ perPage: 1 }).then(function (res) {
-      var total = res.stats.total || 0;
-      var ativos = res.stats.abertos || 0;
+    if (!api || !api.resumo) return;
+    api.resumo().then(function (res) {
+      var stats = res.stats || {};
+      var total = stats.total || 0;
+      var ativos = stats.abertos || 0;
       var leadsEl = document.querySelector("[data-sidebar-leads]");
       if (leadsEl) {
         leadsEl.textContent = u.formatarNumero(total);
@@ -94,17 +96,16 @@
       var progress = document.querySelector("[data-sidebar-progress]");
       if (progress) progress.style.width = Math.min(100, total ? (ativos / total) * 100 : 0) + "%";
       var resumo = document.querySelector("[data-sidebar-resumo]");
-      if (resumo) resumo.textContent = res.stats.atrasados
-        ? res.stats.atrasados + " follow-up(s) atrasado(s)"
+      if (resumo) resumo.textContent = stats.atrasados
+        ? stats.atrasados + " follow-up(s) atrasado(s)"
         : "Nenhum follow-up atrasado";
-    }).catch(function () { /* silencioso */ });
 
-    api.tarefas.listar({ status: "pendente" }).then(function (res) {
       var badge = document.querySelector("[data-sidebar-tarefas]");
-      if (!badge) return;
-      var n = (res.stats.atrasadas || 0) + (res.stats.hoje || 0);
-      badge.textContent = n;
-      badge.hidden = n === 0;
+      if (badge) {
+        var n = (res.tarefas && (res.tarefas.atrasadas || 0) + (res.tarefas.hoje || 0)) || 0;
+        badge.textContent = n;
+        badge.hidden = n === 0;
+      }
     }).catch(function () { /* silencioso */ });
   }
 
@@ -115,6 +116,7 @@
     if (!el) return;
     var atual = PAGINAS[paginaAtual()] || PAGINAS.dashboard;
     var sessao = Painel.auth.usuario();
+    var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
 
     el.innerHTML =
       '<button class="icon-btn sidebar-toggle" type="button" data-sidebar-toggle aria-label="Abrir menu">' + icone("menu") + "</button>" +
@@ -163,7 +165,7 @@
             '<div class="dropdown-panel__head"><div><strong>' + u.escaparHTML(sessao.nome) + '</strong><div class="xs faint" style="margin-top:2px">' + u.escaparHTML(sessao.email) + "</div></div></div>" +
             '<div class="dropdown-list">' +
               '<a class="dropdown-item" href="conta.html">' + icone("user") + '<span class="dropdown-item__text"><strong>Minha conta</strong><small>Perfil e preferências</small></span></a>' +
-              '<a class="dropdown-item" href="configuracoes.html">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Empresa, funil e equipe</small></span></a>' +
+              (podeConfig ? '<a class="dropdown-item" href="configuracoes.html">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Empresa, funil e equipe</small></span></a>' : "") +
             "</div>" +
             '<div class="dropdown-panel__foot"><button class="dropdown-item dropdown-item--danger" type="button" data-logout>' + icone("logout") + "<span>Encerrar sessão</span></button></div>" +
           "</div>" +
@@ -187,7 +189,7 @@
       lista.innerHTML = itens.map(function (n) {
         var cls = n.tipo === "sucesso" ? "notif-item__icon--success" : n.tipo === "alerta" ? "notif-item__icon--warning" : "";
         var ico = n.tipo === "sucesso" ? "check-circle" : n.tipo === "alerta" ? "alert-triangle" : "info";
-        return '<a class="notif-item" href="' + u.escaparHTML(n.href || "index.html") + '">' +
+        return '<a class="notif-item" href="' + u.escaparHTML(u.hrefSeguro(n.href, "index.html")) + '">' +
           '<span class="notif-item__icon ' + cls + '">' + icone(ico) + "</span>" +
           '<span class="notif-item__text"><p>' + u.escaparHTML(n.texto) + "</p><time>" + u.tempoRelativo(n.data) + "</time></span>" +
           (!n.lida ? '<span class="notif-item__unread"></span>' : "") +
@@ -201,7 +203,9 @@
   /* Command palette -------------------------------------------------------- */
 
   function comandos() {
-    return [
+    var sessao = Painel.auth.usuario();
+    var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
+    var itens = [
       { grupo: "Navegação", label: "Painel", desc: "Visão geral comercial", icon: "grid", href: "index.html", termos: "dashboard inicio indicadores" },
       { grupo: "Navegação", label: "Leads", desc: "Base comercial", icon: "users", href: "leads.html", termos: "contatos base importar planilha" },
       { grupo: "Navegação", label: "Pipeline", desc: "Funil kanban", icon: "kanban", href: "pipeline.html", termos: "funil etapas negociacao" },
@@ -216,6 +220,12 @@
       { grupo: "Sistema", label: "Minha conta", desc: "Perfil e preferências", icon: "user", href: "conta.html", termos: "perfil senha preferencias conta" },
       { grupo: "Sistema", label: "Encerrar sessão", desc: "Sair do painel", icon: "logout", action: "logout", termos: "sair logout" }
     ];
+
+    if (!podeConfig) {
+      itens = itens.filter(function (item) { return item.href !== "configuracoes.html"; });
+    }
+
+    return itens;
   }
 
   function renderComando() {

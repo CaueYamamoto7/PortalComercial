@@ -6,7 +6,9 @@
   "use strict";
 
   var tokenAtual = "";
-  var bootstrap = null;
+  var bootstrapToken = null;
+  var bootstrapDados = null;
+  var emAndamento = {};
 
   function queryString(params) {
     var partes = [];
@@ -31,15 +33,13 @@
   }
 
   function csrfToken() {
-    var meta = document.querySelector('meta[name="csrf-token"]');
-    var doMeta = meta ? meta.getAttribute("content") : "";
-    return doMeta || tokenAtual || cookie("csrfToken");
+    return tokenAtual || cookie("csrfToken");
   }
 
   function garantirToken() {
     if (csrfToken()) return Promise.resolve();
-    if (!bootstrap) {
-      bootstrap = fetch(Painel.config.apiBase + "/auth/session", {
+    if (!bootstrapToken) {
+      bootstrapToken = fetch(Painel.config.apiBase + "/auth/session", {
         headers: { "Accept": "application/json" },
         credentials: "same-origin"
       }).then(function () {
@@ -47,10 +47,14 @@
       }).catch(function () {
         /* segue sem token: a requisição original reportará o erro */
       }).then(function () {
-        bootstrap = null;
+        bootstrapToken = null;
       });
     }
-    return bootstrap;
+    return bootstrapToken;
+  }
+
+  function limparBootstrap() {
+    bootstrapDados = null;
   }
 
   function redirecionarLogin() {
@@ -61,8 +65,14 @@
   }
 
   function requisicao(method, caminho, corpo, params) {
-    return garantirToken().then(function () {
-      var url = Painel.config.apiBase + caminho + queryString(params);
+    var url = Painel.config.apiBase + caminho + queryString(params);
+    var chave = method + " " + url + (corpo !== undefined ? " " + JSON.stringify(corpo) : "");
+
+    if (method === "GET" && emAndamento[chave]) {
+      return emAndamento[chave];
+    }
+
+    var promessa = garantirToken().then(function () {
       var headers = { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" };
       var token = csrfToken();
       if (token) headers["X-CSRF-Token"] = token;
@@ -92,13 +102,35 @@
         return json.data !== undefined ? json.data : json;
       });
     });
+
+    if (method === "GET") {
+      emAndamento[chave] = promessa;
+      promessa.then(function () { delete emAndamento[chave]; }, function () { delete emAndamento[chave]; });
+    }
+
+    return promessa;
   }
 
   Painel.api = {
     modo: "http",
+    bootstrap: function () {
+      if (bootstrapDados) return Promise.resolve(bootstrapDados);
+      return requisicao("GET", "/bootstrap").then(function (dados) {
+        bootstrapDados = dados;
+        return dados;
+      });
+    },
+    resumo: function () { return requisicao("GET", "/resumo"); },
+    catalogos: function (params) { return requisicao("GET", "/catalogos", undefined, params); },
     auth: {
-      login: function (email, senha) { return requisicao("POST", "/auth/login", { email: email, senha: senha }); },
-      logout: function () { return requisicao("POST", "/auth/logout"); },
+      login: function (email, senha) {
+        limparBootstrap();
+        return requisicao("POST", "/auth/login", { email: email, senha: senha });
+      },
+      logout: function () {
+        limparBootstrap();
+        return requisicao("POST", "/auth/logout");
+      },
       sessao: function () { return requisicao("GET", "/auth/session"); }
     },
     dashboard: {
@@ -112,7 +144,8 @@
       atualizar: function (id, dados) { return requisicao("PUT", "/leads/" + id, dados); },
       mover: function (id, etapaId) { return requisicao("POST", "/leads/" + id + "/mover", { etapaId: etapaId }); },
       remover: function (id) { return requisicao("DELETE", "/leads/" + id); },
-      importar: function (linhas) { return requisicao("POST", "/leads/importar", { linhas: linhas }); }
+      importar: function (linhas) { return requisicao("POST", "/leads/importar", { linhas: linhas }); },
+      lote: function (payload) { return requisicao("POST", "/leads/lote", payload); }
     },
     interacoes: {
       criar: function (leadId, dados) { return requisicao("POST", "/leads/" + leadId + "/interacoes", dados); }
@@ -128,6 +161,8 @@
     },
     mensagens: {
       listar: function (params) { return requisicao("GET", "/mensagens", undefined, params); },
+      obter: function (id) { return requisicao("GET", "/mensagens/" + id); },
+      publico: function (payload) { return requisicao("POST", "/mensagens/publico", payload); },
       criar: function (payload) { return requisicao("POST", "/mensagens", payload); },
       cancelar: function (id) { return requisicao("POST", "/mensagens/" + id + "/cancelar"); },
       enviarIndividual: function (leadId, payload) { return requisicao("POST", "/mensagens/individual", { leadId: leadId, mensagem: payload.mensagem }); },
@@ -165,6 +200,7 @@
     },
     conta: {
       salvarPerfil: function (dados) { return requisicao("PUT", "/perfil", dados); },
+      salvarPreferencias: function (dados) { return requisicao("PUT", "/preferencias", dados); },
       alterarSenha: function (dados) { return requisicao("PUT", "/senha", dados); }
     }
   };

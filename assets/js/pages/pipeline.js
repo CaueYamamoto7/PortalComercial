@@ -59,9 +59,10 @@
     el("pipeline-total").textContent = u.formatarNumero(dados.total);
 
     board.innerHTML = dados.etapas.map(function (etapa) {
+      var corEtapa = u.corSegura(etapa.cor, "#64748B");
       return '<section class="kanban-col" data-drop="' + etapa.id + '">' +
-        '<header class="kanban-col__head" style="--etapa-cor:' + etapa.cor + '">' +
-          '<span class="kanban-col__dot" style="background:' + etapa.cor + '"></span>' +
+        '<header class="kanban-col__head" style="--etapa-cor:' + corEtapa + '">' +
+          '<span class="kanban-col__dot" style="background:' + corEtapa + '"></span>' +
           '<strong>' + u.escaparHTML(etapa.nome) + "</strong>" +
           '<span class="kanban-col__count">' + etapa.total + "</span>" +
           '<button class="icon-btn icon-btn--xs" type="button" data-add-etapa="' + etapa.id + '" title="Adicionar lead nesta etapa">' + ui.icone("plus") + "</button>" +
