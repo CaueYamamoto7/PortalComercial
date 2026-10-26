@@ -64,6 +64,7 @@ class AuthController extends AppController
             'iniciais' => (string)$usuario->get('iniciais'),
             'status' => (string)$usuario->get('status'),
             'mustChangePassword' => (bool)$usuario->get('must_change_password'),
+            'authVersion' => (int)($usuario->get('auth_version') ?? 1),
         ];
 
         $usuario->set('ultimo_login_em', $this->agora());

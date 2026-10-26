@@ -360,6 +360,8 @@ class SettingsController extends AppController
             'role' => $this->access()->roleFromIdentity(['perfil' => (string)$usuario->get('perfil'), 'role' => $usuario->get('role')]),
             'iniciais' => (string)$usuario->get('iniciais'),
             'status' => (string)$usuario->get('status'),
+            'mustChangePassword' => (bool)$usuario->get('must_change_password'),
+            'authVersion' => (int)($usuario->get('auth_version') ?? 1),
         ]);
         $this->service()->invalidar();
         $this->registroAuditoria('perfil.salvar', 'user', (string)$usuario->get('id'));
@@ -414,11 +416,15 @@ class SettingsController extends AppController
             $this->erro('A nova senha precisa ser diferente da atual.', 'nova');
         }
 
+        $versao = (int)($usuario->get('auth_version') ?? 1) + 1;
         $usuario->set('senha_hash', password_hash($nova, PASSWORD_DEFAULT));
+        $usuario->set('auth_version', $versao);
         $usuario->set('atualizado_em', $this->agora());
         $table->saveOrFail($usuario);
 
+        $identidade['authVersion'] = $versao;
         $this->request->getSession()->renew();
+        $this->request->getSession()->write('Auth', $identidade);
         $this->registroAuditoria('senha.alterar', 'user', (string)$usuario->get('id'));
 
         return $this->respond(['ok' => true]);
