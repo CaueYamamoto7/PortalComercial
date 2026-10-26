@@ -288,6 +288,65 @@
     });
   }
 
+  function removerMembro(m) {
+    var registros = Number(m.registros || 0);
+    if (!registros) {
+      ui.confirmar({
+        titulo: "Remover membro",
+        texto: "Remover <strong>" + u.escaparHTML(m.nome) + "</strong> da equipe?",
+        acao: "Remover",
+        perigo: true
+      }).then(function (ok) {
+        if (!ok) return;
+        api.configuracoes.removerMembro(m.id).then(function () {
+          ui.toast("Membro removido.", "success");
+          carregar();
+        }).catch(function (err) { ui.toast(err.message, "error"); });
+      });
+      return;
+    }
+
+    var outros = config.equipe.filter(function (x) { return x.id !== m.id; });
+    if (!outros.length) {
+      ui.toast("Cadastre outro membro antes de remover este.", "error");
+      return;
+    }
+
+    var opcoes = outros.map(function (x) {
+      return '<option value="' + u.escaparHTML(x.nome) + '">' + u.escaparHTML(x.nome) + " — " + u.escaparHTML(x.perfil) + "</option>";
+    }).join("");
+    var detalhe = registros + " registro(s): " + m.leads + " lead(s), " + m.tarefas + " tarefa(s) e " + m.campanhas + " campanha(s).";
+
+    var m2 = ui.modal({
+      title: "Remover membro",
+      subtitle: "Os registros serão transferidos antes da exclusão.",
+      size: "sm",
+      body: '<form id="remover-membro-form" class="form-grid">' +
+        '<p class="small">Ao remover <strong>' + u.escaparHTML(m.nome) + "</strong>, " + detalhe + " Escolha quem assume esse trabalho.</p>" +
+        '<label class="field field--full"><span class="field__label">Novo responsável <em class="field__req">*</em></span>' +
+        '<select class="select" name="novo_responsavel" required><option value="">Selecione…</option>' + opcoes + "</select></label></form>",
+      footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button><button class="btn btn--danger" type="button" data-remover>' + ui.icone("trash") + 'Remover e transferir</button>'
+    });
+    var form = m2.el.querySelector("#remover-membro-form");
+    m2.el.querySelector("[data-remover]").addEventListener("click", function (e) {
+      if (!form.reportValidity()) return;
+      var btn = e.currentTarget;
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      api.configuracoes.removerMembro(m.id, {
+        novo_responsavel: form.elements.novo_responsavel.value
+      }).then(function (res) {
+        m2.close();
+        ui.toast("Membro removido. " + (res.realocados || registros) + " registro(s) transferido(s).", "success");
+        carregar();
+      }).catch(function (err) {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        ui.toast(err.message || "Não foi possível remover o membro.", "error");
+      });
+    });
+  }
+
   /* Dados ------------------------------------------------------------------ */
 
   /* Eventos ---------------------------------------------------------------- */
@@ -403,18 +462,7 @@
       if (!del) return;
       var m = config.equipe.filter(function (x) { return x.id === del.getAttribute("data-membro-del"); })[0];
       if (!m) return;
-      ui.confirmar({
-        titulo: "Remover membro",
-        texto: "Remover <strong>" + u.escaparHTML(m.nome) + "</strong> da equipe? Os leads continuarão com o nome registrado no histórico.",
-        acao: "Remover",
-        perigo: true
-      }).then(function (ok) {
-        if (!ok) return;
-        api.configuracoes.removerMembro(m.id).then(function () {
-          ui.toast("Membro removido.", "success");
-          carregar();
-        }).catch(function (err) { ui.toast(err.message, "error"); });
-      });
+      removerMembro(m);
     });
     document.querySelector("[data-add-membro]").addEventListener("click", abrirConvite);
 

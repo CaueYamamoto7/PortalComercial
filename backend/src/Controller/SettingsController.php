@@ -502,11 +502,68 @@ class SettingsController extends AppController
             $this->erro('Não é possível remover a administradora da conta.');
         }
 
-        $table->delete($membro);
-        $this->service()->invalidar();
-        $this->registroAuditoria('equipe.remover', 'user', $id);
+        $nome = (string)$membro->get('nome');
+        $vinculos = $this->vinculosMembro($nome);
+        $novoResponsavel = null;
 
-        return $this->respond(['removido' => true]);
+        if ($vinculos['registros'] > 0) {
+            $novoResponsavel = $this->texto(((array)$this->request->getData())['novo_responsavel'] ?? '');
+            if ($novoResponsavel === '') {
+                $this->erro(
+                    'Selecione o novo responsável pelos ' . $vinculos['registros'] . ' registro(s) deste membro.',
+                    'novo_responsavel'
+                );
+            }
+            if ($novoResponsavel === $nome) {
+                $this->erro('O novo responsável precisa ser outro membro.', 'novo_responsavel');
+            }
+            $destino = $table->find()->where(['nome' => $novoResponsavel, 'id !=' => $id])->first();
+            if (!$destino) {
+                $this->erro('O novo responsável informado não faz parte da equipe.', 'novo_responsavel');
+            }
+        }
+
+        $conn = ConnectionManager::get('default');
+        $conn->transactional(function () use ($conn, $table, $membro, $id, $nome, $novoResponsavel): void {
+            if ($novoResponsavel !== null) {
+                $antigoBusca = $this->service()->normalizar($nome);
+                $novoBusca = $this->service()->normalizar($novoResponsavel);
+
+                $conn->execute(
+                    'UPDATE leads SET responsavel = :novo, '
+                    . 'busca = REPLACE(busca, :antigo_busca, :novo_busca) '
+                    . 'WHERE responsavel = :antigo',
+                    [
+                        'novo' => $novoResponsavel,
+                        'antigo' => $nome,
+                        'antigo_busca' => $antigoBusca,
+                        'novo_busca' => $novoBusca,
+                    ]
+                );
+                $this->fetchTable('Tasks')->updateAll(
+                    ['responsavel' => $novoResponsavel],
+                    ['responsavel' => $nome]
+                );
+                $this->fetchTable('Campaigns')->updateAll(
+                    ['responsavel' => $novoResponsavel],
+                    ['responsavel' => $nome]
+                );
+            }
+
+            $table->delete($membro);
+        });
+
+        $this->service()->invalidar();
+        $this->registroAuditoria('equipe.remover', 'user', $id, [
+            'novo_responsavel' => $novoResponsavel,
+            'registros' => $vinculos,
+        ]);
+
+        return $this->respond([
+            'removido' => true,
+            'realocados' => $vinculos['registros'],
+            'novo_responsavel' => $novoResponsavel,
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -676,8 +733,28 @@ class SettingsController extends AppController
             'perfil' => (string)$row->get('perfil'),
             'role' => $row->get('role'),
         ]);
+        $membro = array_merge($membro, $this->vinculosMembro((string)$row->get('nome')));
 
         return $membro;
+    }
+
+    /** @return array{leads: int, tarefas: int, campanhas: int, registros: int} */
+    private function vinculosMembro(string $nome): array
+    {
+        if ($nome === '') {
+            return ['leads' => 0, 'tarefas' => 0, 'campanhas' => 0, 'registros' => 0];
+        }
+
+        $leads = $this->fetchTable('Leads')->find()->where(['responsavel' => $nome])->count();
+        $tarefas = $this->fetchTable('Tasks')->find()->where(['responsavel' => $nome])->count();
+        $campanhas = $this->fetchTable('Campaigns')->find()->where(['responsavel' => $nome])->count();
+
+        return [
+            'leads' => $leads,
+            'tarefas' => $tarefas,
+            'campanhas' => $campanhas,
+            'registros' => $leads + $tarefas + $campanhas,
+        ];
     }
 
     /** @return array{0: string, 1: string} */
