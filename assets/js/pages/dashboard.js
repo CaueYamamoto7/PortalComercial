@@ -13,12 +13,12 @@
   var CONVERSAS = {
     sem_mensagem: {
       titulo: "Sem mensagem enviada",
-      desc: "Contatos que ainda não receberam a primeira mensagem.",
-      vazio: "Todos os contatos já receberam uma mensagem."
+      desc: "Contatos ainda não abordados e fora da etapa Contatado.",
+      vazio: "Todos os contatos já foram abordados."
     },
     aguardando: {
       titulo: "Aguardando resposta",
-      desc: "Mensagem enviada, mas o contato ainda não respondeu.",
+      desc: "Contato já abordado (pelo sistema ou manualmente) e ainda sem resposta.",
       vazio: "Nenhum contato aguardando resposta."
     },
     responder: {
