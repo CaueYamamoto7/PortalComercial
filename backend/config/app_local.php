@@ -11,6 +11,19 @@ use function Cake\Core\env;
  */
 $databaseUrl = env('DATABASE_URL', null);
 
+$appEnv = (string)env('APP_ENV', 'development');
+$debug = filter_var(env('DEBUG', $appEnv !== 'production'), FILTER_VALIDATE_BOOLEAN);
+$salt = env('SECURITY_SALT', null);
+
+if (!$salt) {
+    if ($appEnv === 'production' || !$debug) {
+        throw new RuntimeException(
+            'SECURITY_SALT não configurado. Defina uma chave aleatória forte no ambiente.'
+        );
+    }
+    $salt = 'desenvolvimento-local-troque-em-producao';
+}
+
 /*
  * O CakePHP só reconhece o esquema "postgres://" no mapa de DSN, mas o Neon
  * fornece "postgresql://". Por isso montamos a configuração do driver
@@ -48,7 +61,7 @@ if ($databaseUrl) {
 }
 
 return [
-    'debug' => filter_var(env('DEBUG', true), FILTER_VALIDATE_BOOLEAN),
+    'debug' => $debug,
 
     'App' => [
         'defaultLocale' => 'pt_BR',
@@ -56,7 +69,7 @@ return [
     ],
 
     'Security' => [
-        'salt' => env('SECURITY_SALT', 'desenvolvimento-local-troque-em-producao'),
+        'salt' => $salt,
     ],
 
     'Datasources' => [
@@ -72,7 +85,7 @@ return [
 
     'Session' => [
         'defaults' => 'database',
-        'timeout' => 1440,
+        'timeout' => (int)env('SESSION_TIMEOUT', 240),
         'cookie' => env('SESSION_COOKIE', 'PAINEL_SESSION'),
         'ini' => [
             'session.cookie_httponly' => true,
