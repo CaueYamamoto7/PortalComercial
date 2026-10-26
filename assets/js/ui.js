@@ -10,6 +10,8 @@
   var camada = 0;
   var camadas = [];
   var icone = Painel.icons.icone;
+  var resumoViaBootstrap = false;
+  var resumoRequisicao = 0;
 
   var PAGINAS = {
     dashboard: { label: "Painel", href: "index.html", icon: "grid", grupo: "Comercial" },
@@ -81,8 +83,28 @@
 
   function carregarResumoSidebar() {
     var api = Painel.api;
-    if (!api || !api.resumo) return;
-    api.resumo().then(function (res) {
+    if (!api) return;
+
+    // A primeira carga reaproveita o /api/bootstrap (que já traz o resumo),
+    // evitando uma requisição extra por página. Recargas após alterações
+    // usam /api/resumo para trazer dados frescos.
+    var promessa;
+    if (!resumoViaBootstrap && api.bootstrap) {
+      resumoViaBootstrap = true;
+      promessa = api.bootstrap().then(function (dados) {
+        if (dados && dados.resumo) return dados.resumo;
+        return api.resumo ? api.resumo() : null;
+      }).catch(function () {
+        return api.resumo ? api.resumo() : null;
+      });
+    } else if (api.resumo) {
+      promessa = api.resumo();
+    }
+    if (!promessa) return;
+    var requisicao = ++resumoRequisicao;
+
+    promessa.then(function (res) {
+      if (!res || requisicao !== resumoRequisicao) return;
       var stats = res.stats || {};
       var total = stats.total || 0;
       var ativos = stats.abertos || 0;
