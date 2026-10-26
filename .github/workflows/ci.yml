@@ -3,9 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - '5.x'
-      - '5.next'
-      - '6.x'
+      - main
   pull_request:
     branches:
       - '*'
@@ -13,6 +11,10 @@ on:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    working-directory: backend
 
 jobs:
   testsuite:
@@ -25,11 +27,9 @@ jobs:
             dependencies: 'lowest'
           - php-version: '8.5'
             dependencies: 'highest'
-          - php-version: '8.5'
-            dependencies: 'highest'
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -40,10 +40,12 @@ jobs:
         coverage: none
 
     - name: Composer install
-      uses: ramsey/composer-install@v4
-      with:
-        dependency-versions: ${{ matrix.dependencies }}
-        composer-options: ${{ matrix.composer-options }}
+      run: |
+        if [ "${{ matrix.dependencies }}" = "lowest" ]; then
+          composer update --prefer-lowest --prefer-stable --no-interaction --no-progress
+        else
+          composer install --prefer-dist --no-interaction --no-progress
+        fi
 
     - name: Composer post install
       run: composer run-script post-install-cmd --no-interaction
@@ -58,7 +60,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -69,10 +71,12 @@ jobs:
         tools: cs2pr, phpstan:2.1
 
     - name: Composer install
-      uses: ramsey/composer-install@v4
+      run: composer install --prefer-dist --no-interaction --no-progress
 
     - name: Run PHP CodeSniffer
-      run: vendor/bin/phpcs --report=checkstyle | cs2pr
+      run: |
+        set -o pipefail
+        vendor/bin/phpcs --report=checkstyle | cs2pr
 
     - name: Run phpstan
       if: always()
