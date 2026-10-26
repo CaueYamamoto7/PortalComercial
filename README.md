@@ -124,9 +124,12 @@ As rotas são agrupadas sob `/api`. Respostas de sucesso utilizam o envelope `{ 
 | Variável | Finalidade |
 | --- | --- |
 | `DATABASE_URL` | Conexão com o PostgreSQL. Na ausência, a aplicação utiliza SQLite local. |
-| `SECURITY_SALT` | Salt criptográfico do CakePHP. |
-| `DEBUG` | Modo de diagnóstico detalhado. |
+| `APP_ENV` | `production` no deploy. Fora disso, a aplicação assume modo de desenvolvimento. |
+| `APP_FULL_BASE_URL` | **Obrigatória em produção.** URL pública usada na validação do cabeçalho `Host`. Sem ela, o `HostHeaderMiddleware` bloqueia as requisições. |
+| `SECURITY_SALT` | **Obrigatória em produção.** Salt criptográfico do CakePHP. |
+| `DEBUG` | Modo de diagnóstico detalhado. Deve permanecer `false` em produção. |
 | `SESSION_SECURE` | Restringe o cookie de sessão a conexões HTTPS. |
+| `SESSION_TIMEOUT` | Tempo de inatividade da sessão em minutos. Padrão: `240`. |
 | `APP_TMP` | Diretório de cache, logs e sessões. |
 | `APP_DEFAULT_TIMEZONE` | Fuso horário da aplicação. |
 | `ADMIN_NAME` | Nome do usuário inicial criado pela migration de catálogo. |

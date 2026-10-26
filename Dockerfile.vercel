@@ -9,7 +9,9 @@ FROM dunglas/frankenphp:1-php8.5-alpine
 # Extensões necessárias para CakePHP + Postgres
 RUN install-php-extensions intl mbstring pdo_pgsql opcache zip
 
-# Configuração de produção
+# Configuração de produção.
+# APP_FULL_BASE_URL e SECURITY_SALT são obrigatórias e devem ser definidas no
+# painel da Vercel; a aplicação se recusa a subir sem elas em produção.
 ENV APP_ENV=production \
     APP_TMP=/tmp/cake \
     DEBUG=false \
