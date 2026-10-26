@@ -443,17 +443,22 @@ class SettingsController extends AppController
             $this->erro('Já existe um membro com este e-mail.', 'email');
         }
 
+        $senha = (string)($dados['senha'] ?? '');
+        if (mb_strlen($senha) < 8) {
+            $this->erro('Defina uma senha temporária com pelo menos 8 caracteres.', 'senha');
+        }
+
         [$perfil, $role] = $this->resolverPerfil($this->texto($dados['perfil'] ?? ''));
 
         $table = $this->fetchTable('Users');
         $entity = $table->newEntity([
             'nome' => $nome,
             'email' => $email,
-            'senha_hash' => '',
+            'senha_hash' => password_hash($senha, PASSWORD_DEFAULT),
             'cargo' => $perfil,
             'perfil' => $perfil,
             'role' => $role,
-            'status' => 'convite',
+            'status' => 'ativo',
             'must_change_password' => true,
             'iniciais' => $this->iniciais($nome),
             'criado_em' => $this->agora(),

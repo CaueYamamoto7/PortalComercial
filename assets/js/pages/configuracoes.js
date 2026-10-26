@@ -254,11 +254,12 @@
   function abrirConvite() {
     var m = ui.modal({
       title: "Convidar membro",
-      subtitle: "O convite ficará pendente até o primeiro acesso.",
+      subtitle: "Defina uma senha temporária; o membro deverá trocá-la no primeiro acesso.",
       size: "sm",
       body: '<form id="membro-form" class="form-grid">' +
         '<label class="field field--full"><span class="field__label">Nome <em class="field__req">*</em></span><input class="input" name="nome" placeholder="Nome completo"></label>' +
         '<label class="field field--full"><span class="field__label">E-mail <em class="field__req">*</em></span><input class="input" type="email" name="email" placeholder="nome@assinasoft.com.br"></label>' +
+        '<label class="field field--full"><span class="field__label">Senha temporária <em class="field__req">*</em></span><input class="input" type="password" name="senha" autocomplete="new-password" minlength="8" placeholder="Mínimo de 8 caracteres"></label>' +
         '<label class="field field--full"><span class="field__label">Perfil</span><select class="select" name="perfil">' +
           '<option>Consultor comercial</option><option>Consultora comercial</option><option>Administrador</option><option>Gestor comercial</option>' +
         "</select></label></form>",
@@ -273,10 +274,11 @@
       api.configuracoes.convidar({
         nome: form.elements.nome.value.trim(),
         email: form.elements.email.value.trim(),
+        senha: form.elements.senha.value,
         perfil: form.elements.perfil.value
       }).then(function () {
         m.close();
-        ui.toast("Convite registrado para o novo membro.", "success");
+        ui.toast("Membro criado. Compartilhe a senha temporária com ele.", "success");
         carregar();
       }).catch(function (err) {
         btn.disabled = false;
