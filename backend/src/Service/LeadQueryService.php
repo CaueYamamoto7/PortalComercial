@@ -125,12 +125,26 @@ class LeadQueryService
                 $query->where(['ConversaEtapa.tipo' => 'aberto', 'Leads.nao_contatar' => false]);
             }
             if ($tipoConversa === 'sem_mensagem') {
-                $query->where(['Leads.mensagens_enviadas' => 0]);
+                $query->where([
+                    'Leads.mensagens_enviadas' => 0,
+                    'Leads.mensagens_recebidas' => 0,
+                ]);
+                $contatadas = $this->leads->etapasContatadas();
+                if ($contatadas) {
+                    $query->where(['Leads.etapa_id NOT IN' => $contatadas]);
+                }
             } elseif ($tipoConversa === 'aguardando') {
-                $query->where(['Leads.mensagens_enviadas >' => 0, 'Leads.mensagens_recebidas' => 0]);
+                $condicoes = ['Leads.mensagens_recebidas' => 0];
+                $origem = [['Leads.mensagens_enviadas >' => 0]];
+                $contatadas = $this->leads->etapasContatadas();
+                if ($contatadas) {
+                    $origem[] = ['Leads.etapa_id IN' => $contatadas];
+                }
+                $condicoes['OR'] = $origem;
+                $query->where($condicoes);
             } elseif ($tipoConversa === 'responder') {
                 $query->where([
-                    'Leads.mensagens_enviadas >' => 0,
+                    'Leads.mensagens_recebidas >' => 0,
                     'Leads.ultima_mensagem_direcao' => 'entrada',
                 ]);
             } elseif ($tipoConversa === 'abertas') {
