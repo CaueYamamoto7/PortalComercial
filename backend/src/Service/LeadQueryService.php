@@ -268,12 +268,21 @@ class LeadQueryService
     {
         $aberto = fn () => $this->comEtapa($filtros, $identidade, 'aberto');
 
-        $semMensagem = $aberto()
-            ->where(['Leads.mensagens_enviadas' => 0, 'Leads.nao_contatar' => false])
-            ->count();
+        $contatadas = $this->leads->etapasContatadas();
+
+        $semMensagemQuery = $aberto()->where([
+            'Leads.mensagens_enviadas' => 0,
+            'Leads.mensagens_recebidas' => 0,
+            'Leads.nao_contatar' => false,
+        ]);
+        if ($contatadas) {
+            $semMensagemQuery->where(['Leads.etapa_id NOT IN' => $contatadas]);
+        }
+        $semMensagem = $semMensagemQuery->count();
+
         $responder = $aberto()
             ->where([
-                'Leads.mensagens_enviadas >' => 0,
+                'Leads.mensagens_recebidas >' => 0,
                 'Leads.ultima_mensagem_direcao' => 'entrada',
                 'Leads.nao_contatar' => false,
             ])->count();
@@ -284,12 +293,16 @@ class LeadQueryService
                 'Leads.ultima_mensagem_direcao !=' => 'entrada',
                 'Leads.nao_contatar' => false,
             ])->count();
-        $aguardando = $aberto()
-            ->where([
-                'Leads.mensagens_enviadas >' => 0,
-                'Leads.mensagens_recebidas' => 0,
-                'Leads.nao_contatar' => false,
-            ])->count();
+
+        $aguardandoQuery = $aberto()->where([
+            'Leads.mensagens_recebidas' => 0,
+            'Leads.nao_contatar' => false,
+        ]);
+        $origemAguardando = [['Leads.mensagens_enviadas >' => 0]];
+        if ($contatadas) {
+            $origemAguardando[] = ['Leads.etapa_id IN' => $contatadas];
+        }
+        $aguardando = $aguardandoQuery->where(['OR' => $origemAguardando])->count();
         $abertas = $aberto()
             ->where([
                 'Leads.mensagens_recebidas >' => 0,
