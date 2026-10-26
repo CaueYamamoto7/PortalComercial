@@ -101,6 +101,7 @@ class LeadService
         $recebidas = (int)($lead['mensagensRecebidas'] ?? 0);
         $ultimaDirecao = $lead['ultimaMensagemDirecao'] ?? null;
         $ultimaEm = $lead['ultimaMensagemEm'] ?? null;
+        $ultimoTexto = trim((string)($lead['ultimaMensagemTexto'] ?? ''));
 
         $tipo = $etapa['tipo'] ?? 'aberto';
         if ($lead['naoContatar'] || $tipo === 'perdido') {
@@ -125,7 +126,13 @@ class LeadService
             'conversaAberta' => $tipo === 'aberto' && $recebidas > 0,
             'ultimaDirecao' => $ultimaDirecao,
             'ultimaMensagemEm' => $this->iso($ultimaEm),
-            'ultimaMensagem' => null,
+            'ultimaMensagem' => $ultimaEm
+                ? [
+                    'texto' => $ultimoTexto,
+                    'direcao' => $ultimaDirecao,
+                    'data' => $this->iso($ultimaEm),
+                ]
+                : null,
             'podeEnviar' => $status !== 'recusado',
         ];
     }
@@ -525,6 +532,7 @@ class LeadService
             'mensagensRecebidas' => (int)$row->get('mensagens_recebidas'),
             'ultimaMensagemEm' => $row->get('ultima_mensagem_em'),
             'ultimaMensagemDirecao' => $row->get('ultima_mensagem_direcao') ?: null,
+            'ultimaMensagemTexto' => (string)($row->get('ultima_mensagem_texto') ?? ''),
         ];
     }
 

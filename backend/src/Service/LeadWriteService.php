@@ -117,23 +117,28 @@ class LeadWriteService
 
             $ultima = $resumo['ultima'] ?? null;
             $direcao = null;
+            $texto = null;
             if ($ultima) {
                 $linha = $conn->execute(
-                    "SELECT direcao FROM interactions WHERE lead_id = :lead_id AND tipo = 'mensagem' "
+                    "SELECT direcao, COALESCE(NULLIF(descricao, ''), titulo) AS texto "
+                    . "FROM interactions WHERE lead_id = :lead_id AND tipo = 'mensagem' "
                     . 'ORDER BY data DESC, id DESC LIMIT 1',
                     ['lead_id' => $leadId]
                 )->fetch('assoc');
                 $direcao = $linha['direcao'] ?? null;
+                $texto = $linha['texto'] ?? null;
             }
 
             $conn->execute(
                 'UPDATE leads SET mensagens_enviadas = :enviadas, mensagens_recebidas = :recebidas, '
-                . 'ultima_mensagem_em = :ultima, ultima_mensagem_direcao = :direcao WHERE id = :id',
+                . 'ultima_mensagem_em = :ultima, ultima_mensagem_direcao = :direcao, '
+                . 'ultima_mensagem_texto = :texto WHERE id = :id',
                 [
                     'enviadas' => (int)($resumo['enviadas'] ?? 0),
                     'recebidas' => (int)($resumo['recebidas'] ?? 0),
                     'ultima' => $ultima,
                     'direcao' => $direcao,
+                    'texto' => $texto,
                     'id' => $leadId,
                 ]
             );
