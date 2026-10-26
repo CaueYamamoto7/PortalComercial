@@ -126,9 +126,33 @@
         var rect = svg.getBoundingClientRect();
         var cx = (P.l + band * i + band / 2) / W * rect.width;
         var topoPx = (P.t + innerH - ((p.valor || 0) / topo) * innerH) / H * rect.height;
-        tip.innerHTML = '<div class="chart-tooltip__title">' + p.label + "</div>" +
-          '<div class="chart-tooltip__row"><span>' + (opts.rotulo || "Total") + "</span><strong>" + u.formatarNumero(p.valor || 0) + "</strong></div>" +
-          (p.detalhe ? '<div class="chart-tooltip__row"><span>' + (opts.rotuloDetalhe || "Ganhos") + "</span><strong>" + u.formatarNumero(p.detalhe) + "</strong></div>" : "");
+        tip.replaceChildren();
+        var titulo = document.createElement("div");
+        titulo.className = "chart-tooltip__title";
+        titulo.textContent = String(p.label == null ? "" : p.label);
+        tip.appendChild(titulo);
+
+        var linha = document.createElement("div");
+        linha.className = "chart-tooltip__row";
+        var rotuloValor = document.createElement("span");
+        rotuloValor.textContent = String(opts.rotulo || "Total");
+        var valor = document.createElement("strong");
+        valor.textContent = u.formatarNumero(p.valor || 0);
+        linha.appendChild(rotuloValor);
+        linha.appendChild(valor);
+        tip.appendChild(linha);
+
+        if (p.detalhe) {
+          var linhaDetalhe = document.createElement("div");
+          linhaDetalhe.className = "chart-tooltip__row";
+          var rotuloDetalhe = document.createElement("span");
+          rotuloDetalhe.textContent = String(opts.rotuloDetalhe || "Ganhos");
+          var valorDetalhe = document.createElement("strong");
+          valorDetalhe.textContent = u.formatarNumero(p.detalhe);
+          linhaDetalhe.appendChild(rotuloDetalhe);
+          linhaDetalhe.appendChild(valorDetalhe);
+          tip.appendChild(linhaDetalhe);
+        }
         tip.style.left = cx + "px";
         tip.style.top = Math.max(0, topoPx) + "px";
         tip.classList.add("is-visible");
