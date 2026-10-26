@@ -108,10 +108,14 @@ class LeadService
             $status = 'recusado';
         } elseif ($tipo === 'ganho') {
             $status = 'cliente';
-        } elseif ($enviadas === 0) {
-            $status = 'sem_mensagem';
-        } elseif ($ultimaDirecao === 'entrada') {
+        } elseif ($recebidas > 0 && $ultimaDirecao === 'entrada') {
+            // Respondeu primeiro (ou a última mensagem é dele): precisa de resposta,
+            // mesmo que ainda não tenhamos enviado nada pelo sistema.
             $status = 'responder';
+        } elseif ($enviadas === 0 && $recebidas === 0 && !$this->etapaContatada($etapa)) {
+            // Contato feito manualmente e etapa movida para Contatado já conta
+            // como abordagem, mesmo sem mensagem registrada no sistema.
+            $status = 'sem_mensagem';
         } elseif ($recebidas > 0) {
             $status = 'em_conversa';
         } else {
@@ -135,6 +139,40 @@ class LeadService
                 : null,
             'podeEnviar' => $status !== 'recusado',
         ];
+    }
+
+    /**
+     * Etapas que representam contato já realizado, mesmo que manualmente.
+     *
+     * O ID da etapa inicial é estável; o nome cobre etapas recriadas pelo
+     * usuário com o mesmo significado.
+     *
+     * @return array<int, string>
+     */
+    public function etapasContatadas(): array
+    {
+        $ids = [];
+        foreach ($this->catalogo()['etapas'] as $etapa) {
+            if ($this->etapaContatada($etapa)) {
+                $ids[] = (string)$etapa['id'];
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /** @param array<string, mixed>|object|null $etapa */
+    public function etapaContatada(array|object|null $etapa): bool
+    {
+        if ($etapa === null) {
+            return false;
+        }
+
+        $id = is_array($etapa) ? ($etapa['id'] ?? '') : $etapa->get('id');
+        $nome = is_array($etapa) ? ($etapa['nome'] ?? '') : $etapa->get('nome');
+
+        return (string)$id === 'et_contatado'
+            || $this->normalizar((string)$nome) === 'contatado';
     }
 
     public function filtrar(array $leads, array $params): array
