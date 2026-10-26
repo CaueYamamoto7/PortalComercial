@@ -91,6 +91,10 @@
             Painel.store.clearSession();
             redirecionarLogin();
           }
+          if (res.status === 428) {
+            var atual = window.location.pathname.split("/").pop();
+            if (atual !== "conta.html") window.location.replace("conta.html");
+          }
           if (res.status === 419) {
             tokenAtual = "";
           }

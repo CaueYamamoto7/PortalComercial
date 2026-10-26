@@ -70,6 +70,10 @@
             desde: (auth.sessao() || {}).desde || new Date().toISOString()
           });
           Painel.store.setSession(sessao);
+          if (sessao.mustChangePassword && paginaAtual() !== "conta.html") {
+            window.location.replace("conta.html");
+            return sessao;
+          }
           if (resposta && resposta.preferencias) {
             document.documentElement.classList.toggle("tables-compact", !!resposta.preferencias.tabelaCompacta);
           }

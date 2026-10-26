@@ -123,6 +123,7 @@ class AuthController extends AppController
             ],
             'lembrar' => false,
             'desde' => $this->agora()->format('c'),
+            'mustChangePassword' => (bool)($identidade['mustChangePassword'] ?? false),
         ];
     }
 

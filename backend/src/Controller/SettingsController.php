@@ -418,11 +418,13 @@ class SettingsController extends AppController
 
         $versao = (int)($usuario->get('auth_version') ?? 1) + 1;
         $usuario->set('senha_hash', password_hash($nova, PASSWORD_DEFAULT));
+        $usuario->set('must_change_password', false);
         $usuario->set('auth_version', $versao);
         $usuario->set('atualizado_em', $this->agora());
         $table->saveOrFail($usuario);
 
         $identidade['authVersion'] = $versao;
+        $identidade['mustChangePassword'] = false;
         $this->request->getSession()->renew();
         $this->request->getSession()->write('Auth', $identidade);
         $this->registroAuditoria('senha.alterar', 'user', (string)$usuario->get('id'));

@@ -243,6 +243,11 @@
       confirmacao: confirmacao.value
     }).then(function () {
       form.reset();
+      if (Painel.auth.usuario().mustChangePassword) {
+        ui.toast("Senha alterada. Você já pode usar o painel.", "success");
+        window.location.href = "index.html";
+        return;
+      }
       ui.toast("Senha alterada. Use a nova senha no próximo login.", "success");
     }).catch(function (err) {
       if (err.campo === "atual") marcarErro(atual, true);
@@ -283,10 +288,24 @@
     Painel.api.bootstrap().then(function (bootstrap) {
       preencherFormulario(carregarDados(bootstrap));
       bind();
+      destacarTrocaObrigatoria();
     }).catch(function () {
       preencherFormulario(carregarDados(null));
       bind();
+      destacarTrocaObrigatoria();
     });
+  }
+
+  function destacarTrocaObrigatoria() {
+    if (!Painel.auth.usuario().mustChangePassword) return;
+    var aviso = document.getElementById("aviso-senha-obrigatoria");
+    if (aviso) aviso.hidden = false;
+    var form = document.getElementById("form-senha");
+    if (form) {
+      form.scrollIntoView({ block: "center" });
+      var nova = form.querySelector("[name=nova]");
+      if (nova) nova.focus();
+    }
   }
 
   if (document.readyState === "loading") {

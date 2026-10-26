@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ForcePasswordChangeMiddleware;
 use App\Middleware\HostHeaderMiddleware;
 use App\Middleware\JsonErrorMiddleware;
 use Cake\Core\Configure;
@@ -53,7 +54,8 @@ class Application extends BaseApplication
                 'secure' => $secureCookie,
                 'samesite' => 'Lax',
             ]))
-            ->add(new AuthMiddleware());
+            ->add(new AuthMiddleware())
+            ->add(new ForcePasswordChangeMiddleware());
 
         return $middlewareQueue;
     }

@@ -65,6 +65,23 @@ class ApiSecurityTest extends TestCase
 
     public function testPreferenciasSaoPersistidas(): void
     {
+        $conn = \Cake\Datasource\ConnectionManager::get('default');
+        $conn->delete('users', ['id' => 'us_teste']);
+        $conn->insert('users', [
+            'id' => 'us_teste',
+            'nome' => 'Usuário Teste',
+            'email' => 'teste@example.com',
+            'senha_hash' => password_hash('senha-teste', PASSWORD_DEFAULT),
+            'cargo' => 'Consultor',
+            'perfil' => 'Consultor comercial',
+            'role' => 'consultor',
+            'status' => 'ativo',
+            'iniciais' => 'UT',
+            'auth_version' => 1,
+            'criado_em' => date('Y-m-d H:i:s'),
+            'atualizado_em' => date('Y-m-d H:i:s'),
+        ]);
+
         $this->session(['Auth' => [
             'id' => 'us_teste',
             'nome' => 'Usuário Teste',
@@ -74,6 +91,7 @@ class ApiSecurityTest extends TestCase
             'role' => 'consultor',
             'iniciais' => 'UT',
             'status' => 'ativo',
+            'authVersion' => 1,
         ]]);
         $this->enableCsrfToken();
 
