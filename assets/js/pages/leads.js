@@ -317,6 +317,32 @@
     return isNaN(d2.getTime()) ? "" : d2.toISOString();
   }
 
+  var xlsxCarregando = null;
+
+  // A biblioteca de Excel pesa ~930 KB e só é necessária ao importar XLSX/XLS.
+  // Carregamos sob demanda na primeira importação para não pesar o carregamento da página.
+  function carregarXLSX() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (xlsxCarregando) return xlsxCarregando;
+
+    xlsxCarregando = new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = "assets/vendor/xlsx.full.min.js";
+      script.async = true;
+      script.onload = function () {
+        if (window.XLSX) resolve(window.XLSX);
+        else reject(new Error("A biblioteca de Excel não inicializou. Use CSV ou recarregue a página."));
+      };
+      script.onerror = function () {
+        xlsxCarregando = null;
+        reject(new Error("A biblioteca de Excel não pôde ser carregada. Verifique sua conexão ou use CSV."));
+      };
+      document.head.appendChild(script);
+    });
+
+    return xlsxCarregando;
+  }
+
   function mostrarArquivo(file) {
     var area = document.getElementById("imp-area");
     var drop = document.getElementById("imp-drop");
@@ -333,14 +359,13 @@
         return { matriz: parsed.matriz, tipo: "csv" };
       });
     } else if (ext === "xlsx" || ext === "xls") {
-      if (!window.XLSX) {
-        return Promise.reject(new Error("A biblioteca de Excel não carregou. Use CSV ou recarregue a página."));
-      }
-      leitura = file.arrayBuffer().then(function (buffer) {
-        var wb = XLSX.read(buffer, { type: "array", cellDates: true });
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        var matriz = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
-        return { matriz: matriz, tipo: "xlsx" };
+      leitura = carregarXLSX().then(function (XLSX) {
+        return file.arrayBuffer().then(function (buffer) {
+          var wb = XLSX.read(buffer, { type: "array", cellDates: true });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var matriz = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+          return { matriz: matriz, tipo: "xlsx" };
+        });
       });
     } else {
       area.innerHTML = '<div class="notice notice--danger">' + ui.icone("alert-triangle") + "<div><strong>Formato não suportado.</strong>Envie um arquivo CSV, XLSX ou XLS.</div></div>" +
