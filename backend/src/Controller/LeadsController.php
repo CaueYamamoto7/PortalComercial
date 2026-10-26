@@ -58,6 +58,7 @@ class LeadsController extends AppController
 
         $campos = $this->montarLead($dados);
         $this->validarLead($campos, null);
+        $campos = $this->marcarUltimoContatoSeContatada($campos);
 
         $entity = $this->writeService()->criar($campos, $this->identidade());
 
@@ -90,10 +91,10 @@ class LeadsController extends AppController
 
         $base = $this->service()->leadBaseOut($entity);
         $dados = (array)$this->request->getData();
+        $etapaAnterior = (string)$entity->get('etapa_id');
         $campos = $this->montarLead($dados, $base);
         $this->validarLead($campos, $id);
-
-        $etapaAnterior = (string)$entity->get('etapa_id');
+        $campos = $this->marcarUltimoContatoSeContatada($campos, $etapaAnterior);
 
         $entity = $this->writeService()->atualizar($entity, $campos, $this->identidade());
 
@@ -138,6 +139,11 @@ class LeadsController extends AppController
         }
 
         $agora = $this->agora();
+        if ($this->service()->etapaContatada($etapa)
+            && !$this->etapaContatadaPorId((string)$entity->get('etapa_id'))
+        ) {
+            $entity->set('ultimo_contato', $agora);
+        }
         $entity->set('etapa_id', $etapaId);
         $entity->set('atualizado_em', $agora);
         if (in_array((string)$etapa->get('tipo'), ['ganho', 'perdido'], true)) {
@@ -195,6 +201,11 @@ class LeadsController extends AppController
                 }
                 $agora = $this->agora();
                 foreach ($encontrados as $entity) {
+                    if ($this->service()->etapaContatada($etapa)
+                        && !$this->etapaContatadaPorId((string)$entity->get('etapa_id'))
+                    ) {
+                        $entity->set('ultimo_contato', $agora);
+                    }
                     $entity->set('etapa_id', $etapaId);
                     $entity->set('atualizado_em', $agora);
                     $table->saveOrFail($entity);
@@ -399,7 +410,9 @@ class LeadsController extends AppController
                     'prioridade' => $prioridade,
                     'responsavel' => $responsavel,
                     'proximo_contato' => $this->data($linha['proximo_contato'] ?? null),
-                    'ultimo_contato' => null,
+                    'ultimo_contato' => in_array($etapaId, $this->service()->etapasContatadas(), true)
+                        ? $agora
+                        : null,
                     'observacoes' => $this->texto($linha['observacoes'] ?? $linha['notas'] ?? ''),
                     'tags' => $this->lista($linha['tags'] ?? 'Importado'),
                     'nao_contatar' => false,
@@ -610,6 +623,28 @@ class LeadsController extends AppController
         if (!$etapa) {
             $this->erro('Etapa inválida.', 'etapaId');
         }
+    }
+
+    private function etapaContatadaPorId(string $etapaId): bool
+    {
+        return $etapaId !== ''
+            && in_array($etapaId, $this->service()->etapasContatadas(), true);
+    }
+
+    /**
+     * Ao entrar em uma etapa de contato, registra o contato manual do operador.
+     *
+     * @param array<string, mixed> $campos
+     * @return array<string, mixed>
+     */
+    private function marcarUltimoContatoSeContatada(array $campos, string $etapaAnterior = ''): array
+    {
+        $etapaNova = (string)($campos['etapa_id'] ?? '');
+        if ($this->etapaContatadaPorId($etapaNova) && !$this->etapaContatadaPorId($etapaAnterior)) {
+            $campos['ultimo_contato'] = $this->agora();
+        }
+
+        return $campos;
     }
 
     private function etapaPadrao(): string
