@@ -25,6 +25,9 @@ class ForcePasswordChangeMiddleware implements MiddlewareInterface
         '/api/bootstrap',
     ];
 
+    /**
+     * Interrompe a requisição enquanto a troca estiver pendente.
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $identity = (array)($request->getAttribute('identity') ?? []);

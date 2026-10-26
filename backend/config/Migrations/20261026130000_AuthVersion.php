@@ -11,6 +11,9 @@ use Migrations\BaseMigration;
  */
 class AuthVersion extends BaseMigration
 {
+    /**
+     * Adiciona a versão de autenticação usada para revogar sessões.
+     */
     public function change(): void
     {
         $this->table('users')

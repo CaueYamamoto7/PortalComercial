@@ -196,7 +196,7 @@
       reordenarEtapas: function (ids) { return requisicao("POST", "/configuracoes/etapas/reordenar", { ids: ids }); },
       removerEtapa: function (id) { return requisicao("DELETE", "/configuracoes/etapas/" + id); },
       convidar: function (dados) { return requisicao("POST", "/configuracoes/equipe", dados); },
-      removerMembro: function (id, dados) { return requisicao("DELETE", "/configuracoes/equipe/" + id, dados); }
+      removerMembro: function (id, dados) { return requisicao("DELETE", "/configuracoes/equipe/" + id, undefined, dados); }
     },
     notificacoes: {
       listar: function () { return requisicao("GET", "/notificacoes"); },

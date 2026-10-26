@@ -19,11 +19,17 @@ use Cake\I18n\DateTime;
  */
 class ResetPasswordCommand extends Command
 {
+    /**
+     * Nome do comando.
+     */
     public static function defaultName(): string
     {
         return 'users:reset-password';
     }
 
+    /**
+     * Opções do comando.
+     */
     public function getOptionParser(): ConsoleOptionParser
     {
         return parent::getOptionParser()
@@ -37,6 +43,9 @@ class ResetPasswordCommand extends Command
             ]);
     }
 
+    /**
+     * Aplica a senha temporária e revoga as sessões do usuário.
+     */
     public function execute(Arguments $args, ConsoleIo $io): int
     {
         $email = mb_strtolower(trim((string)$args->getOption('email')));

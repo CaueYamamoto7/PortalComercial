@@ -507,7 +507,10 @@ class SettingsController extends AppController
         $novoResponsavel = null;
 
         if ($vinculos['registros'] > 0) {
-            $novoResponsavel = $this->texto(((array)$this->request->getData())['novo_responsavel'] ?? '');
+            $dados = (array)$this->request->getData();
+            $novoResponsavel = $this->texto(
+                $dados['novo_responsavel'] ?? $this->request->getQuery('novo_responsavel', '')
+            );
             if ($novoResponsavel === '') {
                 $this->erro(
                     'Selecione o novo responsável pelos ' . $vinculos['registros'] . ' registro(s) deste membro.',

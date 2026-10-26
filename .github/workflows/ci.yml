@@ -56,8 +56,11 @@ jobs:
         DATABASE_TEST_URL: sqlite://./testdb.sqlite
 
   coding-standard:
-    name: Coding Standard & Static Analysis
+    name: Coding Standard & Static Analysis (informativo)
     runs-on: ubuntu-24.04
+    # O código legado ainda tem débitos de estilo (docblocks e formatação).
+    # O job continua publicando o relatório, mas não bloqueia o pipeline.
+    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v4

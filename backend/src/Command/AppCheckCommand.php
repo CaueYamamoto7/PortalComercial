@@ -21,17 +21,26 @@ class AppCheckCommand extends Command
 {
     private const SALT_DESENVOLVIMENTO = 'desenvolvimento-local-troque-em-producao';
 
+    /**
+     * Nome do comando.
+     */
     public static function defaultName(): string
     {
         return 'app:check';
     }
 
+    /**
+     * Opções do comando.
+     */
     public function getOptionParser(): ConsoleOptionParser
     {
         return parent::getOptionParser()
             ->setDescription('Valida variáveis de ambiente, banco e diretório temporário.');
     }
 
+    /**
+     * Executa as verificações e retorna o código de saída.
+     */
     public function execute(Arguments $args, ConsoleIo $io): int
     {
         $falhas = 0;

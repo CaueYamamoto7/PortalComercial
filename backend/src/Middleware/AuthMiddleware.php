@@ -27,6 +27,9 @@ class AuthMiddleware implements MiddlewareInterface
         '/api/auth/session',
     ];
 
+    /**
+     * Valida a sessão e propaga a identidade para os controllers.
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = rtrim($request->getUri()->getPath(), '/') ?: '/';
@@ -66,7 +69,7 @@ class AuthMiddleware implements MiddlewareInterface
         try {
             $row = ConnectionManager::get('default')->execute(
                 'SELECT auth_version, status FROM users WHERE id = :id',
-                ['id' => $id]
+                ['id' => $id],
             )->fetch('assoc');
         } catch (Throwable $e) {
             return false;
