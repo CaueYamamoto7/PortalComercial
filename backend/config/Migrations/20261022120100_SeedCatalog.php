@@ -85,9 +85,22 @@ class SeedCatalog extends BaseMigration
             ],
         ])->save();
 
+        $appEnv = getenv('APP_ENV') ?: 'development';
         $email = getenv('ADMIN_EMAIL') ?: 'admin@assinasoft.com.br';
-        $senha = getenv('ADMIN_PASSWORD') ?: 'admin123';
+        $senha = getenv('ADMIN_PASSWORD') ?: '';
         $nome = getenv('ADMIN_NAME') ?: 'Administrador';
+
+        if ($senha === '') {
+            if ($appEnv === 'production') {
+                throw new RuntimeException(
+                    'ADMIN_PASSWORD não configurada. Defina uma senha forte antes de rodar as migrations.'
+                );
+            }
+            $senha = 'admin123';
+        }
+        if (mb_strlen($senha) < 8) {
+            throw new RuntimeException('ADMIN_PASSWORD deve ter pelo menos 8 caracteres.');
+        }
 
         $this->table('users')->insert([
             'id' => 'us_admin',
