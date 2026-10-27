@@ -24,6 +24,16 @@
     conta: { label: "Minha conta", href: "conta.html", icon: "user", grupo: "Sistema" }
   };
 
+  var NAV_MOBILE = ["dashboard", "leads", "pipeline", "followups"];
+  var NAV_MAIS = ["mensagens", "relatorios", "configuracoes", "conta"];
+
+  var MAIS_DESCRICOES = {
+    mensagens: "Campanhas, templates e histórico",
+    relatorios: "Indicadores e desempenho",
+    configuracoes: "Empresa, funil e equipe",
+    conta: "Perfil e preferências"
+  };
+
   function paginaAtual() {
     return document.documentElement.getAttribute("data-page") || "dashboard";
   }
@@ -44,8 +54,9 @@
           : chave === "followups"
             ? '<span class="nav-item__badge nav-item__badge--alert" data-sidebar-tarefas hidden>0</span>'
             : "";
-        return '<a class="nav-item' + ativo + '" href="' + p.href + '">' + icone(p.icon) +
-          "<span>" + p.label + "</span>" + badge + "</a>";
+        return '<a class="nav-item' + ativo + '" href="' + p.href + '" aria-label="' + p.label + '"' +
+          (chave === atual ? ' aria-current="page"' : "") + ' data-rail-tip="' + p.label + '">' + icone(p.icon) +
+          '<span class="nav-item__text">' + p.label + "</span>" + badge + "</a>";
       }).join("") + "</div>";
   }
 
@@ -63,20 +74,14 @@
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
     el.innerHTML =
-      '<div class="sidebar__brand"><a href="index.html" class="brand brand--inverse" aria-label="AssinaSoft — Painel Comercial">' + marca() + "</a></div>" +
+      '<a class="rail-brand" href="index.html" aria-label="Painel Comercial" data-rail-tip="Painel Comercial">' +
+        '<img src="images/logoMini.png" alt="" width="34" height="34">' +
+      "</a>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
-      '<div class="sidebar__foot">' +
-        '<a class="conn-card" href="mensagens.html" title="Envio de mensagens registrado no histórico do lead">' +
-          '<span class="conn-card__dot"></span>' +
-          '<span class="conn-card__text"><strong>WhatsApp</strong><small>Integração pendente</small></span>' +
-          icone("message-circle") +
-        "</a>" +
-        '<button class="sidebar__user" type="button" data-user-menu-sidebar>' +
-          '<span class="avatar">' + u.escaparHTML(sessao.iniciais || "MC") + "</span>" +
-          '<span class="sidebar__user-text"><strong>' + u.escaparHTML(sessao.nome) + "</strong><small>" + u.escaparHTML(sessao.cargo || "Comercial") + "</small></span>" +
-          icone("chevron-down") +
-        "</button>" +
-      "</div>";
+      '<a class="rail-status" href="mensagens.html" aria-label="WhatsApp — integração pendente" data-rail-tip="WhatsApp · Integração pendente">' +
+        '<span class="rail-status__dot"></span>' +
+        icone("message-circle") +
+      "</a>";
 
     carregarResumoSidebar();
   }
@@ -108,11 +113,11 @@
       var stats = res.stats || {};
       var total = stats.total || 0;
       var ativos = stats.abertos || 0;
-      var leadsEl = document.querySelector("[data-sidebar-leads]");
-      if (leadsEl) {
+      var leadsEls = document.querySelectorAll("[data-sidebar-leads]");
+      leadsEls.forEach(function (leadsEl) {
         leadsEl.textContent = u.formatarNumero(total);
         leadsEl.hidden = false;
-      }
+      });
       var ativosEl = document.querySelector("[data-sidebar-ativos]");
       if (ativosEl) ativosEl.textContent = u.formatarNumero(ativos);
       var progress = document.querySelector("[data-sidebar-progress]");
@@ -122,12 +127,11 @@
         ? stats.atrasados + " follow-up(s) atrasado(s)"
         : "Nenhum follow-up atrasado";
 
-      var badge = document.querySelector("[data-sidebar-tarefas]");
-      if (badge) {
-        var n = (res.tarefas && (res.tarefas.atrasadas || 0) + (res.tarefas.hoje || 0)) || 0;
+      var n = (res.tarefas && (res.tarefas.atrasadas || 0) + (res.tarefas.hoje || 0)) || 0;
+      document.querySelectorAll("[data-sidebar-tarefas]").forEach(function (badge) {
         badge.textContent = n;
         badge.hidden = n === 0;
-      }
+      });
     }).catch(function () { /* silencioso */ });
   }
 
@@ -141,7 +145,7 @@
     var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
 
     el.innerHTML =
-      '<button class="icon-btn sidebar-toggle" type="button" data-sidebar-toggle aria-label="Abrir menu">' + icone("menu") + "</button>" +
+      '<a class="topbar__brand" href="index.html" aria-label="Painel Comercial"><img src="images/logoMini.png" alt="" width="26" height="26"></a>' +
       '<div class="topbar__crumbs"><span class="topbar__workspace">Painel Comercial</span>' + icone("chevron-right") +
         "<strong>" + atual.label + "</strong></div>" +
       '<div class="topbar__right">' +
@@ -397,6 +401,145 @@
       item.classList.add("is-active");
       cmdAtivo = cmdVisiveis.indexOf(item);
     });
+  }
+
+  /* Navegação mobile ------------------------------------------------------- */
+
+  function renderBottomNav() {
+    if (!document.body || document.querySelector(".bottom-nav")) return;
+    var atual = paginaAtual();
+    var itens = NAV_MOBILE.map(function (chave) {
+      var p = PAGINAS[chave];
+      var ativo = chave === atual;
+      var badge = chave === "leads"
+        ? '<span class="bottom-nav__badge" data-sidebar-leads hidden></span>'
+        : chave === "followups"
+          ? '<span class="bottom-nav__badge bottom-nav__badge--alert" data-sidebar-tarefas hidden></span>'
+          : "";
+      return '<a class="bottom-nav__item' + (ativo ? " is-active" : "") + '" href="' + p.href +
+        '" aria-label="' + p.label + '"' + (ativo ? ' aria-current="page"' : "") + ">" +
+        '<span class="bottom-nav__icon">' + icone(p.icon) + badge + "</span>" +
+        '<span class="bottom-nav__label">' + p.label + "</span></a>";
+    }).join("");
+
+    var maisAtivo = NAV_MAIS.indexOf(atual) !== -1;
+    var nav = document.createElement("nav");
+    nav.className = "bottom-nav";
+    nav.setAttribute("aria-label", "Navegação principal");
+    nav.innerHTML = itens +
+      '<button class="bottom-nav__item' + (maisAtivo ? " is-active" : "") + '" type="button" data-more-open ' +
+      'aria-haspopup="dialog" aria-expanded="false" aria-controls="more-sheet">' +
+        '<span class="bottom-nav__icon">' + icone("more") + "</span>" +
+        '<span class="bottom-nav__label">Mais</span>' +
+      "</button>";
+    document.body.appendChild(nav);
+  }
+
+  function abrirMais() {
+    var botao = document.querySelector("[data-more-open]");
+    var itens = NAV_MAIS.map(function (chave) {
+      var p = PAGINAS[chave];
+      return '<a class="sheet-menu__item" href="' + p.href + '">' +
+        '<span class="sheet-menu__icon">' + icone(p.icon) + "</span>" +
+        '<span class="sheet-menu__text"><strong>' + p.label + "</strong>" +
+        "<small>" + (MAIS_DESCRICOES[chave] || "") + "</small></span>" +
+        icone("chevron-right", "sheet-menu__chev") +
+      "</a>";
+    }).join("");
+
+    var html = '<div class="sheet-menu">' + itens + "</div>" +
+      '<a class="sheet-status" href="mensagens.html">' +
+        '<span class="sheet-status__dot"></span>' +
+        '<span class="sheet-status__text"><strong>WhatsApp</strong><small>Integração pendente</small></span>' +
+        icone("arrow-up-right") +
+      "</a>";
+
+    if (botao) botao.setAttribute("aria-expanded", "true");
+    var ref = modal({
+      title: "Mais",
+      body: html,
+      onClose: function () {
+        if (botao) {
+          botao.setAttribute("aria-expanded", "false");
+          botao.focus();
+        }
+      }
+    });
+    var painel = ref.el.querySelector(".modal");
+    if (painel) painel.classList.add("modal--sheet");
+    ref.el.id = "more-sheet";
+    ref.el.classList.add("layer--sheet");
+    var primeiro = ref.el.querySelector(".sheet-menu__item");
+    if (primeiro) setTimeout(function () { primeiro.focus(); }, 70);
+  }
+
+  /* Tooltip do dock ------------------------------------------------------- */
+
+  function renderRailTooltip() {
+    if (document.getElementById("rail-tooltip")) return;
+    var el = document.createElement("div");
+    el.id = "rail-tooltip";
+    el.className = "rail-tooltip";
+    el.setAttribute("role", "tooltip");
+    el.hidden = true;
+    document.body.appendChild(el);
+
+    var alvoAtual = null;
+    var ocultarTimer = null;
+
+    function posicionar(alvo) {
+      var r = alvo.getBoundingClientRect();
+      var top = r.top + r.height / 2;
+      el.style.left = Math.round(r.right + 12) + "px";
+      el.style.top = Math.round(top) + "px";
+      el.hidden = false;
+      var caixa = el.getBoundingClientRect();
+      var ajuste = 0;
+      if (caixa.bottom > window.innerHeight - 8) ajuste = window.innerHeight - 8 - caixa.bottom;
+      if (caixa.top + ajuste < 8) ajuste = 8 - caixa.top;
+      if (ajuste) el.style.top = Math.round(top + ajuste) + "px";
+      el.classList.add("is-visible");
+    }
+
+    function mostrar(e) {
+      if (!window.matchMedia("(min-width: 769px)").matches) return;
+      var alvo = e.target.closest("[data-rail-tip]");
+      if (!alvo) return;
+      var texto = alvo.getAttribute("data-rail-tip");
+      if (!texto) return;
+      clearTimeout(ocultarTimer);
+      alvoAtual = alvo;
+      el.textContent = texto;
+      el.hidden = false;
+      el.classList.remove("is-visible");
+      requestAnimationFrame(function () {
+        if (alvoAtual === alvo) posicionar(alvo);
+      });
+    }
+
+    function esconder() {
+      alvoAtual = null;
+      el.classList.remove("is-visible");
+      clearTimeout(ocultarTimer);
+      ocultarTimer = setTimeout(function () {
+        if (!alvoAtual) el.hidden = true;
+      }, 130);
+    }
+
+    document.addEventListener("mouseover", mostrar);
+    document.addEventListener("mouseout", function (e) {
+      var alvo = e.target.closest("[data-rail-tip]");
+      if (!alvo || (e.relatedTarget && alvo.contains(e.relatedTarget))) return;
+      esconder();
+    });
+    document.addEventListener("focusin", mostrar);
+    document.addEventListener("focusout", function (e) {
+      var alvo = e.target.closest("[data-rail-tip]");
+      if (!alvo || (e.relatedTarget && alvo.contains(e.relatedTarget))) return;
+      esconder();
+    });
+    window.addEventListener("scroll", esconder, true);
+    window.addEventListener("resize", esconder);
   }
 
   /* Overlay mobile --------------------------------------------------------- */
@@ -695,16 +838,10 @@
 
   function bindGlobal() {
     document.addEventListener("click", function (e) {
-      if (e.target.closest("[data-sidebar-toggle]")) {
-        document.body.classList.toggle("sidebar-visible");
+      if (e.target.closest("[data-more-open]")) {
+        e.preventDefault();
+        abrirMais();
         return;
-      }
-      if (e.target.closest("[data-sidebar-close]")) {
-        document.body.classList.remove("sidebar-visible");
-        return;
-      }
-      if (e.target.closest(".sidebar__nav a")) {
-        document.body.classList.remove("sidebar-visible");
       }
 
       if (e.target.closest("[data-logout]")) {
@@ -796,7 +933,8 @@
     bindGlobal();
     renderSidebar();
     renderTopbar();
-    renderOverlay();
+    renderBottomNav();
+    renderRailTooltip();
     renderComando();
     bindCmd();
   }
@@ -814,6 +952,7 @@
     abrirCmd: abrirCmd,
     renderSidebar: renderSidebar,
     renderTopbar: renderTopbar,
+    renderBottomNav: renderBottomNav,
     recarregarResumoSidebar: carregarResumoSidebar,
     recarregarNotificacoes: carregarNotificacoes
   };
