@@ -35,6 +35,9 @@
       return cfg;
     }).catch(function (err) {
       ui.toast(err.message || "Não foi possível carregar as configurações.", "error");
+      ["lista-etapas", "lista-sistemas", "lista-origens", "lista-equipe"].forEach(function (id) {
+        el(id).innerHTML = '<div class="empty empty--compact"><p>Não foi possível carregar os dados.</p></div>';
+      });
     });
   }
 

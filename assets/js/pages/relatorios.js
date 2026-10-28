@@ -99,6 +99,7 @@
   function carregar() {
     return api.relatorios.obter(estado).then(render).catch(function (err) {
       ui.toast(err.message || "Não foi possível carregar o relatório.", "error");
+      el("rel-responsaveis").innerHTML = '<tr><td colspan="5"><div class="empty empty--compact"><p>Não foi possível carregar os dados.</p></div></td></tr>';
     });
   }
 
@@ -174,5 +175,6 @@
     carregar();
   }).catch(function (err) {
     ui.toast(err.message || "Não foi possível carregar os filtros.", "error");
+    el("rel-responsaveis").innerHTML = '<tr><td colspan="5"><div class="empty empty--compact"><p>Não foi possível carregar os dados.</p></div></td></tr>';
   });
 })(window.Painel);

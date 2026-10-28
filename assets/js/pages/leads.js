@@ -162,6 +162,7 @@
       if (seq !== seqCarregar) return;
       ui.toast(err.message || "Não foi possível carregar os leads.", "error");
       el("leads-tbody").innerHTML = '<tr><td colspan="9"><div class="empty"><p>Erro ao carregar os leads.</p></div></td></tr>';
+      el("leads-info").textContent = "Dados indisponíveis";
     });
   }
 

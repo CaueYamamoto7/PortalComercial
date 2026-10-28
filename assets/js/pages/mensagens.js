@@ -142,7 +142,7 @@
       el("audience-manual").hidden = false;
       el("audience-list").innerHTML = leads.length
         ? leads.map(itemManual).join("")
-        : '<div class="empty empty--compact"><p>Carregando contatos…</p></div>';
+        : '<div class="empty empty--compact"><p>Nenhum contato encontrado.</p></div>';
       atualizarMensagem();
       return;
     }
@@ -344,7 +344,12 @@
   function carregarHistorico() {
     return api.mensagens.listar({ q: history.q, status: history.status, page: history.page, perPage: history.perPage })
       .then(renderHistorico)
-      .catch(function (err) { ui.toast(err.message || "Não foi possível carregar o histórico.", "error"); });
+      .catch(function (err) {
+        ui.toast(err.message || "Não foi possível carregar o histórico.", "error");
+        el("history-info").textContent = "Dados indisponíveis";
+        var tbody = document.querySelector("#view-historico tbody");
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><p>Não foi possível carregar o histórico.</p></div></td></tr>';
+      });
   }
 
   function verCampanha(id) {
