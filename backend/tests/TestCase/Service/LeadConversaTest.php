@@ -173,4 +173,56 @@ class LeadConversaTest extends TestCase
         $this->assertFalse($this->service->etapaContatada($this->etapa('et_novo', 'Novo')));
         $this->assertFalse($this->service->etapaContatada(null));
     }
+
+    public function testPropostaSemMensagemEntraEmConversasAbertas(): void
+    {
+        $conversa = $this->service->conversa(
+            $this->lead(),
+            $this->etapa('et_proposta', 'Proposta'),
+        );
+
+        $this->assertTrue($conversa['conversaAberta']);
+        $this->assertSame('sem_mensagem', $conversa['status']);
+    }
+
+    public function testPropostaPersonalizadaEntraEmConversasAbertas(): void
+    {
+        $conversa = $this->service->conversa(
+            $this->lead(),
+            $this->etapa('et_personalizada', ' PROPOSTA '),
+        );
+
+        $this->assertTrue($conversa['conversaAberta']);
+    }
+
+    public function testPropostaNaoContatarNaoEntraEmConversasAbertas(): void
+    {
+        $conversa = $this->service->conversa(
+            $this->lead(['naoContatar' => true, 'mensagensRecebidas' => 1]),
+            $this->etapa('et_proposta', 'Proposta'),
+        );
+
+        $this->assertFalse($conversa['conversaAberta']);
+        $this->assertSame('recusado', $conversa['status']);
+    }
+
+    public function testPropostaEncerradaNaoEntraEmConversasAbertas(): void
+    {
+        foreach (['ganho', 'perdido'] as $tipo) {
+            $conversa = $this->service->conversa(
+                $this->lead(),
+                $this->etapa('et_proposta', 'Proposta', $tipo),
+            );
+
+            $this->assertFalse($conversa['conversaAberta']);
+        }
+    }
+
+    public function testEtapaPropostaReconheceIdENome(): void
+    {
+        $this->assertTrue($this->service->etapaProposta($this->etapa('et_proposta', 'Personalizada')));
+        $this->assertTrue($this->service->etapaProposta($this->etapa('et_x', ' PROPOSTA ')));
+        $this->assertFalse($this->service->etapaProposta($this->etapa('et_novo', 'Novo')));
+        $this->assertFalse($this->service->etapaProposta(null));
+    }
 }

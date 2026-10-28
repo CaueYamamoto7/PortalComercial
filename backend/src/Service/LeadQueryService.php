@@ -148,7 +148,7 @@ class LeadQueryService
                     'Leads.ultima_mensagem_direcao' => 'entrada',
                 ]);
             } elseif ($tipoConversa === 'abertas') {
-                $query->where(['Leads.mensagens_recebidas >' => 0]);
+                $query->where($this->condicoesConversasAbertas());
             } elseif ($tipoConversa === 'em_conversa') {
                 $query->where([
                     'Leads.mensagens_enviadas >' => 0,
@@ -263,6 +263,18 @@ class LeadQueryService
         ];
     }
 
+    /** @return array<string, mixed> */
+    private function condicoesConversasAbertas(): array
+    {
+        $condicoes = [['Leads.mensagens_recebidas >' => 0]];
+        $propostas = $this->leads->etapasProposta();
+        if ($propostas) {
+            $condicoes[] = ['Leads.etapa_id IN' => $propostas];
+        }
+
+        return ['OR' => $condicoes];
+    }
+
     /** @param array<string, mixed> $filtros @param array<string, mixed> $identidade */
     public function contagensConversas(array $filtros, array $identidade): array
     {
@@ -305,9 +317,8 @@ class LeadQueryService
         $aguardando = $aguardandoQuery->where(['OR' => $origemAguardando])->count();
         $abertas = $aberto()
             ->where([
-                'Leads.mensagens_recebidas >' => 0,
                 'Leads.nao_contatar' => false,
-            ])->count();
+            ])->where($this->condicoesConversasAbertas())->count();
 
         $perdidos = $this->etapasPorTipo('perdido');
         $clientes = $this->comEtapa($filtros, $identidade, 'ganho')->count();

@@ -127,7 +127,8 @@ class LeadService
             'enviadas' => $enviadas,
             'recebidas' => $recebidas,
             'respondeu' => $recebidas > 0,
-            'conversaAberta' => $tipo === 'aberto' && $recebidas > 0,
+            'conversaAberta' => $tipo === 'aberto' && !$lead['naoContatar']
+                && ($recebidas > 0 || $this->etapaProposta($etapa)),
             'ultimaDirecao' => $ultimaDirecao,
             'ultimaMensagemEm' => $this->iso($ultimaEm),
             'ultimaMensagem' => $ultimaEm
@@ -173,6 +174,33 @@ class LeadService
 
         return (string)$id === 'et_contatado'
             || $this->normalizar((string)$nome) === 'contatado';
+    }
+
+    /** @return array<int, string> */
+    public function etapasProposta(): array
+    {
+        $ids = [];
+        foreach ($this->catalogo()['etapas'] as $etapa) {
+            if ($this->etapaProposta($etapa)) {
+                $ids[] = (string)$etapa['id'];
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /** @param array<string, mixed>|object|null $etapa */
+    public function etapaProposta(array|object|null $etapa): bool
+    {
+        if ($etapa === null) {
+            return false;
+        }
+
+        $id = is_array($etapa) ? ($etapa['id'] ?? '') : $etapa->get('id');
+        $nome = is_array($etapa) ? ($etapa['nome'] ?? '') : $etapa->get('nome');
+
+        return (string)$id === 'et_proposta'
+            || $this->normalizar((string)$nome) === 'proposta';
     }
 
     public function filtrar(array $leads, array $params): array
