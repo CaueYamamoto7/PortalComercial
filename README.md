@@ -157,3 +157,7 @@ As migrations são aplicadas de forma independente do boot do container. As sess
 - O envio de WhatsApp está implementado como stub: a mensagem é validada e registrada no histórico, mas não é disparada para a API do WhatsApp.
 - O banco inicial não contém leads, conversas ou campanhas fictícias.
 - A interface e a API são servidas na mesma origem em produção.
+
+
+php -S 127.0.0.1:8080 -t . router.php
+http://127.0.0.1:8080
