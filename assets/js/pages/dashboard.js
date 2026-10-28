@@ -9,6 +9,9 @@
   var api = Painel.api;
   var ui = Painel.ui;
   var leadUI = Painel.leadUI;
+  var periodo = "30";
+  var ultimaCarga = 0;
+  var ultimosDados = null;
 
   var CONVERSAS = {
     sem_mensagem: {
@@ -28,7 +31,7 @@
     },
     abertas: {
       titulo: "Conversas em aberto",
-      desc: "Contatos que já responderam e seguem em conversa.",
+      desc: "Contatos que já responderam ou estão na etapa Proposta, exceto os marcados como não contatar.",
       vazio: "Nenhuma conversa em aberto."
     },
     clientes: {
@@ -47,13 +50,14 @@
 
   function statusCampanha(status) {
     var mapa = {
+      registrada: { label: "Registrada", cls: "badge--neutral" },
       concluida: { label: "Concluída", cls: "badge--success" },
       em_andamento: { label: "Em andamento", cls: "badge--info" },
       agendada: { label: "Agendada", cls: "badge--warning" },
       falha: { label: "Falha", cls: "badge--danger" },
       cancelada: { label: "Cancelada", cls: "badge--neutral" }
     };
-    return mapa[status] || mapa.concluida;
+    return mapa[status] || { label: "Não informado", cls: "badge--neutral" };
   }
 
   function renderResumo(dados) {
@@ -73,30 +77,31 @@
     });
     var total = document.querySelector("[data-base-total]");
     if (total) total.textContent = u.formatarNumero(dados.stats.total) + " contato(s) na base";
+    document.querySelectorAll(".dashboard [data-conversa]").forEach(function (card) {
+      var node = card.querySelector("[data-conv]");
+      var valor = valores[node.getAttribute("data-conv")];
+      var foot = card.querySelector(".conv-card__foot");
+      if (!foot) {
+        foot = document.createElement("span");
+        foot.className = "conv-card__foot";
+        card.appendChild(foot);
+      }
+      var percentual = dados.stats.total ? (valor / dados.stats.total * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "0";
+      foot.innerHTML = '<span><strong>' + percentual + '%</strong> da base</span>' + ui.icone("arrow-up-right");
+    });
+    if (total) total.textContent = u.formatarNumero(dados.stats.total) + " contato(s) criado(s) no período · categorias dos cards podem se sobrepor";
   }
 
   function renderAlerta(dados) {
     var alerta = el("dash-alerta");
     var link = el("dash-alerta-link");
     if (!alerta || !link) return;
-    if (dados.conversas.precisoResponder > 0) {
+    if (dados.pendencias > 0) {
       alerta.hidden = false;
-      el("dash-alerta-texto").innerHTML = "<strong>" + dados.conversas.precisoResponder + " contato(s) responderam e aguardam você.</strong> Responda enquanto a conversa está quente.";
+      el("dash-alerta-texto").innerHTML = "<strong>" + dados.pendencias + " contato(s) aguardam sua resposta.</strong> Retome as conversas e não deixe oportunidades esperando.";
       link.textContent = "Ver contatos";
       link.setAttribute("href", "#");
       link.setAttribute("data-abrir-conversa", "responder");
-    } else if (dados.stats.atrasados > 0) {
-      alerta.hidden = false;
-      el("dash-alerta-texto").innerHTML = "<strong>" + dados.stats.atrasados + " follow-up(s) atrasado(s).</strong> Retome o contato para não esfriar a oportunidade.";
-      link.textContent = "Ver follow-ups";
-      link.removeAttribute("data-abrir-conversa");
-      link.setAttribute("href", "followups.html");
-    } else if (dados.stats.followupsHoje > 0) {
-      alerta.hidden = false;
-      el("dash-alerta-texto").innerHTML = "<strong>" + dados.stats.followupsHoje + " follow-up(s) para hoje.</strong> Veja a agenda comercial e organize o dia.";
-      link.textContent = "Abrir agenda";
-      link.removeAttribute("data-abrir-conversa");
-      link.setAttribute("href", "followups.html");
     } else {
       alerta.hidden = true;
     }
@@ -109,25 +114,32 @@
   function renderTarefas(dados) {
     var list = el("lista-tarefas");
     if (!list) return;
-    if (!dados.tarefas || !dados.tarefas.length) {
-      list.innerHTML = '<div class="empty empty--compact"><span class="empty__icon">' + ui.icone("check-circle") + '</span><h3>Agenda em dia</h3><p>Nenhum follow-up pendente para os próximos dias.</p></div>';
+    var tarefas = dados.acoesHoje || [];
+    el("acoes-total").textContent = dados.acoesHojeTotal;
+    if (!tarefas.length) {
+      list.innerHTML = '<div class="empty empty--compact"><span class="empty__icon">' + ui.icone("check-circle") + '</span><h3>Agenda em dia</h3><p>Nenhum follow-up para hoje ou atrasado.</p></div>';
     } else {
-      list.innerHTML = dados.tarefas.map(function (t) {
+      list.innerHTML = '<div class="dashboard-table-wrap" role="region" aria-label="Follow-ups de hoje e atrasados" tabindex="0"><table class="dashboard-table"><thead><tr><th scope="col">Contato</th><th scope="col">Ação</th><th scope="col">Campanha</th><th scope="col">Data / hora</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Concluir</span></th></tr></thead><tbody>' + tarefas.map(function (t) {
         var atrasada = t.atrasada;
-        return '<div class="task-row' + (atrasada ? " is-late" : "") + '">' +
-          '<label class="task-check" title="Concluir tarefa"><input type="checkbox" data-concluir="' + t.id + '"><span>' + ui.icone("check") + "</span></label>" +
-          '<span class="task-row__type">' + ui.icone(tipoIcone(t.tipo)) + "</span>" +
-          '<button class="task-row__main" type="button" data-lead="' + t.leadId + '">' +
-            "<strong>" + u.escaparHTML(t.titulo) + "</strong>" +
-            "<small>" + u.escaparHTML(t.lead ? t.lead.nome : "Lead") + (t.lead && t.lead.empresa ? " · " + u.escaparHTML(t.lead.empresa) : "") + "</small>" +
-          "</button>" +
-          '<span class="task-row__date ' + (atrasada ? "is-late" : "") + '">' + u.rotuloPrazo(t.data) + "</span>" +
-        "</div>";
-      }).join("");
+        var nome = t.lead ? t.lead.nome : "Contato";
+        return '<tr><td><button class="dashboard-contact" type="button" data-lead="' + u.escaparHTML(t.leadId) + '"><span class="avatar avatar--sm ' + u.tomAvatar(nome) + '">' + u.escaparHTML(u.iniciais(nome)) + '</span><span><strong>' + u.escaparHTML(nome) + '</strong><small>' + u.escaparHTML(t.lead && t.lead.empresa || "Sem empresa") + '</small></span></button></td>' +
+          '<td><span class="dashboard-action">' + ui.icone(tipoIcone(t.tipo)) + u.escaparHTML(t.titulo) + '</span></td>' +
+          '<td><span title="Follow-ups não possuem vínculo com campanhas">—</span></td>' +
+          '<td class="dashboard-task-date">' + dataCurta(t.data) + '<small>' + hora(t.data) + '</small></td>' +
+          '<td><span class="dashboard-task-status' + (atrasada ? ' is-late' : '') + '">' + (atrasada ? 'Atrasado' : 'Pendente') + '</span></td>' +
+          '<td><label class="task-check" title="Concluir follow-up"><input type="checkbox" data-concluir="' + u.escaparHTML(t.id) + '" aria-label="Concluir ' + u.escaparHTML(t.titulo) + '"><span>' + ui.icone("check") + '</span></label></td></tr>';
+      }).join("") + '</tbody></table></div>';
     }
     var total = el("tarefas-total");
-    if (total) total.textContent = dados.tarefasTotal + " follow-up(s) pendente(s) na agenda";
+    if (total) total.textContent = (dados.acoesHojeTotal > tarefas.length ? "Exibindo " + tarefas.length + " de " + dados.acoesHojeTotal + " ações · " : "") + dados.tarefasTotal + " follow-up(s) pendente(s) na agenda";
+    el("proximas-acoes").innerHTML = (dados.proximasAcoes || []).map(function (t) {
+      var date = new Date(t.data);
+      return '<div class="dashboard-next-item"><span class="dashboard-next-item__date"><strong>' + date.getDate() + '</strong><small>' + date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "") + '</small></span><button class="dashboard-next-item__main" type="button" data-lead="' + u.escaparHTML(t.leadId) + '"><strong>' + u.escaparHTML(t.titulo) + '</strong><small>' + u.escaparHTML(t.lead ? t.lead.nome : "Contato") + '</small><span>' + hora(t.data) + ' · ' + u.escaparHTML(t.responsavel || "Sem responsável") + '</span></button><label class="task-check" title="Concluir follow-up"><input type="checkbox" data-concluir="' + u.escaparHTML(t.id) + '" aria-label="Concluir ' + u.escaparHTML(t.titulo) + '"><span>' + ui.icone("check") + '</span></label></div>';
+    }).join("") || '<div class="empty empty--compact"><h3>Espaço para novas oportunidades</h3><p>Nenhum follow-up agendado a partir de amanhã.</p></div>';
   }
+
+  function dataCurta(data) { return data ? new Date(data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "—"; }
+  function hora(data) { return data ? new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"; }
 
   function renderCampanhas(dados) {
     var list = el("lista-campanhas");
@@ -140,8 +152,8 @@
       var st = statusCampanha(c.status);
       return '<a class="campaign-mini__item" href="mensagens.html?tab=historico">' +
         '<span class="campaign-mini__icon">' + ui.icone("message-circle") + "</span>" +
-        '<span class="campaign-mini__text"><strong>' + u.escaparHTML(c.nome) + "</strong><small>" + c.publico + " contato(s) · " + u.tempoRelativo(c.criadaEm) + "</small></span>" +
-        '<span class="badge ' + st.cls + '">' + st.label + "</span></a>";
+        '<span class="campaign-mini__text"><strong>' + u.escaparHTML(c.nome) + "</strong><small>" + u.formatarNumero(c.publico) + " contato(s) · " + u.escaparHTML(c.canal) + "</small></span>" +
+        '<span class="campaign-mini__meta"><time datetime="' + u.escaparHTML(c.criadaEm || "") + '">' + dataCurta(c.criadaEm) + ' · ' + hora(c.criadaEm) + '</time><span class="badge ' + st.cls + '">' + st.label + "</span></span></a>";
     }).join("");
   }
 
@@ -150,11 +162,37 @@
     renderAlerta(dados);
     renderTarefas(dados);
     renderCampanhas(dados);
+    Painel.dashboardCharts.render(dados.metricas);
   }
 
   function carregar() {
-    return api.dashboard.obter("30").then(render).catch(function (err) {
+    var seq = ++ultimaCarga;
+    var main = el("dashboard");
+    main.classList.add("is-refreshing");
+    main.setAttribute("aria-busy", "true");
+    el("dashboard-erro").hidden = true;
+    el("dashboard-status").textContent = "Atualizando painel…";
+    return api.dashboard.obter(periodo).then(function (dados) {
+      if (seq !== ultimaCarga) return;
+      ultimosDados = dados;
+      render(dados);
+      el("dashboard-status").textContent = "Painel atualizado. Últimos " + periodo + " dias.";
+    }).catch(function (err) {
+      if (seq !== ultimaCarga) return;
+      el("dashboard-erro").hidden = false;
+      el("dashboard-status").textContent = "Falha ao atualizar. Os dados anteriores, quando disponíveis, foram mantidos.";
       ui.toast(err.message || "Não foi possível carregar o painel.", "error");
+      if (ultimosDados) return;
+      el("lista-tarefas").innerHTML = '<div class="empty empty--compact"><p>Não foi possível carregar as tarefas.</p></div>';
+      el("tarefas-total").textContent = "Dados indisponíveis";
+      el("lista-campanhas").innerHTML = '<div class="empty empty--compact"><p>Não foi possível carregar as mensagens.</p></div>';
+      el("proximas-acoes").innerHTML = '<div class="empty empty--compact"><p>Agenda indisponível.</p></div>';
+      el("grafico-evolucao").innerHTML = '<div class="empty empty--compact"><p>Não foi possível carregar o gráfico.</p></div>';
+      el("legenda-distribuicao").innerHTML = '<li>Distribuição indisponível</li>';
+    }).then(function () {
+      if (seq !== ultimaCarga) return;
+      main.classList.remove("is-refreshing");
+      main.setAttribute("aria-busy", "false");
     });
   }
 
@@ -192,7 +230,7 @@
     "</article>";
   }
 
-  function abrirConversa(tipo) {
+  function abrirConversa(tipo, todasPendencias) {
     var cfg = CONVERSAS[tipo];
     if (!cfg) return;
     var estado = { q: "", responsavel: "" };
@@ -202,7 +240,7 @@
 
     Promise.all([
       api.configuracoes.obter(),
-      api.dashboard.conversas(tipo, { perPage: 100 })
+      api.dashboard.conversas(tipo, { perPage: 100, periodo: todasPendencias ? undefined : periodo })
     ]).then(function (res) {
       resultado = res[1];
       var equipe = (res[0].equipe || []).filter(function (m) { return m.status === "ativo"; });
@@ -253,7 +291,7 @@
 
       function carregarLista() {
         var seq = ++seqLista;
-        return api.dashboard.conversas(tipo, { q: estado.q, responsavel: estado.responsavel, perPage: 100 }).then(function (novo) {
+        return api.dashboard.conversas(tipo, { q: estado.q, responsavel: estado.responsavel, perPage: 100, periodo: todasPendencias ? undefined : periodo }).then(function (novo) {
           if (seq !== seqLista) return;
           resultado = novo;
           renderLista();
@@ -334,7 +372,7 @@
       var alerta = e.target.closest("[data-abrir-conversa]");
       if (alerta) {
         e.preventDefault();
-        abrirConversa(alerta.getAttribute("data-abrir-conversa"));
+        abrirConversa(alerta.getAttribute("data-abrir-conversa"), true);
         return;
       }
       var leadRow = e.target.closest("[data-lead]");
@@ -353,15 +391,32 @@
         carregar();
       }).catch(function (err) {
         check.disabled = false;
+        check.checked = false;
         ui.toast(err.message || "Não foi possível concluir a tarefa.", "error");
       });
     });
 
-    var nova = document.querySelector("[data-nova-tarefa]");
-    if (nova) {
+    document.querySelectorAll(".dashboard [data-nova-tarefa]").forEach(function (nova) {
       nova.addEventListener("click", function () {
         leadUI.abrirTarefa({ onSaved: function () { carregar(); } });
       });
+    });
+    document.querySelectorAll(".dashboard [data-periodo]").forEach(function (select) {
+      select.addEventListener("change", function () {
+        periodo = select.value;
+        document.querySelectorAll(".dashboard [data-periodo]").forEach(function (outro) { outro.value = periodo; });
+        carregar();
+      });
+    });
+    document.querySelector("[data-dash-retry]").addEventListener("click", carregar);
+    var chart = el("grafico-evolucao");
+    if (window.ResizeObserver) {
+      var largura = 0;
+      new ResizeObserver(u.debounce(function () {
+        if (!ultimosDados || chart.clientWidth === largura) return;
+        largura = chart.clientWidth;
+        Painel.dashboardCharts.linhas(chart, ultimosDados.metricas.serie);
+      }, 120)).observe(chart);
     }
   }
 

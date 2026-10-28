@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="assets/css/crm.css">
   <link rel="stylesheet" href="assets/css/modern.css">
   <link rel="stylesheet" href="assets/css/workspace.css">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
   <script defer src="assets/js/config.js"></script>
   <script defer src="assets/js/util.js"></script>
   <script defer src="assets/js/store.js"></script>
@@ -29,18 +30,22 @@
     <aside class="sidebar" id="sidebar" aria-label="Menu lateral"></aside>
     <div class="app__main">
       <header class="topbar" id="topbar"></header>
-      <main class="page">
+      <main class="page dashboard" id="dashboard">
         <div class="page-head">
           <div class="page-head__main">
             <h1 class="page-head__title">Painel de contatos</h1>
-            <p class="page-head__desc">Veja quem precisa de mensagem, quem respondeu e quem não deve mais ser contatado.</p>
+            <p class="page-head__desc">Suas conversas, oportunidades e próximos passos em um só lugar.</p>
             <p class="page-head__meta"><span class="badge badge--neutral" data-base-total>—</span></p>
           </div>
           <div class="page-head__actions">
+            <label class="dashboard-period"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#calendar"></use></svg><select data-periodo aria-label="Período dos indicadores e mensagens"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label>
             <a class="btn btn--secondary" href="leads.html?importar=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#upload"></use></svg>Importar</a>
             <a class="btn btn--primary" href="leads.html?novo=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Novo contato</a>
           </div>
         </div>
+
+        <div class="dashboard-error" id="dashboard-erro" role="alert" hidden><span>Não foi possível atualizar o painel. Tente novamente.</span><button class="btn btn--secondary btn--sm" type="button" data-dash-retry>Tentar novamente</button></div>
+        <p class="sr-only" id="dashboard-status" role="status" aria-live="polite"></p>
 
         <div class="dash-alert" id="dash-alerta" hidden>
           <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#triangle-alert"></use></svg>
@@ -48,7 +53,12 @@
           <a href="followups.html" id="dash-alerta-link">Ver follow-ups</a>
         </div>
 
-        <div class="dash-conv-grid" role="group" aria-label="Resumo das conversas">
+        <section class="dashboard-overview" aria-labelledby="dashboard-overview-title">
+          <div class="dashboard-overview__head">
+            <div><h2 id="dashboard-overview-title">Conversas</h2><p>Um panorama dos seus contatos</p></div>
+            <span class="dashboard-overview__hint">Visão geral</span>
+          </div>
+          <div class="dash-conv-grid" role="group" aria-label="Resumo das conversas">
           <button class="conv-card" type="button" data-conversa="sem_mensagem" title="Contatos ainda não abordados e fora da etapa Contatado">
             <span class="conv-card__head">
               <span class="conv-card__icon"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#message-square"></use></svg></span>
@@ -92,46 +102,39 @@
           <button class="conv-card" type="button" data-conversa="recusados" title="Recusaram ou pediram para não receber mensagens">
             <span class="conv-card__head">
               <span class="conv-card__icon"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#ban"></use></svg></span>
-              <span class="conv-card__label">Não contatar</span>
+              <span class="conv-card__label">Não contactar</span>
             </span>
             <span class="conv-card__value" data-conv="recusados">—</span>
           </button>
-        </div>
+          </div>
+        </section>
 
-        <div class="dash-row">
-          <section class="card">
-            <div class="card__head card__head--bordered">
-              <div>
-                <h2 class="card__title">Ações de hoje</h2>
-                <p class="card__desc">Follow-ups que precisam da sua atenção</p>
-              </div>
-              <div class="card__actions">
-                <a class="btn btn--secondary btn--sm" href="followups.html">Ver agenda</a>
-              </div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-analytics" aria-labelledby="evolucao-title">
+            <div class="card__head"><div><h2 class="card__title" id="evolucao-title">Evolução de conversas</h2><p class="card__desc">Atividade registrada no período</p></div><select class="select select--sm" data-periodo aria-label="Período do gráfico"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
+            <div class="dashboard-analytics__body">
+              <div class="dashboard-trend"><div class="dashboard-legend"><span><i class="dot dot--new"></i>Novos contatos</span><span><i class="dot dot--sent"></i>Enviadas</span><span><i class="dot dot--received"></i>Respostas</span></div><div class="dashboard-chart" id="grafico-evolucao"><div class="dashboard-placeholder skeleton" role="status" aria-label="Carregando gráfico"></div></div><details class="dashboard-chart-data"><summary>Ver dados do gráfico</summary><div id="dados-evolucao"></div></details></div>
+              <div class="dashboard-distribution"><h3>Distribuição dos contatos</h3><p>Estado atual dos contatos criados no período</p><div class="dashboard-donut"><div id="grafico-distribuicao"></div><div class="dashboard-donut__total"><strong id="distribuicao-total">—</strong><span>contatos</span></div></div><ul class="dashboard-distribution__legend" id="legenda-distribuicao"></ul></div>
             </div>
-            <div class="task-list" id="lista-tarefas">
-              <div class="task-loading"><span class="skeleton" style="height:12px;width:60%"></span></div>
-            </div>
-            <div class="card__foot">
-              <span class="small faint" id="tarefas-total">Carregando…</span>
-              <button class="text-link" type="button" data-nova-tarefa>Agendar follow-up</button>
-            </div>
+            <div class="dashboard-note">Indicadores: estado atual dos contatos criados no período. Evolução: eventos registrados nas datas exibidas.</div>
           </section>
 
-          <div class="dash-side">
-            <section class="card">
-              <div class="card__head">
-                <div>
-                  <h2 class="card__title">Mensagens recentes</h2>
-                  <p class="card__desc">Últimos envios registrados</p>
-                </div>
-                <a class="icon-btn icon-btn--sm" href="mensagens.html?tab=historico" title="Ver histórico"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#arrow-up-right"></use></svg></a>
-              </div>
-              <div class="card__body">
-                <div class="campaign-mini" id="lista-campanhas"></div>
-              </div>
-            </section>
-          </div>
+          <section class="card dashboard-messages" aria-labelledby="mensagens-title">
+            <div class="card__head"><div><h2 class="card__title" id="mensagens-title">Mensagens recentes</h2><p class="card__desc">Campanhas registradas no período</p></div><a class="text-link" href="mensagens.html?tab=historico">Ver todas</a></div>
+            <div class="card__body"><div class="campaign-mini" id="lista-campanhas"><div class="dashboard-placeholder skeleton" role="status" aria-label="Carregando mensagens"></div></div></div>
+          </section>
+
+          <section class="card dashboard-tasks" aria-labelledby="tarefas-title">
+            <div class="card__head card__head--bordered"><div><h2 class="card__title" id="tarefas-title">Ações de hoje <span class="dashboard-count" id="acoes-total">—</span></h2><p class="card__desc">Hoje e atrasadas · independente do período</p></div><a class="text-link" href="followups.html">Ver agenda</a></div>
+            <div id="lista-tarefas"><div class="task-loading"><span class="skeleton" style="height:12px;width:60%"></span></div></div>
+            <div class="card__foot"><span class="small faint" id="tarefas-total">Carregando agenda…</span><button class="text-link" type="button" data-nova-tarefa>Agendar follow-up</button></div>
+          </section>
+
+          <section class="card dashboard-next" aria-labelledby="proximas-title">
+            <div class="card__head"><div><h2 class="card__title" id="proximas-title">Próximas ações</h2><p class="card__desc">Prepare os próximos passos</p></div><button class="icon-btn icon-btn--sm" type="button" data-nova-tarefa aria-label="Criar follow-up"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg></button></div>
+            <div class="card__body" id="proximas-acoes"><div class="dashboard-placeholder skeleton" role="status" aria-label="Carregando próximos agendamentos"></div></div>
+            <div class="card__foot"><button class="btn btn--secondary btn--sm" type="button" data-nova-tarefa>+ Criar follow-up</button><a class="text-link" href="followups.html">Ver agenda</a></div>
+          </section>
         </div>
       </main>
     </div>
@@ -141,6 +144,8 @@
   <script defer src="assets/js/api.js"></script>
   <script defer src="assets/js/ui.js"></script>
   <script defer src="assets/js/components/lead-ui.js"></script>
+  <script defer src="assets/js/charts.js"></script>
+  <script defer src="assets/js/pages/dashboard-charts.js"></script>
   <script defer src="assets/js/pages/dashboard.js"></script>
 </body>
 </html>
