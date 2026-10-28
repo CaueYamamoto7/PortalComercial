@@ -153,7 +153,7 @@
           icone("search") + '<span class="search-trigger__label">Buscar no painel…</span><kbd>Ctrl K</kbd>' +
         "</button>" +
         '<div class="dropdown">' +
-          '<button class="icon-btn" type="button" data-panel="help" aria-label="Ajuda e atalhos" aria-haspopup="true">' + icone("help") + "</button>" +
+          '<button class="icon-btn" type="button" data-panel="help" aria-label="Ajuda e atalhos" aria-haspopup="true" aria-expanded="false" aria-controls="panel-help">' + icone("help") + "</button>" +
           '<div class="dropdown-panel dropdown-panel--wide" id="panel-help">' +
             '<div class="dropdown-panel__head"><strong>Ajuda e atalhos</strong><span class="xs faint">Portal Comercial</span></div>' +
             '<div class="help-panel">' +
@@ -172,7 +172,7 @@
           "</div>" +
         "</div>" +
         '<div class="dropdown">' +
-          '<button class="icon-btn" type="button" data-panel="notif" aria-label="Notificações" aria-haspopup="true" data-notif-bell>' + icone("bell") + "</button>" +
+          '<button class="icon-btn" type="button" data-panel="notif" aria-label="Notificações" aria-haspopup="true" aria-expanded="false" aria-controls="panel-notif" data-notif-bell>' + icone("bell") + "</button>" +
           '<div class="dropdown-panel dropdown-panel--wide" id="panel-notif">' +
             '<div class="dropdown-panel__head"><strong>Notificações</strong>' +
             '<button class="text-link xs" type="button" data-read-all>Marcar como lidas</button></div>' +
@@ -182,7 +182,7 @@
         "</div>" +
         '<div class="topbar__divider"></div>' +
         '<div class="dropdown">' +
-          '<button class="user-btn" type="button" data-panel="user" aria-haspopup="true">' +
+          '<button class="user-btn" type="button" data-panel="user" aria-haspopup="true" aria-expanded="false" aria-controls="panel-user">' +
             '<span class="avatar avatar--sm">' + u.escaparHTML(sessao.iniciais || "MC") + "</span>" +
             '<span class="user-btn__text"><strong>' + u.escaparHTML(u.primeiroNome(sessao.nome)) + '</strong><small>' + u.escaparHTML(sessao.cargo || "Comercial") + "</small></span>" +
             icone("chevron-down") +
@@ -437,7 +437,11 @@
 
   function abrirMais() {
     var botao = document.querySelector("[data-more-open]");
-    var itens = NAV_MAIS.map(function (chave) {
+    var sessao = Painel.auth.usuario();
+    var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
+    var itens = NAV_MAIS.filter(function (chave) {
+      return chave !== "configuracoes" || podeConfig;
+    }).map(function (chave) {
       var p = PAGINAS[chave];
       return '<a class="sheet-menu__item" href="' + p.href + '">' +
         '<span class="sheet-menu__icon">' + icone(p.icon) + "</span>" +
@@ -556,7 +560,11 @@
 
   function fecharPainéis(exceto) {
     document.querySelectorAll(".dropdown-panel.is-open").forEach(function (p) {
-      if (p !== exceto) p.classList.remove("is-open");
+      if (p !== exceto) {
+        p.classList.remove("is-open");
+        var botao = document.querySelector('[aria-controls="' + p.id + '"]');
+        if (botao) botao.setAttribute("aria-expanded", "false");
+      }
     });
   }
 
@@ -733,8 +741,8 @@
     layer.style.zIndex = String(100 + camada * 2);
     layer.innerHTML =
       '<div class="layer__backdrop" data-close></div>' +
-      '<aside class="drawer ' + (opts.wide ? "drawer--wide" : "") + '" role="dialog" aria-modal="true">' +
-        '<div class="drawer__head"><div class="modal__titles"><h2 class="modal__title">' + u.escaparHTML(opts.title || "") + "</h2>" +
+      '<aside class="drawer ' + (opts.wide ? "drawer--wide" : "") + '" role="dialog" aria-modal="true" aria-labelledby="drawer-title-' + camada + '">' +
+        '<div class="drawer__head"><div class="modal__titles"><h2 class="modal__title" id="drawer-title-' + camada + '">' + u.escaparHTML(opts.title || "") + "</h2>" +
         (opts.subtitle ? '<p class="modal__subtitle">' + u.escaparHTML(opts.subtitle) + "</p>" : "") + "</div>" +
         '<button class="icon-btn icon-btn--sm" type="button" data-close aria-label="Fechar">' + icone("x") + "</button></div>" +
         '<div class="drawer__body">' + (opts.body || "") + "</div>" +
@@ -838,6 +846,33 @@
 
   function bindGlobal() {
     document.addEventListener("click", function (e) {
+      var navLink = e.target.closest(".sidebar__nav .nav-item, .bottom-nav a.bottom-nav__item");
+      if (navLink && !e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey &&
+          !navLink.hasAttribute("download") && (!navLink.target || navLink.target === "_self") &&
+          !navLink.classList.contains("is-active") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        var nav = navLink.closest("nav");
+        var ativo = nav && nav.querySelector(".is-active");
+        if (ativo) {
+          e.preventDefault();
+          var origem = ativo.getBoundingClientRect();
+          var destino = navLink.getBoundingClientRect();
+          var indicador = document.createElement("span");
+          indicador.className = "nav-slide-indicator";
+          indicador.setAttribute("aria-hidden", "true");
+          indicador.style.left = origem.left + "px";
+          indicador.style.top = origem.top + "px";
+          indicador.style.width = origem.width + "px";
+          indicador.style.height = origem.height + "px";
+          document.body.appendChild(indicador);
+          ativo.classList.remove("is-active");
+          requestAnimationFrame(function () {
+            indicador.style.transform = "translate(" + (destino.left - origem.left) + "px, " + (destino.top - origem.top) + "px)";
+          });
+          setTimeout(function () { window.location.href = navLink.href; }, 200);
+          return;
+        }
+      }
+
       if (e.target.closest("[data-more-open]")) {
         e.preventDefault();
         abrirMais();
@@ -874,7 +909,10 @@
         if (panel) {
           var jaAberto = panel.classList.contains("is-open");
           fecharPainéis();
-          if (!jaAberto) panel.classList.add("is-open");
+          if (!jaAberto) {
+            panel.classList.add("is-open");
+            panelBtn.setAttribute("aria-expanded", "true");
+          }
         }
         return;
       }
