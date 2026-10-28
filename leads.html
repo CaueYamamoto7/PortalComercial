@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-auth="required" data-page="leads">
 <head>
+  <script src="assets/js/loading.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c1210">
@@ -113,7 +114,7 @@
             </table>
           </div>
           <div class="table-footer">
-            <span class="table-footer__info" id="leads-info">Carregando…</span>
+            <span class="table-footer__info" id="leads-info"><span class="skeleton" style="width:120px;height:12px" aria-label="Carregando" role="status"></span></span>
             <div class="pagination" id="leads-pagination"></div>
           </div>
         </section>

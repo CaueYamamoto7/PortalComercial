@@ -423,7 +423,7 @@
       title: "Templates de mensagem",
       subtitle: "Modelos reutilizáveis com variáveis",
       wide: true,
-      body: '<div id="template-list" class="template-list"><div class="template-loading"><span class="spinner"></span>Carregando…</div></div>',
+      body: '<div id="template-list" class="template-list"><div class="loading-lines" role="status" aria-label="Carregando templates"></div></div>',
       footer: '<button class="btn btn--secondary" type="button" data-close>Fechar</button>' +
         '<button class="btn btn--primary" type="button" data-novo-template>' + ui.icone("plus") + "Novo template</button>"
     });

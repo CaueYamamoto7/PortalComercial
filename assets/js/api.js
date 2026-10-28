@@ -9,6 +9,37 @@
   var bootstrapToken = null;
   var bootstrapDados = null;
   var emAndamento = {};
+  var cargaInicial = document.documentElement.classList.contains("is-initial-loading");
+  var pendentesIniciais = 0;
+  var domPronto = document.readyState !== "loading";
+  var timerInicial;
+
+  function concluirCargaInicial() {
+    clearTimeout(timerInicial);
+    if (!cargaInicial || !domPronto || pendentesIniciais) return;
+    timerInicial = setTimeout(function () {
+      if (pendentesIniciais) return;
+      cargaInicial = false;
+      document.documentElement.classList.remove("is-initial-loading");
+      var main = document.querySelector(".page");
+      if (main) {
+        main.removeAttribute("aria-busy");
+        main.inert = false;
+      }
+    }, 150);
+  }
+
+  if (cargaInicial) {
+    document.addEventListener("DOMContentLoaded", function () {
+      domPronto = true;
+      var main = document.querySelector(".page");
+      if (main) {
+        main.setAttribute("aria-busy", "true");
+        main.inert = true;
+      }
+      concluirCargaInicial();
+    });
+  }
 
   function queryString(params) {
     var partes = [];
@@ -72,6 +103,12 @@
       return emAndamento[chave];
     }
 
+    var acompanharCarga = cargaInicial;
+    if (acompanharCarga) {
+      pendentesIniciais++;
+      clearTimeout(timerInicial);
+    }
+
     var promessa = garantirToken().then(function () {
       var headers = { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" };
       var token = csrfToken();
@@ -110,6 +147,16 @@
     if (method === "GET") {
       emAndamento[chave] = promessa;
       promessa.then(function () { delete emAndamento[chave]; }, function () { delete emAndamento[chave]; });
+    }
+
+    if (acompanharCarga) {
+      promessa.then(function () {
+        pendentesIniciais--;
+        concluirCargaInicial();
+      }, function () {
+        pendentesIniciais--;
+        concluirCargaInicial();
+      });
     }
 
     return promessa;

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-auth="required" data-page="configuracoes">
 <head>
+  <script src="assets/js/loading.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c1210">
@@ -75,7 +76,7 @@
                 <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-etapa><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Nova etapa</button></div>
               </div>
               <div class="settings-list" id="lista-etapas">
-                <div class="settings-loading"><span class="spinner"></span>Carregando etapas…</div>
+                <div class="loading-lines" aria-label="Carregando etapas" role="status"></div>
               </div>
             </section>
 
@@ -85,7 +86,7 @@
                 <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-sistema><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Novo sistema</button></div>
               </div>
               <div class="settings-list" id="lista-sistemas">
-                <div class="settings-loading"><span class="spinner"></span>Carregando sistemas…</div>
+                <div class="loading-lines" aria-label="Carregando sistemas" role="status"></div>
               </div>
             </section>
 
@@ -95,7 +96,7 @@
                 <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-origem><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Nova origem</button></div>
               </div>
               <div class="settings-list" id="lista-origens">
-                <div class="settings-loading"><span class="spinner"></span>Carregando origens…</div>
+                <div class="loading-lines" aria-label="Carregando origens" role="status"></div>
               </div>
             </section>
 
@@ -105,7 +106,7 @@
                 <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-membro><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#user-plus"></use></svg>Convidar</button></div>
               </div>
               <div class="settings-list" id="lista-equipe">
-                <div class="settings-loading"><span class="spinner"></span>Carregando equipe…</div>
+                <div class="loading-lines" aria-label="Carregando equipe" role="status"></div>
               </div>
             </section>
 

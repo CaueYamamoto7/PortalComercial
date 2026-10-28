@@ -176,7 +176,7 @@
           '<div class="dropdown-panel dropdown-panel--wide" id="panel-notif">' +
             '<div class="dropdown-panel__head"><strong>Notificações</strong>' +
             '<button class="text-link xs" type="button" data-read-all>Marcar como lidas</button></div>' +
-            '<div data-notif-list><div class="dropdown-panel__empty">Carregando…</div></div>' +
+            '<div data-notif-list><div class="loading-lines" role="status" aria-label="Carregando notificações"></div></div>' +
             '<div class="dropdown-panel__foot"><a class="text-link xs" href="followups.html">Ver follow-ups</a></div>' +
           "</div>" +
         "</div>" +
