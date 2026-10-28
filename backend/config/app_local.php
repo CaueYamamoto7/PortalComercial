@@ -5,7 +5,7 @@ use Cake\Database\Driver\Postgres;
 use function Cake\Core\env;
 
 /*
- * Configuração local/produção do Painel Comercial.
+ * Configuração local/produção do Portal Comercial.
  * Em produção as credenciais vêm de variáveis de ambiente
  * (DATABASE_URL, SECURITY_SALT, SESSION_SECURE).
  */

@@ -66,7 +66,7 @@ class LeadsController extends AppController
             (string)$entity->get('id'),
             'nota',
             'Lead cadastrado',
-            'Lead criado manualmente no Painel Comercial.',
+            'Lead criado manualmente no Portal Comercial.',
             (string)$entity->get('responsavel'),
             $entity->get('criado_em')
         );

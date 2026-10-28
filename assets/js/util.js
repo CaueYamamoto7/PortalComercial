@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Utilitários compartilhados
+   Portal Comercial — Utilitários compartilhados
    ========================================================================== */
 
 (function (Painel) {

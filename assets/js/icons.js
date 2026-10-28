@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial - Biblioteca de ícones
+   Portal Comercial - Biblioteca de ícones
    Wrapper local para o sprite oficial da Lucide Icons.
    Versão vendorizada: assets/vendor/lucide/sprite.svg (Lucide 1.61.0).
    ========================================================================== */

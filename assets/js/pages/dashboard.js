@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Dashboard operacional
+   Portal Comercial — Dashboard operacional
    ========================================================================== */
 
 (function (Painel) {

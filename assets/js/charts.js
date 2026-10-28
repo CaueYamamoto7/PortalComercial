@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Gráficos leves (SVG/HTML, sem dependências)
+   Portal Comercial — Gráficos leves (SVG/HTML, sem dependências)
    ========================================================================== */
 
 (function (Painel) {

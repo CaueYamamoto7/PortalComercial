@@ -14,7 +14,7 @@ use Cake\Http\Response;
 use Cake\I18n\DateTime;
 
 /**
- * Base dos controllers da API JSON do Painel Comercial.
+ * Base dos controllers da API JSON do Portal Comercial.
  */
 abstract class AppController extends Controller
 {

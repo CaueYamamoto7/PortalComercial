@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Armazenamento local
+   Portal Comercial — Armazenamento local
    ========================================================================== */
 
 (function (Painel) {

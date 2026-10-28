@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Interface base
+   Portal Comercial — Interface base
    Shell, navegação, modais, drawers, menus e feedbacks.
    ========================================================================== */
 
@@ -41,7 +41,7 @@
   function marca() {
     return '<span class="brand__text">' +
       '<img class="brand__logo" src="images/logoFull.png" alt="AssinaSoft">' +
-      '<span class="brand__tag">Painel Comercial</span></span>';
+      '<span class="brand__tag">Portal Comercial</span></span>';
   }
 
   function navGrupo(nome, chaves, atual) {
@@ -74,7 +74,7 @@
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
     el.innerHTML =
-      '<a class="rail-brand" href="index.html" aria-label="Painel Comercial" data-rail-tip="Painel Comercial">' +
+      '<a class="rail-brand" href="index.html" aria-label="Portal Comercial" data-rail-tip="Portal Comercial">' +
         '<img src="images/logoMini.png" alt="" width="34" height="34">' +
       "</a>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
@@ -145,8 +145,8 @@
     var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
 
     el.innerHTML =
-      '<a class="topbar__brand" href="index.html" aria-label="Painel Comercial"><img src="images/logoMini.png" alt="" width="26" height="26"></a>' +
-      '<div class="topbar__crumbs"><span class="topbar__workspace">Painel Comercial</span>' + icone("chevron-right") +
+      '<a class="topbar__brand" href="index.html" aria-label="Portal Comercial"><img src="images/logoMini.png" alt="" width="26" height="26"></a>' +
+      '<div class="topbar__crumbs"><span class="topbar__workspace">Portal Comercial</span>' + icone("chevron-right") +
         "<strong>" + atual.label + "</strong></div>" +
       '<div class="topbar__right">' +
         '<button class="search-trigger" type="button" data-cmd-open aria-label="Buscar no painel">' +
@@ -155,7 +155,7 @@
         '<div class="dropdown">' +
           '<button class="icon-btn" type="button" data-panel="help" aria-label="Ajuda e atalhos" aria-haspopup="true">' + icone("help") + "</button>" +
           '<div class="dropdown-panel dropdown-panel--wide" id="panel-help">' +
-            '<div class="dropdown-panel__head"><strong>Ajuda e atalhos</strong><span class="xs faint">Painel Comercial</span></div>' +
+            '<div class="dropdown-panel__head"><strong>Ajuda e atalhos</strong><span class="xs faint">Portal Comercial</span></div>' +
             '<div class="help-panel">' +
               '<div class="help-panel__section">' +
                 '<span class="help-panel__label">Atalhos de teclado</span>' +

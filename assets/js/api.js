@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Fachada de API (backend PHP/CakePHP)
+   Portal Comercial — Fachada de API (backend PHP/CakePHP)
    ========================================================================== */
 
 (function (Painel) {

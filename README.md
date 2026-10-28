@@ -1,10 +1,10 @@
-# Painel Comercial · AssinaSoft
+# Portal Comercial · AssinaSoft
 
 CRM comercial da AssinaSoft para gestão de leads, funil de vendas, follow-ups, campanhas de WhatsApp e indicadores de desempenho.
 
 ## Visão geral
 
-O Painel Comercial centraliza a operação comercial em uma aplicação web com front-end estático e API própria. A interface reúne cadastro e qualificação de leads, acompanhamento do pipeline, agenda de follow-ups, templates de mensagem, campanhas e relatórios gerenciais.
+O Portal Comercial centraliza a operação comercial em uma aplicação web com front-end estático e API própria. A interface reúne cadastro e qualificação de leads, acompanhamento do pipeline, agenda de follow-ups, templates de mensagem, campanhas e relatórios gerenciais.
 
 O sistema opera em uma única origem: o front-end é servido em `/` e a API em `/api`. A autenticação é baseada em sessão, com proteção CSRF e cookies restritos ao contexto da aplicação.
 

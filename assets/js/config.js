@@ -1,12 +1,12 @@
 /* ==========================================================================
-   Painel Comercial — Configuração central
+   Portal Comercial — Configuração central
    O front-end consome a API PHP/CakePHP em apiBase (mesma origem).
    ========================================================================== */
 
 window.Painel = window.Painel || {};
 
 Painel.config = {
-  app: "Painel Comercial",
+  app: "Portal Comercial",
   company: "AssinaSoft",
   versao: "2.0.0",
 

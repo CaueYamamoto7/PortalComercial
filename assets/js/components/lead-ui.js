@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Componentes de lead
+   Portal Comercial — Componentes de lead
    Formulário, detalhe, mensagem individual, tarefas e mudança de etapa.
    ========================================================================== */
 

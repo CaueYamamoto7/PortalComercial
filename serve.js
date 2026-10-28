@@ -1,4 +1,4 @@
-/* Servidor estático local para desenvolvimento do Painel Comercial.
+/* Servidor estático local para desenvolvimento do Portal Comercial.
    Uso: node serve.js [porta]
    Abra http://127.0.0.1:4173 no navegador. */
 
@@ -45,5 +45,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(port, "127.0.0.1", () => {
-  console.log("Painel Comercial disponível em http://127.0.0.1:" + port);
+  console.log("Portal Comercial disponível em http://127.0.0.1:" + port);
 });

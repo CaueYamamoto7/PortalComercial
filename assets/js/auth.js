@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Painel Comercial — Autenticação (sessão do backend)
+   Portal Comercial — Autenticação (sessão do backend)
    ========================================================================== */
 
 (function (Painel) {

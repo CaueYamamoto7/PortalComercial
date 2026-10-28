@@ -19,7 +19,7 @@ class HealthController extends AppController
 
         return $this->respondRaw([
             'status' => $banco ? 'ok' : 'degradado',
-            'app' => 'Painel Comercial',
+            'app' => 'Portal Comercial',
             'php' => PHP_VERSION,
             'cakephp' => \Cake\Core\Configure::version(),
             'banco' => $banco,

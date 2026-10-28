@@ -1,4 +1,4 @@
-# Painel Comercial — container único para Vercel (FrankenPHP + CakePHP)
+# Portal Comercial — container único para Vercel (FrankenPHP + CakePHP)
 #
 # Serve o front estático em / e a API CakePHP em /api, na mesma origem.
 # A API é exposta em backend/webroot/index.php; o CakePHP responde sob o

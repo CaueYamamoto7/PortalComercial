@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Painel Comercial — configuração da aplicação CakePHP.
+ * Portal Comercial — configuração da aplicação CakePHP.
  */
 namespace App;
 
