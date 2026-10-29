@@ -81,7 +81,10 @@
         }
         Painel.store.clearSession();
         return null;
-      }).catch(function () {
+      }).catch(function (error) {
+        if (paginaAtual() === "cadastro-lead.html" && !error.status) {
+          return auth.sessao();
+        }
         return null;
       });
     },

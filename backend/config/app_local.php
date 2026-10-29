@@ -85,9 +85,13 @@ return [
 
     'Session' => [
         'defaults' => 'database',
-        'timeout' => (int)env('SESSION_TIMEOUT', 240),
+        // Sessão persistente: não expira por inatividade; sair, revogar acesso ou
+        // alterar a senha continuam invalidando a autenticação.
+        'timeout' => 0,
         'cookie' => env('SESSION_COOKIE', 'PAINEL_SESSION'),
         'ini' => [
+            'session.cookie_lifetime' => 34560000,
+            'session.gc_maxlifetime' => 315360000,
             'session.cookie_httponly' => true,
             'session.cookie_secure' => filter_var(env('SESSION_SECURE', false), FILTER_VALIDATE_BOOLEAN),
             'session.cookie_samesite' => 'Lax',
