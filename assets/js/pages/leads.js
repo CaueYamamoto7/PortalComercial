@@ -273,7 +273,7 @@
 
   var CAMPOS_IMPORT = [
     { key: "nome", label: "Nome", req: true, sinonimos: ["nome", "name", "contato", "lead", "cliente", "nome_do_contato"] },
-    { key: "telefone", label: "WhatsApp", req: true, sinonimos: ["telefone", "phone", "celular", "whatsapp", "numero", "fone", "telefone_whatsapp", "whatsapp_celular"] },
+    { key: "telefone", label: "WhatsApp", sinonimos: ["telefone", "phone", "celular", "whatsapp", "numero", "fone", "telefone_whatsapp", "whatsapp_celular"] },
     { key: "email", label: "E-mail", sinonimos: ["email", "e_mail", "mail"] },
     { key: "empresa", label: "Empresa", sinonimos: ["empresa", "company", "organizacao", "negocio", "razao_social"] },
     { key: "cargo", label: "Cargo", sinonimos: ["cargo", "funcao", "posicao", "cargo_funcao"] },
@@ -281,7 +281,7 @@
     { key: "uf", label: "UF", sinonimos: ["uf", "estado", "state"] },
     { key: "origem", label: "Origem", sinonimos: ["origem", "source", "canal", "fonte", "como_conheceu"] },
     { key: "origemDetalhe", label: "Detalhe da origem", sinonimos: ["evento", "origem_detalhe", "detalhe", "feira", "campanha"] },
-    { key: "sistemas_interesse", label: "Sistemas de interesse", sinonimos: ["sistemas_interesse", "sistema", "sistemas", "produto", "interesse", "sistema_de_interesse"] },
+    { key: "sistemas_interesse", label: "Sistemas de interesse", req: true, sinonimos: ["sistemas_interesse", "sistema", "sistemas", "produto", "interesse", "sistema_de_interesse"] },
     { key: "possui_sistema", label: "Possui sistema", sinonimos: ["possui_sistema", "possui", "ja_possui", "possui_sistema_parecido"] },
     { key: "sistema_atual", label: "Sistema atual", sinonimos: ["sistema_atual", "fornecedor", "ferramenta_atual"] },
     { key: "etapa", label: "Etapa", sinonimos: ["etapa", "stage", "fase", "status"] },
@@ -435,14 +435,14 @@
       "</div>" +
       '<div class="import-layout">' +
         '<div><div class="form-section__title" style="margin-top:0">Relacione as colunas</div>' +
-          '<p class="small muted" style="margin:-2px 0 12px">Nome e WhatsApp são obrigatórios. Você pode importar apenas parte das colunas.</p>' +
+          '<p class="small muted" style="margin:-2px 0 12px">Nome, sistema de interesse e WhatsApp ou e-mail são obrigatórios.</p>' +
           '<div class="import-map">' + CAMPOS_IMPORT.map(function (campo) {
             return '<label class="import-map__row"><span>' + campo.label + (campo.req ? ' <em class="req">*</em>' : "") + "</span>" +
               '<select class="select select--sm" data-map="' + campo.key + '">' + opcoesColuna(campo) + "</select></label>";
           }).join("") + "</div></div>" +
         '<div><div class="form-section__title" style="margin-top:0">Prévia dos dados</div>' +
           '<div class="import-preview" id="import-preview"></div>' +
-          '<p class="small muted" style="margin-top:10px">Linhas com telefone inválido ou já cadastrado serão ignoradas e aparecerão no resumo.</p>' +
+          '<p class="small muted" style="margin-top:10px">Linhas sem contato ou sistema válido, com telefone inválido ou já cadastrado serão ignoradas.</p>' +
         "</div>" +
       "</div>";
 
@@ -479,9 +479,10 @@
     if (!btn) return;
     if (!importacao) { btn.disabled = true; return; }
     var nomeOk = importacao.mapeamento.nome >= 0;
-    var telOk = importacao.mapeamento.telefone >= 0;
-    btn.disabled = !(nomeOk && telOk);
-    btn.title = btn.disabled ? "Relacione as colunas Nome e WhatsApp" : "";
+    var contatoOk = importacao.mapeamento.telefone >= 0 || importacao.mapeamento.email >= 0;
+    var sistemaOk = importacao.mapeamento.sistemas_interesse >= 0;
+    btn.disabled = !(nomeOk && contatoOk && sistemaOk);
+    btn.title = btn.disabled ? "Relacione Nome, Sistemas de interesse e WhatsApp ou E-mail" : "";
   }
 
   function transformarLinhas() {
@@ -686,14 +687,14 @@
 
     document.querySelector("[data-exportar]").addEventListener("click", function () { exportar(null); });
     document.querySelector("[data-novo]").addEventListener("click", function () {
-      leadUI.abrirFormulario(null, { onSaved: function () { leadUI.invalidarListas(); carregar(); } });
+      window.location.href = "cadastro-lead.html";
     });
     document.querySelector("[data-importar]").addEventListener("click", abrirImportacao);
 
     document.addEventListener("click", function (e) {
       var novoVazio = e.target.closest("[data-novo]");
       if (novoVazio && !e.target.closest(".page-head")) {
-        leadUI.abrirFormulario(null, { onSaved: function () { leadUI.invalidarListas(); carregar(); } });
+        window.location.href = "cadastro-lead.html";
         return;
       }
       var pageBtn = e.target.closest("button[data-page]");

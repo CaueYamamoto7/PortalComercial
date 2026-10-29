@@ -189,9 +189,11 @@
       conversas: function (tipo, params) { return requisicao("GET", "/dashboard/conversas", undefined, Object.assign({ tipo: tipo }, params || {})); }
     },
     leads: {
+      catalogos: function () { return requisicao("GET", "/leads/catalogos"); },
       listar: function (params) { return requisicao("GET", "/leads", undefined, params); },
       obter: function (id) { return requisicao("GET", "/leads/" + id); },
       criar: function (dados) { return requisicao("POST", "/leads", dados); },
+      criarOrigem: function (nome) { return requisicao("POST", "/leads/origens", { nome: nome }); },
       atualizar: function (id, dados) { return requisicao("PUT", "/leads/" + id, dados); },
       mover: function (id, etapaId) { return requisicao("POST", "/leads/" + id + "/mover", { etapaId: etapaId }); },
       remover: function (id) { return requisicao("DELETE", "/leads/" + id); },

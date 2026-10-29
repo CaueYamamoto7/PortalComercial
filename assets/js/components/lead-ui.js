@@ -12,7 +12,7 @@
 
   function obterListas() {
     if (cacheListas) return Promise.resolve(cacheListas);
-    return Painel.api.configuracoes.obter().then(function (cfg) {
+    return Painel.api.leads.catalogos().then(function (cfg) {
       cacheListas = {
         etapas: cfg.etapas,
         sistemas: cfg.sistemas.filter(function (s) { return s.ativo; }),
@@ -107,7 +107,7 @@
             '<input class="input" name="empresa" value="' + u.escaparHTML(lead.empresa || "") + '" placeholder="Nome da empresa"></label>' +
           '<label class="field"><span class="field__label">Cargo</span>' +
             '<input class="input" name="cargo" value="' + u.escaparHTML(lead.cargo || "") + '" placeholder="Cargo ou função"></label>' +
-          '<label class="field" data-field="telefone"><span class="field__label">WhatsApp <em class="field__req">*</em></span>' +
+          '<label class="field" data-field="telefone"><span class="field__label">WhatsApp</span>' +
             '<input class="input" name="telefone" value="' + u.escaparHTML(lead.telefone ? u.formatarTelefone(lead.telefone) : "") + '" placeholder="(11) 99999-9999" inputmode="tel">' +
             '<span class="field__error"></span></label>' +
           '<label class="field" data-field="email"><span class="field__label">E-mail</span>' +
@@ -127,7 +127,7 @@
             '<select class="select" name="origemId">' + opcoes(listas.origens, lead.origemId, "Selecione") + "</select></label>" +
           '<label class="field"><span class="field__label">Detalhe da origem</span>' +
             '<input class="input" name="origemDetalhe" value="' + u.escaparHTML(lead.origemDetalhe || "") + '" placeholder="Ex.: Feira do Empreendedor 2026"></label>' +
-          '<div class="field field--full"><span class="field__label">Sistemas de interesse</span>' +
+          '<div class="field field--full" data-field="sistemaIds"><span class="field__label">Sistemas de interesse <em class="field__req">*</em></span><span class="field__error"></span>' +
             '<div class="system-picks">' + listas.sistemas.map(function (s) {
               var marcado = sistemasSelecionados.indexOf(s.id) !== -1;
               return '<label class="system-pick' + (marcado ? " is-checked" : "") + '">' +
@@ -276,9 +276,10 @@
 
         var ok = true;
         if (!dados.nome) { marcarErro(form, "nome", "Informe o nome do lead."); ok = false; }
-        if (!dados.telefone) { marcarErro(form, "telefone", "Informe o WhatsApp do lead."); ok = false; }
-        else if (!u.telefoneValido(dados.telefone)) { marcarErro(form, "telefone", "Telefone inválido. Use DDD + número."); ok = false; }
+        if (!dados.telefone && !dados.email) { marcarErro(form, "telefone", "Informe WhatsApp ou e-mail."); ok = false; }
+        else if (dados.telefone && !u.telefoneValido(dados.telefone)) { marcarErro(form, "telefone", "Telefone inválido. Use DDD + número."); ok = false; }
         if (dados.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) { marcarErro(form, "email", "Informe um e-mail válido."); ok = false; }
+        if (!dados.sistemaIds.length) { marcarErro(form, "sistemaIds", "Selecione ao menos um sistema."); ok = false; }
         if (!ok) {
           focarPrimeiroErro(form);
           return;

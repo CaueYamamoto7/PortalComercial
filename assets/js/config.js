@@ -25,6 +25,7 @@ Painel.config = {
   paginasInternas: [
     "index.html",
     "leads.html",
+    "cadastro-lead.html",
     "pipeline.html",
     "followups.html",
     "mensagens.html",
