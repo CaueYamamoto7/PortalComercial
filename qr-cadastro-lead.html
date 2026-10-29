@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#082b51">
+  <meta name="description" content="QR code permanente para o formulário de cadastro de leads da AssinaSoft.">
+  <title>QR code · Cadastro de leads</title>
+  <link rel="icon" href="images/logoMini.png">
+  <link rel="stylesheet" href="assets/css/qr-cadastro-lead.css">
+</head>
+<body>
+  <main class="qr-page">
+    <section class="qr-card" aria-labelledby="qr-title">
+      <img class="qr-card__logo" src="images/logoFull.png" alt="AssinaSoft">
+      <p class="qr-card__eyebrow">Cadastro de leads</p>
+      <h1 id="qr-title">Aponte a câmera para cadastrar</h1>
+      <p class="qr-card__intro">Este QR code abre diretamente o formulário de uma nova oportunidade.</p>
+      <div class="qr-code-frame">
+        <img src="images/qr-cadastro-lead.svg" width="320" height="320" alt="QR code para abrir o formulário de cadastro de leads">
+      </div>
+      <a class="qr-card__url" href="https://portal-comercial.vercel.app/cadastro-lead.html">portal-comercial.vercel.app/cadastro-lead.html</a>
+      <button class="qr-card__print" type="button" onclick="window.print()">Imprimir QR code</button>
+    </section>
+  </main>
+</body>
+</html>
