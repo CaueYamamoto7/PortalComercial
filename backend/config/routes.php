@@ -40,6 +40,13 @@ return function (RouteBuilder $routes): void {
 
         $builder->get('/pipeline', ['controller' => 'Pipeline', 'action' => 'index']);
 
+        $builder->get('/whatsapp/status', ['controller' => 'WhatsApp', 'action' => 'status']);
+        $builder->get('/whatsapp/options', ['controller' => 'WhatsApp', 'action' => 'options']);
+        $builder->post('/whatsapp/connect', ['controller' => 'WhatsApp', 'action' => 'connect']);
+        $builder->get('/whatsapp/outreach', ['controller' => 'WhatsApp', 'action' => 'index']);
+        $builder->post('/whatsapp/outreach', ['controller' => 'WhatsApp', 'action' => 'add']);
+        $builder->post('/whatsapp/outreach/{id}', ['controller' => 'WhatsApp', 'action' => 'action'])->setPass(['id']);
+
         $builder->get('/mensagens', ['controller' => 'Campaigns', 'action' => 'index']);
         $builder->post('/mensagens', ['controller' => 'Campaigns', 'action' => 'add']);
         $builder->get('/mensagens/{id}', ['controller' => 'Campaigns', 'action' => 'view'])->setPass(['id']);

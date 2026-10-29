@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\SettingsService;
 use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
@@ -78,7 +79,8 @@ class CampaignsController extends AppController
 
         $audiencia = $this->queryService()->audienciaQuery($filtros, $this->identidade());
         $total = (clone $audiencia)->count();
-        $limitado = $total > 5000;
+        $limite = (int)((new SettingsService())->mensagens()['maxCampanha'] ?? 5000);
+        $limitado = $total > $limite;
         $totalFiltrado = $this->queryService()->baseQuery($filtros, $this->identidade())->count();
         $amostra = (clone $audiencia)->orderBy(['Leads.id' => 'ASC'])->limit(20)->all()->toList();
         $leads = [];
@@ -96,7 +98,7 @@ class CampaignsController extends AppController
         return $this->respond([
             'total' => $total,
             'limitado' => $limitado,
-            'limite' => 5000,
+            'limite' => $limite,
             'bloqueados' => $limitado ? null : max(0, $totalFiltrado - $total),
             'amostra' => $leads,
         ]);
@@ -138,12 +140,13 @@ class CampaignsController extends AppController
             $this->erro('Selecione o público da campanha.', 'leads');
         }
 
-        $linhas = $this->queryService()->audiencia($filtros, $this->identidade(), 5001);
+        $limite = (int)((new SettingsService())->mensagens()['maxCampanha'] ?? 5000);
+        $linhas = $this->queryService()->audiencia($filtros, $this->identidade(), $limite + 1);
         if (!$linhas) {
             $this->erro('Nenhum lead elegível para esta campanha.', 'leads');
         }
-        if (count($linhas) > 5000) {
-            $this->erro('O público máximo por campanha é 5.000 leads.', 'leads');
+        if (count($linhas) > $limite) {
+            $this->erro('O público máximo por campanha é ' . $limite . ' leads.', 'leads');
         }
 
         $templateId = $this->texto($dados['templateId'] ?? '') ?: null;
@@ -234,29 +237,26 @@ class CampaignsController extends AppController
             $this->erro('Escreva a mensagem.', 'mensagem');
         }
 
-        $agora = $this->agora();
-        $interacao = $this->registrarInteracao(
-            $leadId,
-            'mensagem',
-            'Mensagem individual enviada',
-            $mensagem,
-            $this->usuarioNome(),
-            $agora,
-            'WhatsApp',
-            'saida'
-        );
-
-        $table = $this->fetchTable('Leads');
-        $entity = $table->find()->where(['id' => $leadId])->first();
-        if ($entity) {
-            $entity->set('ultimo_contato', $agora);
-            $entity->set('atualizado_em', $agora);
-            $table->saveOrFail($entity);
+        $phone = \App\Service\OutreachPolicy::phone($lead['telefone']);
+        if (!preg_match('/^[1-9]\d{9,14}$/', $phone)) {
+            $this->erro('Telefone inválido.', 'telefone');
         }
+        ConnectionManager::get('default')->execute(
+            "UPDATE wa_outreach SET status = 'manual', updated_at = :now "
+                . "WHERE lead_id = :id AND status IN ('queued', 'waiting', 'scheduled', 'uncertain')",
+            ['now' => time(), 'id' => $leadId]
+        );
+        try {
+            (new \App\Service\WhatsAppGateway())->request('/cancel', ['phone' => $phone]);
+        } catch (\Throwable) {
+            // Manual use of the official app remains available while disconnected.
+        }
+        $this->registroAuditoria('mensagem.abrir_whatsapp', 'lead', $leadId);
 
-        $this->registroAuditoria('mensagem.individual', 'lead', $leadId);
-
-        return $this->respond($interacao, 201);
+        return $this->respond([
+            'url' => 'https://wa.me/' . $phone . '?text=' . rawurlencode($this->renderizarMensagem($mensagem, $lead)),
+            'status' => 'manual',
+        ]);
     }
 
     public function cancelar(string $id): Response
