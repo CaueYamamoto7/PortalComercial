@@ -23,6 +23,17 @@ class LeadsController extends AppController
         ]);
     }
 
+    public function catalogs(): Response
+    {
+        $catalog = $this->service()->catalogo();
+        return $this->respond([
+            'etapas' => $catalog['etapas'],
+            'sistemas' => array_values(array_filter($catalog['sistemas'], fn ($item) => $item['ativo'])),
+            'origens' => array_values(array_filter($catalog['origens'], fn ($item) => $item['ativo'])),
+            'equipe' => $this->access()->canSeeAllLeads($this->identidade()) ? $catalog['equipe'] : [],
+        ]);
+    }
+
     public function view(string $id): Response
     {
         $lead = $this->queryService()->findLead($id, $this->identidade());
@@ -57,6 +68,9 @@ class LeadsController extends AppController
         $dados = (array)$this->request->getData();
 
         $campos = $this->montarLead($dados);
+        $campos['etapa_id'] = $this->etapaNovo();
+        $campos['prioridade'] = 'media';
+        $campos['responsavel'] = $this->usuarioNome();
         $this->validarLead($campos, null);
         $campos = $this->marcarUltimoContatoSeContatada($campos);
 
@@ -76,6 +90,32 @@ class LeadsController extends AppController
             $this->service()->leadOut($this->service()->leadCompleto((string)$entity->get('id'))),
             201
         );
+    }
+
+    public function addSource(): Response
+    {
+        $this->request->allowMethod(['post']);
+        $nome = $this->texto($this->request->getData('nome'));
+        if ($nome === '' || mb_strlen($nome) > 120) {
+            $this->erro('Informe uma origem com até 120 caracteres.', 'nome');
+        }
+        $table = $this->fetchTable('Sources');
+        $normalizado = $this->service()->normalizar($nome);
+        foreach ($table->find()->all() as $origem) {
+            if ($this->service()->normalizar((string)$origem->get('nome')) === $normalizado) {
+                if (!$origem->get('ativo')) {
+                    $origem->set('ativo', true);
+                    $table->saveOrFail($origem);
+                }
+                $this->service()->invalidar();
+                return $this->respond($this->service()->origemOut($origem));
+            }
+        }
+        $origem = $table->newEntity(['nome' => $nome, 'ativo' => true, 'criado_em' => $this->agora()]);
+        $table->saveOrFail($origem);
+        $this->service()->invalidar();
+        $this->registroAuditoria('origem.salvar', 'source', (string)$origem->get('id'));
+        return $this->respond($this->service()->origemOut($origem), 201);
     }
 
     public function edit(string $id): Response
@@ -337,7 +377,12 @@ class LeadsController extends AppController
                     continue;
                 }
                 $telefone = $this->normalizarTelefone($telefone);
-                if (!$this->telefoneValido($telefone)) {
+                if ($telefone === '' && $email === '') {
+                    $invalidos++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'WhatsApp ou e-mail ausente'];
+                    continue;
+                }
+                if ($telefone !== '' && !$this->telefoneValido($telefone)) {
                     $invalidos++;
                     $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone inválido'];
                     continue;
@@ -347,7 +392,7 @@ class LeadsController extends AppController
                     $detalhes[] = ['linha' => $numero, 'motivo' => 'E-mail inválido'];
                     continue;
                 }
-                if (isset($telefones[$telefone])) {
+                if ($telefone !== '' && isset($telefones[$telefone])) {
                     $duplicados++;
                     $detalhes[] = ['linha' => $numero, 'motivo' => 'Telefone já cadastrado'];
                     continue;
@@ -361,6 +406,11 @@ class LeadsController extends AppController
                     } elseif (isset($sistemasPorNome[$service->normalizar($valor)])) {
                         $sistemaIds[] = $sistemasPorNome[$service->normalizar($valor)]['id'];
                     }
+                }
+                if (!$sistemaIds) {
+                    $invalidos++;
+                    $detalhes[] = ['linha' => $numero, 'motivo' => 'Sistema de interesse ausente'];
+                    continue;
                 }
 
                 $origemTexto = $this->texto($linha['origem'] ?? '');
@@ -397,7 +447,7 @@ class LeadsController extends AppController
                     'nome' => $nome,
                     'empresa' => $this->texto($linha['empresa'] ?? $linha['company'] ?? ''),
                     'cargo' => $this->texto($linha['cargo'] ?? ''),
-                    'telefone' => $telefone,
+                    'telefone' => $telefone !== '' ? $telefone : null,
                     'email' => $email,
                     'cidade' => $this->texto($linha['cidade'] ?? ''),
                     'uf' => mb_substr(mb_strtoupper($this->texto($linha['uf'] ?? $linha['estado'] ?? '')), 0, 2),
@@ -422,7 +472,9 @@ class LeadsController extends AppController
                 ];
 
                 $entity = $this->writeService()->criar($campos, $this->identidade());
-                $telefones[$telefone] = true;
+                if ($telefone !== '') {
+                    $telefones[$telefone] = true;
+                }
                 $importados++;
 
                 $this->registrarInteracao(
@@ -570,7 +622,7 @@ class LeadsController extends AppController
             'nome' => $this->texto($dados['nome'] ?? ($b['nome'] ?? '')),
             'empresa' => $this->texto($dados['empresa'] ?? ($b['empresa'] ?? '')),
             'cargo' => $this->texto($dados['cargo'] ?? ($b['cargo'] ?? '')),
-            'telefone' => $this->normalizarTelefone($this->texto($dados['telefone'] ?? ($b['telefone'] ?? ''))),
+            'telefone' => ($telefone = $this->normalizarTelefone($this->texto($dados['telefone'] ?? ($b['telefone'] ?? '')))) !== '' ? $telefone : null,
             'email' => mb_strtolower($this->texto($dados['email'] ?? ($b['email'] ?? ''))),
             'cidade' => $this->texto($dados['cidade'] ?? ($b['cidade'] ?? '')),
             'uf' => mb_substr(mb_strtoupper($this->texto($dados['uf'] ?? ($b['uf'] ?? ''))), 0, 2),
@@ -600,23 +652,33 @@ class LeadsController extends AppController
         if ($campos['nome'] === '') {
             $this->erro('Informe o nome do lead.', 'nome');
         }
-        if ($campos['telefone'] === '') {
-            $this->erro('Informe o telefone do lead.', 'telefone');
+        if ($campos['telefone'] === null && $campos['email'] === '') {
+            $this->erro('Informe o WhatsApp ou o e-mail do lead.', 'telefone');
         }
-        if (!$this->telefoneValido($campos['telefone'])) {
+        if ($campos['telefone'] !== null && !$this->telefoneValido($campos['telefone'])) {
             $this->erro('Telefone inválido. Use DDD + número.', 'telefone');
         }
         if ($campos['email'] !== '' && !filter_var($campos['email'], FILTER_VALIDATE_EMAIL)) {
             $this->erro('Informe um e-mail válido.', 'email');
         }
 
-        $condicao = ['telefone' => $campos['telefone']];
-        if ($ignorarId) {
-            $condicao['id !='] = $ignorarId;
+        if ($campos['telefone'] !== null) {
+            $condicao = ['telefone' => $campos['telefone']];
+            if ($ignorarId) {
+                $condicao['id !='] = $ignorarId;
+            }
+            if ($this->fetchTable('Leads')->find()->where($condicao)->count() > 0) {
+                $this->erro('Já existe um lead com este telefone.', 'telefone');
+            }
         }
-        $existe = $this->fetchTable('Leads')->find()->where($condicao)->count();
-        if ($existe > 0) {
-            $this->erro('Já existe um lead com este telefone.', 'telefone');
+        $sistemaIds = array_values(array_unique(array_map('strval', (array)$campos['sistema_ids'])));
+        if (!$sistemaIds) {
+            $this->erro('Selecione ao menos um sistema de interesse.', 'sistemaIds');
+        }
+        $sistemasValidos = $this->fetchTable('Systems')->find()
+            ->where(['id IN' => $sistemaIds, 'ativo' => true])->count();
+        if ($sistemasValidos !== count($sistemaIds)) {
+            $this->erro('Selecione sistemas de interesse válidos.', 'sistemaIds');
         }
 
         $etapa = $this->fetchTable('Stages')->find()->where(['id' => $campos['etapa_id']])->first();
@@ -655,6 +717,12 @@ class LeadsController extends AppController
             ->first();
 
         return $etapa ? (string)$etapa->get('id') : 'et_novo';
+    }
+
+    private function etapaNovo(): string
+    {
+        $etapa = $this->fetchTable('Stages')->find()->where(['id' => 'et_novo'])->first();
+        return $etapa ? (string)$etapa->get('id') : $this->etapaPadrao();
     }
 
     private function serializarLead(?array $lead): ?array
