@@ -38,6 +38,14 @@ Visão operacional com cartões de contatos organizados por estágio de relacion
 
 ### Leads
 
+O cadastro individual está em `cadastro-lead.html`, uma página própria acessível pelo botão
+**Novo lead**. O formulário exige nome, ao menos um sistema de interesse e WhatsApp ou e-mail.
+Uma nova origem pode ser cadastrada na própria página e fica disponível no catálogo do CRM.
+Novos leads recebem etapa **Novo**, prioridade **Média** e o usuário autenticado como
+responsável. A migration `20261030100000_LeadContactOptional` permite leads sem telefone;
+aplique-a antes de publicar esta página. A sessão do servidor não expira por inatividade,
+mas pode terminar por saída explícita, revogação da conta ou limpeza dos cookies pelo navegador.
+
 Cadastro, edição, consulta detalhada, timeline de interações, filtros combinados, ordenação e paginação. O detalhe do lead reúne dados cadastrais, histórico, conversa e tarefas associadas.
 
 ### Importação
