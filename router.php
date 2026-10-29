@@ -13,7 +13,7 @@ declare(strict_types=1);
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
 // Nunca expõe arquivos internos do backend ou do próprio repositório.
-if (preg_match('#^/(backend|vendor|node_modules|\.)#', $path)) {
+if (preg_match('#^/(backend|whatsapp-connector|vendor|node_modules|\.)#', rawurldecode($path))) {
     http_response_code(404);
     echo 'Não encontrado';
     return true;

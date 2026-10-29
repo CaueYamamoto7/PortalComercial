@@ -16,6 +16,9 @@ backend/phpunit.xml.dist
 backend/phpcs.xml
 backend/phpstan.neon
 backend/psalm.xml
+whatsapp-connector/node_modules
+whatsapp-connector/data
+whatsapp-connector/.env
 
 # Ambiente e documentação
 .env

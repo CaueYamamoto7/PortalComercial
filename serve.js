@@ -26,7 +26,8 @@ http.createServer((req, res) => {
   if (filePath === "/") filePath = "/index.html";
   const file = path.join(root, filePath);
 
-  if (!file.startsWith(root)) {
+  const relative = path.relative(root, file);
+  if (relative.startsWith("..") || path.isAbsolute(relative) || /^(backend|whatsapp-connector|node_modules|\.)/.test(relative)) {
     res.writeHead(403);
     res.end("Forbidden");
     return;
