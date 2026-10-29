@@ -622,10 +622,10 @@
               }).join("") + "</div></div>" +
             '<div class="field field--full"><span class="field__label">Prévia para ' + u.escaparHTML(u.primeiroNome(lead.nome)) + "</span>" +
               '<div class="message-preview" data-msg-preview></div>' +
-              '<span class="field__hint">A mensagem é registrada no histórico do lead. A integração oficial com o WhatsApp será habilitada em breve.</span></div>' +
+               '<span class="field__hint">Revise e confirme o envio no WhatsApp. A automação deste contato será encerrada. O histórico será sincronizado quando o conector receber o envio.</span></div>' +
           "</div>",
         footer: '<button class="btn btn--secondary" type="button" data-close>Cancelar</button>' +
-          '<button class="btn btn--primary" type="button" data-enviar' + (bloqueado ? " disabled" : "") + ">" + icone("send") + "Enviar mensagem</button>"
+           '<button class="btn btn--primary" type="button" data-enviar' + (bloqueado ? " disabled" : "") + ">" + icone("send") + "Abrir no WhatsApp</button>"
       });
 
       var textarea = m.el.querySelector("[data-msg-text]");
@@ -676,12 +676,17 @@
         }
         btn.disabled = true;
         btn.classList.add("is-loading");
+        var whatsappWindow = window.open("about:blank", "_blank");
+        if (whatsappWindow) whatsappWindow.opener = null;
         var tpl = m.el.querySelector("[data-msg-template]").value;
-        Painel.api.mensagens.enviarIndividual(lead.id, { mensagem: mensagem, templateId: tpl || null }).then(function () {
+        Painel.api.mensagens.enviarIndividual(lead.id, { mensagem: mensagem, templateId: tpl || null }).then(function (result) {
+          if (whatsappWindow) whatsappWindow.location.replace(result.url);
+          else window.location.href = result.url;
           m.close();
-          Painel.ui.toast("Mensagem enviada e registrada no histórico do lead.", "success");
+          Painel.ui.toast("Mensagem preparada. Confirme o envio no WhatsApp.", "success");
           if (opts.onSent) opts.onSent();
         }).catch(function (err) {
+          if (whatsappWindow) whatsappWindow.close();
           btn.disabled = false;
           btn.classList.remove("is-loading");
           Painel.ui.toast(err.message || "Não foi possível enviar.", "error");

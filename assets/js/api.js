@@ -210,6 +210,14 @@
     pipeline: {
       obter: function (params) { return requisicao("GET", "/pipeline", undefined, params); }
     },
+    whatsapp: {
+      status: function () { return requisicao("GET", "/whatsapp/status"); },
+      options: function () { return requisicao("GET", "/whatsapp/options"); },
+      connect: function (action) { return requisicao("POST", "/whatsapp/connect", { action: action }); },
+      listar: function (params) { return requisicao("GET", "/whatsapp/outreach", undefined, params); },
+      criar: function (data) { return requisicao("POST", "/whatsapp/outreach", data); },
+      action: function (id, action, message) { return requisicao("POST", "/whatsapp/outreach/" + id, { action: action, message: message }); }
+    },
     mensagens: {
       listar: function (params) { return requisicao("GET", "/mensagens", undefined, params); },
       obter: function (id) { return requisicao("GET", "/mensagens/" + id); },

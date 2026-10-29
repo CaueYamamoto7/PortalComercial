@@ -1,0 +1,15 @@
+.wa-connection { margin-bottom: 20px; }
+.wa-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+.wa-composer { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.wa-composer .field { margin-bottom: 16px; }
+.wa-leads { margin: 16px 0; }
+.wa-lead { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border, #dce3e0); align-items: center; }
+.wa-lead > div { flex: 1; min-width: 0; }
+.wa-lead small { display: block; }
+.wa-item { padding: 20px 0; border-bottom: 1px solid var(--border, #dce3e0); }
+.wa-item p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wa-item .row { flex-wrap: wrap; gap: 10px; }
+#wa-feedback:empty, #wa-connection-error:empty { display: none; }
+#wa-feedback { padding: 12px; border: 1px solid var(--border, #dce3e0); border-radius: 8px; }
+#wa-qr { background: white; padding: 8px; max-width: 100%; }
+@media (max-width: 850px) { .wa-composer { grid-template-columns: 1fr; } }

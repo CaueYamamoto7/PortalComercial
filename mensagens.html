@@ -5,13 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c1210">
-  <meta name="description" content="Envio de mensagens em massa e individuais pelo WhatsApp — Portal Comercial AssinaSoft.">
-  <meta name="csrf-token" content="">
   <title>Mensagens · Portal Comercial</title>
   <link rel="icon" type="image/png" href="images/logoMini.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/components.css">
@@ -19,6 +17,7 @@
   <link rel="stylesheet" href="assets/css/crm.css">
   <link rel="stylesheet" href="assets/css/modern.css">
   <link rel="stylesheet" href="assets/css/workspace.css">
+  <link rel="stylesheet" href="assets/css/whatsapp.css">
   <script defer src="assets/js/config.js"></script>
   <script defer src="assets/js/util.js"></script>
   <script defer src="assets/js/store.js"></script>
@@ -30,219 +29,60 @@
     <div class="app__main">
       <header class="topbar" id="topbar"></header>
       <main class="page page--wide">
-        <div class="page-head">
-          <div class="page-head__main">
-            <h1 class="page-head__title">Mensagens</h1>
-            <p class="page-head__desc">Escolha o público, personalize a mensagem e envie para vários contatos de uma vez.</p>
-          </div>
-          <div class="page-head__actions">
-            <button class="btn btn--secondary" type="button" data-templates><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#file-text"></use></svg>Templates</button>
-          </div>
-        </div>
-
-        <div class="msg-view-switch">
-          <div class="segmented" role="group" aria-label="Alternar entre composição e histórico">
-            <button type="button" class="is-active" data-view="composer">Nova mensagem</button>
-            <button type="button" data-view="historico">Histórico</button>
-          </div>
-        </div>
-
-        <section id="view-composer">
-          <div class="composer-layout">
-            <div class="composer-main">
-              <section class="card">
-                <div class="card__head card__head--bordered">
-                  <div>
-                    <h2 class="card__title">Público</h2>
-                    <p class="card__desc">Defina quem vai receber a mensagem</p>
-                  </div>
-                  <div class="card__actions">
-                    <div class="segmented segmented--sm" role="group" aria-label="Modo de seleção do público">
-                      <button type="button" class="is-active" data-modo="filtros">Filtros</button>
-                      <button type="button" data-modo="manual">Selecionar leads</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="card__body">
-                  <div class="filters-bar msg-filters">
-                    <label class="field"><span class="field__label">Etapa</span><select class="select" id="msg-etapa"><option value="">Todas</option></select></label>
-                    <label class="field"><span class="field__label">Sistema</span><select class="select" id="msg-sistema"><option value="">Todos</option></select></label>
-                    <label class="field"><span class="field__label">Origem</span><select class="select" id="msg-origem"><option value="">Todas</option></select></label>
-                    <label class="field"><span class="field__label">Responsável</span><select class="select" id="msg-responsavel"><option value="">Todos</option></select></label>
-                    <label class="field"><span class="field__label">Possui sistema</span><select class="select" id="msg-possui">
-                      <option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option><option value="nao_informado">Não informado</option>
-                    </select></label>
-                    <label class="field"><span class="field__label">Prioridade</span><select class="select" id="msg-prioridade">
-                      <option value="">Todas</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option>
-                    </select></label>
-                    <div class="field field--wide">
-                      <span class="field__label">Buscar</span>
-                      <div class="search-inline">
-                        <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>
-                          <input class="input" id="msg-busca" type="search" placeholder="Nome, empresa, cidade ou tag…" autocomplete="off"></div>
-                        <button class="btn btn--secondary btn--sm search-submit" type="button" data-buscar-publico>
-                          <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>Pesquisar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="audience-count">
-                    <span class="audience-count__icon"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#users"></use></svg></span>
-                    <div><strong id="msg-publico">0</strong> contato(s) no público <small id="msg-publico-nota">—</small></div>
-                    <button class="text-link xs" type="button" data-limpar-publico>Limpar filtros</button>
-                  </div>
-
-                  <div class="audience-manual" id="audience-manual" hidden>
-                    <div class="audience-manual__head">
-                      <strong>Selecione os contatos</strong>
-                      <div class="row">
-                        <button class="text-link xs" type="button" data-selecionar-visiveis>Selecionar todos os visíveis</button>
-                        <button class="text-link xs" type="button" data-limpar-selecao>Limpar seleção</button>
-                      </div>
-                    </div>
-                    <div class="audience-list" id="audience-list"></div>
-                  </div>
-                  <p class="small faint" id="msg-excluidos" hidden></p>
-                </div>
-              </section>
-
-              <section class="card">
-                <div class="card__head card__head--bordered">
-                  <div>
-                    <h2 class="card__title">Mensagem</h2>
-                    <p class="card__desc">Use variáveis para personalizar cada envio</p>
-                  </div>
-                </div>
-                <div class="card__body">
-                  <div class="form-grid">
-                    <label class="field field--full"><span class="field__label">Nome da campanha <em class="field__req">*</em></span>
-                      <input class="input" id="msg-nome" placeholder="Ex.: Retomada feira — leads quentes" autocomplete="off"></label>
-                    <label class="field field--full"><span class="field__label">Template</span>
-                      <select class="select" id="msg-template"><option value="">Mensagem livre</option></select></label>
-                    <div class="field field--full"><span class="field__label">Mensagem <em class="field__req">*</em></span>
-                      <textarea class="textarea" id="msg-texto" rows="8" placeholder="Olá, {{primeiro_nome}}! Tudo bem?"></textarea>
-                      <div class="msg-meta"><span id="msg-chars">0 caracteres</span><span id="msg-segs">1 segmento</span><span class="spacer"></span><span id="msg-variaveis-aviso">Variáveis não preenchidas ficam visíveis</span></div>
-                      <div class="variable-chips" id="msg-variaveis"></div>
-                    </div>
-                  </div>
-
-                  <div class="msg-schedule">
-                    <label class="check check--box switch-row">
-                      <input type="checkbox" id="msg-agendar">
-                      <span class="switch"></span>
-                      <span class="switch-row__text"><strong>Agendar envio</strong><p>Sem agendamento, a campanha é enviada imediatamente.</p></span>
-                    </label>
-                    <div class="msg-schedule__date" id="msg-data-wrap" hidden>
-                      <label class="field"><span class="field__label">Data e hora</span><input class="input" id="msg-data" type="datetime-local"></label>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <aside class="composer-side">
-              <section class="card summary-card">
-                <div class="summary-card__head">
-                  <h2>Resumo do envio</h2>
-                  <span class="badge badge--success">WhatsApp</span>
-                </div>
-                <div class="summary-card__body">
-                  <div class="summary-list">
-                    <div class="summary-row"><span>Destinatários</span><strong id="resumo-publico">0</strong></div>
-                    <div class="summary-row"><span>Bloqueados (não contatar)</span><strong id="resumo-bloqueados">0</strong></div>
-                    <div class="summary-row"><span>Mensagens estimadas</span><strong id="resumo-segmentos">0</strong></div>
-                    <div class="summary-row"><span>Responsável</span><strong id="resumo-responsavel">—</strong></div>
-                  </div>
-                  <div class="summary-divider"></div>
-                  <div class="summary-note"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#info"></use></svg><span>Os envios são registrados no histórico de cada lead. A integração oficial com o WhatsApp será habilitada em breve.</span></div>
-                </div>
-                <div class="summary-card__foot">
-                  <button class="btn btn--primary btn--block" type="button" id="msg-enviar"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#send"></use></svg>Enviar mensagem</button>
-                  <p class="small faint">Revise o público e a mensagem antes de enviar.</p>
-                </div>
-              </section>
-
-              <section class="card message-preview-card">
-                <div class="card__head">
-                  <div>
-                    <h2 class="card__title">Prévia</h2>
-                    <p class="card__desc" id="preview-lead">Selecione um lead</p>
-                  </div>
-                </div>
-                <div class="card__body">
-                  <div class="whats-preview">
-                    <div class="whats-preview__bar"><span class="avatar avatar--xs">AS</span><strong>AssinaSoft</strong><small>online</small></div>
-                    <div class="whats-preview__body">
-                      <div class="whats-bubble" id="msg-preview"><span class="faint">A prévia aparece aqui.</span></div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </aside>
+        <div class="page-head"><div class="page-head__main">
+          <h1 class="page-head__title">Mensagens</h1>
+          <p class="page-head__desc">Aborde, acompanhe a resposta e continue a conversa pessoalmente.</p>
+        </div><button class="btn btn--secondary" id="wa-refresh" type="button">Atualizar</button></div>
+        <p id="wa-feedback" role="status" aria-live="polite"></p>
+        <section class="card wa-connection">
+          <div class="card__body">
+            <div class="row"><strong>Seu WhatsApp</strong><span class="badge" id="wa-status">Verificando conexão…</span><span id="wa-worker" class="small"></span></div>
+            <p class="small faint">Conexão por dispositivo vinculado, não oficial e sujeita a restrições do WhatsApp. O conector e o worker precisam permanecer ligados.</p>
+            <p id="wa-connection-error" class="small"></p>
+            <div id="wa-admin" hidden><button class="btn btn--secondary btn--sm" id="wa-connect" type="button">Conectar / gerar QR code</button> <button class="btn btn--secondary btn--sm" id="wa-disconnect" type="button">Desconectar</button></div>
+            <div id="wa-qr-wrap" hidden><p>WhatsApp → Aparelhos conectados → Conectar aparelho</p><img id="wa-qr" width="240" height="240" alt="QR code para vincular o WhatsApp"></div>
           </div>
         </section>
-
-        <section id="view-historico" hidden>
-          <div class="history-stats">
-            <div class="lead-stat"><span class="lead-stat__label">Campanhas</span><strong data-hstat="todas">—</strong><small>no total</small></div>
-            <div class="lead-stat"><span class="lead-stat__label">Registradas</span><strong data-hstat="registrada" class="is-info">—</strong><small>sem envio integrado</small></div>
-            <div class="lead-stat"><span class="lead-stat__label">Agendadas</span><strong data-hstat="agendada" class="is-warning">—</strong><small>aguardando</small></div>
-            <div class="lead-stat"><span class="lead-stat__label">Canceladas</span><strong data-hstat="cancelada">—</strong><small>encerradas</small></div>
-          </div>
-
-          <section class="card">
-            <div class="card__head card__head--bordered">
-              <div>
-                <h2 class="card__title">Histórico de mensagens</h2>
-                <p class="card__desc">Campanhas e envios registrados</p>
-              </div>
-              <div class="card__actions">
-                <div class="input-wrap history-search"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>
-                  <input class="input" id="history-busca" type="search" placeholder="Buscar campanha…" autocomplete="off"></div>
-                <button class="btn btn--secondary btn--sm search-submit" type="button" data-buscar-historico>
-                  <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#search"></use></svg>Pesquisar
-                </button>
-                <select class="select select--sm" id="history-status" aria-label="Filtrar por status">
-                  <option value="">Todos os status</option>
-                  <option value="registrada">Registradas</option>
-                  <option value="concluida">Concluídas</option>
-                  <option value="em_andamento">Em andamento</option>
-                  <option value="agendada">Agendadas</option>
-                  <option value="falha">Falhas</option>
-                  <option value="cancelada">Canceladas</option>
-                </select>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Campanha</th>
-                    <th>Status</th>
-                    <th class="th--right">Público</th>
-                    <th class="th--right">Enviados</th>
-                    <th class="th--right">Entregues</th>
-                    <th class="th--right">Falhas</th>
-                    <th>Quando</th>
-                    <th class="th--actions"><span class="sr-only">Ações</span></th>
-                  </tr>
-                </thead>
-                <tbody id="history-tbody">
-                  <tr><td colspan="8" style="height:160px"><div class="skeleton" style="height:12px;width:60%;margin:0 auto"></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="table-footer">
-              <span class="table-footer__info" id="history-info"><span class="skeleton" style="width:120px;height:12px" aria-label="Carregando" role="status"></span></span>
-              <div class="pagination" id="history-pagination"></div>
+        <nav class="wa-tabs" aria-label="Áreas de mensagens">
+          <button class="btn btn--primary" data-tab="new" type="button">Nova abordagem</button>
+          <button class="btn btn--secondary" data-tab="waiting" type="button">Aguardando resposta</button>
+          <button class="btn btn--secondary" data-tab="scheduled" type="button">Responderam</button>
+          <button class="btn btn--secondary" data-tab="manual" type="button">Em conversa</button>
+          <button class="btn btn--secondary" data-tab="history" type="button">Histórico</button>
+        </nav>
+        <section id="wa-new" class="wa-composer">
+          <section class="card"><div class="card__head"><div><h2 class="card__title">Selecionar leads</h2><p class="card__desc">Contatos novos, sem abordagem ou conversa anterior.</p></div></div>
+            <div class="card__body">
+              <form id="wa-search" class="filters-bar">
+                <label class="field"><span class="field__label">Buscar</span><input class="input" id="wa-query" placeholder="Nome, empresa ou telefone"></label>
+                <label class="field"><span class="field__label">Etapa</span><select class="select" id="wa-stage"><option value="">Todas</option></select></label>
+                <button class="btn btn--secondary" type="submit">Pesquisar</button>
+              </form>
+              <div class="row"><button class="text-link" id="wa-select-page" type="button">Selecionar elegíveis desta página</button><button class="text-link" id="wa-clear" type="button">Limpar seleção</button></div>
+              <p id="wa-selected" class="small" aria-live="polite">0 selecionados</p>
+              <div id="wa-leads" class="wa-leads"></div>
+              <div class="row"><button class="btn btn--secondary btn--sm" id="wa-prev" type="button">Anterior</button><span id="wa-page"></span><button class="btn btn--secondary btn--sm" id="wa-next" type="button">Próxima</button></div>
             </div>
           </section>
+          <section class="card"><div class="card__head"><h2 class="card__title">Abordagem em duas etapas</h2></div><form class="card__body" id="wa-start">
+            <label class="field"><span class="field__label">1. Saudação inicial</span><input class="input" id="wa-greeting" value="Olá {{nome}}, tudo bem?" readonly></label>
+            <p class="small faint">Após o envio: <span data-wa-contatada>Contatado</span> / Aguardando. Sem resposta, nenhuma outra mensagem será enviada.</p>
+            <label class="field"><span class="field__label">2. Mensagem contextual / objetivo aprovado</span><textarea class="textarea" id="wa-objective" rows="6" maxlength="1500" required placeholder="Descreva o produto, fatos confirmados e o próximo passo. Este texto também será usado se a IA estiver indisponível."></textarea></label>
+            <p class="small faint" id="wa-delay-hint">Ao responder: espera de 1–6 minutos, mensagem contextual e transferência ao operador. A IA utiliza os dados do lead e a resposta recebida.</p>
+            <label class="field"><span class="field__label">Origem e data da autorização para contato</span><textarea class="textarea" id="wa-consent" rows="2" maxlength="1000" required placeholder="Ex.: formulário de demonstração, 29/10/2026. Selecione apenas contatos abrangidos por esta autorização."></textarea></label>
+            <button class="btn btn--primary btn--block" id="wa-submit" type="submit">Iniciar abordagem</button>
+            <p class="small faint">Contatos que já responderam ou estão em <span data-wa-proposta>Proposta</span> seguem para atendimento manual.</p>
+          </form></section>
+        </section>
+        <section id="wa-queue-panel" hidden>
+          <div class="card"><div class="card__head"><h2 class="card__title" id="wa-queue-title">Fila</h2></div><div class="card__body">
+            <div id="wa-queue"></div>
+            <div class="row"><button class="btn btn--secondary btn--sm" id="wa-qprev" type="button">Anterior</button><span id="wa-qpage"></span><button class="btn btn--secondary btn--sm" id="wa-qnext" type="button">Próxima</button></div>
+          </div></div>
         </section>
       </main>
     </div>
   </div>
-
   <script defer src="assets/js/icons.js"></script>
   <script defer src="assets/js/api.js"></script>
   <script defer src="assets/js/ui.js"></script>
