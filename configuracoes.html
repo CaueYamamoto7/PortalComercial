@@ -45,6 +45,7 @@
             <a href="#origens"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#globe"></use></svg>Origens</a>
             <a href="#equipe"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#users"></use></svg>Equipe</a>
             <a href="#mensagens"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#message-circle"></use></svg>Mensagens</a>
+            <a href="#whatsapp"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#message-square"></use></svg>WhatsApp</a>
             <a href="#dados"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#database"></use></svg>Dados</a>
           </aside>
 
@@ -62,6 +63,12 @@
                   <label class="field"><span class="field__label">Site</span><input class="input" name="site" placeholder="assinasoft.com.br"></label>
                   <label class="field"><span class="field__label">Cidade</span><input class="input" name="cidade"></label>
                   <label class="field field--narrow"><span class="field__label">UF</span><input class="input" name="uf" maxlength="2" style="text-transform:uppercase"></label>
+                  <label class="field"><span class="field__label">Nome de exibição</span><input class="input" name="nomeExibicao" maxlength="190" placeholder="AssinaSoft"><span class="field__hint">Aparece no painel e no login.</span></label>
+                  <label class="field"><span class="field__label">Nome do aplicativo</span><input class="input" name="nomeApp" maxlength="190" placeholder="Portal Comercial"></label>
+                  <label class="field"><span class="field__label">E-mail de suporte</span><input class="input" type="email" name="emailSuporte" placeholder="suporte@empresa.com.br"></label>
+                  <label class="field"><span class="field__label">Logo principal</span><input class="input" name="logo" placeholder="images/logoFull.png"></label>
+                  <label class="field"><span class="field__label">Logo reduzido</span><input class="input" name="logoMini" placeholder="images/logoMini.png"></label>
+                  <label class="field field--full"><span class="field__label">Rodapé</span><input class="input" name="rodape" maxlength="190" placeholder="AssinaSoft · Portal Comercial"></label>
                 </form>
               </div>
               <div class="settings-card__foot">
@@ -77,6 +84,18 @@
               </div>
               <div class="settings-list" id="lista-etapas">
                 <div class="loading-lines" aria-label="Carregando etapas" role="status"></div>
+              </div>
+              <div class="card__body">
+                <form id="form-funil" class="form-grid">
+                  <p class="field field--full small faint">Escolha quais etapas o sistema deve tratar como contato realizado, proposta e negociação. Se você renomear ou recriar uma etapa, basta atualizar aqui.</p>
+                  <label class="field"><span class="field__label">Etapa de contato realizado</span><select class="input" name="etapaContatadaId"></select></label>
+                  <label class="field"><span class="field__label">Etapa de proposta</span><select class="input" name="etapaPropostaId"></select></label>
+                  <label class="field"><span class="field__label">Etapa de negociação</span><select class="input" name="etapaNegociacaoId"></select></label>
+                </form>
+              </div>
+              <div class="settings-card__foot">
+                <span class="small faint">As regras do funil e da fila do WhatsApp usam estas etapas.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar="funil"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar funil</button>
               </div>
             </section>
 
@@ -120,11 +139,53 @@
                   <label class="field"><span class="field__label">Intervalo entre envios (segundos)</span><input class="input" type="number" min="1" max="120" name="intervalo"></label>
                   <label class="field"><span class="field__label">Horário de início</span><input class="input" type="time" name="inicio"></label>
                   <label class="field"><span class="field__label">Horário de fim</span><input class="input" type="time" name="fim"></label>
+                  <label class="field"><span class="field__label">Fuso horário dos envios</span><input class="input" name="fusoHorario" placeholder="America/Sao_Paulo"><span class="field__hint">Use um identificador IANA, como America/Sao_Paulo.</span></label>
+                  <label class="field"><span class="field__label">Máximo por campanha</span><input class="input" type="number" min="1" max="50000" name="maxCampanha"></label>
+                  <label class="field"><span class="field__label">Máximo por importação</span><input class="input" type="number" min="1" max="50000" name="maxImportacao"></label>
+                  <label class="field"><span class="field__label">Máximo por exportação</span><input class="input" type="number" min="1" max="50000" name="maxExportacao"></label>
+                  <label class="field"><span class="field__label">Máximo no pipeline</span><input class="input" type="number" min="1" max="50000" name="maxPipeline"></label>
+                  <label class="field"><span class="field__label">Itens por página</span><input class="input" type="number" min="5" max="200" name="porPagina"></label>
                 </form>
               </div>
               <div class="settings-card__foot">
-                <span class="small faint">O envio é registrado no histórico do lead. A integração oficial com o WhatsApp será habilitada em breve.</span>
+                <span class="small faint">O envio é registrado no histórico do lead. A automação do WhatsApp fica na seção WhatsApp.</span>
                 <button class="btn btn--primary btn--sm" type="button" data-salvar="mensagens"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar mensagens</button>
+              </div>
+            </section>
+
+            <section class="card settings-card" id="whatsapp">
+              <div class="card__head card__head--bordered">
+                <div><h2 class="card__title">WhatsApp</h2><p class="card__desc">Saudação, espera, limites e inteligência artificial</p></div>
+              </div>
+              <div class="card__body">
+                <form id="form-whatsapp" class="form-grid">
+                  <label class="field"><span class="field__label">Saudação com nome</span><input class="input" name="greetingTemplate" maxlength="500" placeholder="Olá {{nome}}, tudo bem?"><span class="field__hint">Use {{nome}} ou {{primeiro_nome}}.</span></label>
+                  <label class="field"><span class="field__label">Saudação sem nome</span><input class="input" name="greetingTemplateSemNome" maxlength="500" placeholder="Olá, tudo bem?"></label>
+                  <label class="field field--full"><span class="field__label">Objetivo padrão da abordagem</span><textarea class="textarea" name="objectiveDefault" maxlength="1500" rows="3"></textarea></label>
+                  <label class="field"><span class="field__label">Espera mínima (segundos)</span><input class="input" type="number" min="10" max="3600" name="delayMinSeconds"></label>
+                  <label class="field"><span class="field__label">Espera máxima (segundos)</span><input class="input" type="number" min="10" max="86400" name="delayMaxSeconds"></label>
+                  <label class="field"><span class="field__label">Envio sem confirmação (segundos)</span><input class="input" type="number" min="60" max="86400" name="staleSeconds"><span class="field__hint">Depois disso, o contato vai para atendimento manual.</span></label>
+                  <label class="field"><span class="field__label">Nova tentativa após mudança (segundos)</span><input class="input" type="number" min="10" max="86400" name="retrySeconds"></label>
+                  <label class="field"><span class="field__label">Máximo de leads por lote</span><input class="input" type="number" min="1" max="1000" name="maxLeadsPerBatch"></label>
+                  <label class="field"><span class="field__label">Máximo do objetivo</span><input class="input" type="number" min="100" max="10000" name="maxObjectiveLength"></label>
+                  <label class="field"><span class="field__label">Máximo da mensagem</span><input class="input" type="number" min="100" max="4096" name="maxMessageLength"></label>
+                  <label class="field field--full check"><input type="checkbox" name="aiEnabled"><span>Usar IA para responder quando houver dúvida</span></label>
+                  <label class="field"><span class="field__label">Modelo da IA</span><input class="input" name="aiModel" maxlength="120" placeholder="Deixe vazio para usar a variável de ambiente"></label>
+                  <label class="field"><span class="field__label">Temperatura</span><input class="input" type="number" step="0.1" min="0" max="2" name="aiTemperature"></label>
+                  <label class="field"><span class="field__label">Máximo de tokens</span><input class="input" type="number" min="50" max="8000" name="aiMaxTokens"></label>
+                  <label class="field"><span class="field__label">Timeout (segundos)</span><input class="input" type="number" min="5" max="120" name="aiTimeout"></label>
+                  <label class="field"><span class="field__label">Máximo da resposta recebida</span><input class="input" type="number" min="100" max="10000" name="aiMaxReplyLength"></label>
+                  <label class="field"><span class="field__label">Máximo das observações</span><input class="input" type="number" min="100" max="10000" name="aiMaxNotesLength"></label>
+                  <label class="field"><span class="field__label">Máximo da resposta gerada</span><input class="input" type="number" min="100" max="4096" name="aiMaxOutputLength"></label>
+                  <label class="field"><span class="field__label">Palavra de transferência humana</span><input class="input" name="humanToken" maxlength="30" placeholder="HUMANO"></label>
+                  <label class="field"><span class="field__label">Assinatura de fallback</span><input class="input" name="fallbackSignature" maxlength="190" placeholder="da AssinaSoft"></label>
+                  <label class="field field--full"><span class="field__label">Instrução da IA</span><textarea class="textarea" name="aiSystemPrompt" maxlength="5000" rows="4"></textarea><span class="field__hint">Use {{empresa}} e {{humano}} como marcadores.</span></label>
+                  <label class="field field--full"><span class="field__label">Expressão de recusa</span><textarea class="textarea" name="refusalPattern" maxlength="1000" rows="3"></textarea><span class="field__hint">Expressão regular usada para bloquear pedidos de descadastro.</span></label>
+                </form>
+              </div>
+              <div class="settings-card__foot">
+                <span class="small faint">As alterações valem para os próximos envios. Mensagens já agendadas não são reenviadas.</span>
+                <button class="btn btn--primary btn--sm" type="button" data-salvar="whatsapp"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#check"></use></svg>Salvar WhatsApp</button>
               </div>
             </section>
 

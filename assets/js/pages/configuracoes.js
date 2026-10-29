@@ -24,7 +24,11 @@
       config = cfg;
       preencher(el("form-empresa"), cfg.empresa);
       preencher(el("form-mensagens"), cfg.mensagens);
+      preencher(el("form-funil"), cfg.funil);
+      preencher(el("form-whatsapp"), cfg.whatsapp);
+      el("form-whatsapp").elements.aiEnabled.checked = !!(cfg.whatsapp && cfg.whatsapp.aiEnabled);
       renderEtapas();
+      preencherPapeis(cfg.funil);
       renderSistemas();
       renderOrigens();
       renderEquipe();
@@ -45,6 +49,24 @@
     return (config.etapas || []).slice().sort(function (a, b) { return a.ordem - b.ordem; });
   }
 
+  function preencherPapeis(funil) {
+    var form = el("form-funil");
+    if (!form) return;
+    ["etapaContatadaId", "etapaPropostaId", "etapaNegociacaoId"].forEach(function (nome) {
+      var select = form.elements[nome];
+      if (!select) return;
+      var atual = (funil && funil[nome]) || select.value;
+      select.innerHTML = "";
+      ordenarEtapas().forEach(function (etapa) {
+        var option = document.createElement("option");
+        option.value = etapa.id;
+        option.textContent = etapa.nome;
+        select.appendChild(option);
+      });
+      if (atual) select.value = atual;
+    });
+  }
+
   /* Empresa e mensagens ---------------------------------------------------- */
 
   function salvarSecao(secao, form, botao) {
@@ -58,18 +80,48 @@
       dados.limiteDiario = Number(dados.limiteDiario) || 300;
       dados.intervalo = Number(dados.intervalo) || 10;
     }
+    if (secao === "whatsapp") {
+      dados.aiEnabled = !!form.elements.aiEnabled.checked;
+      ["delayMinSeconds", "delayMaxSeconds", "staleSeconds", "retrySeconds", "maxLeadsPerBatch",
+        "maxObjectiveLength", "maxMessageLength", "aiMaxTokens", "aiTimeout", "aiMaxReplyLength",
+        "aiMaxNotesLength", "aiMaxOutputLength"].forEach(function (campo) {
+        dados[campo] = Number(dados[campo]) || 0;
+      });
+      dados.aiTemperature = Number(dados.aiTemperature) || 0;
+    }
     botao.disabled = true;
     botao.classList.add("is-loading");
     api.configuracoes.salvar(secao, dados).then(function () {
       botao.disabled = false;
       botao.classList.remove("is-loading");
-      ui.toast(secao === "empresa" ? "Dados da empresa salvos." : "Configurações de mensagens salvas.", "success");
+      var mensagens = {
+        empresa: "Dados da empresa salvos.",
+        mensagens: "Configurações de mensagens salvas.",
+        funil: "Papéis das etapas salvos.",
+        whatsapp: "Configurações do WhatsApp salvas."
+      };
+      ui.toast(mensagens[secao] || "Configurações salvas.", "success");
       if (secao === "empresa") {
         var sessao = Painel.auth.sessao();
+        var exibicao = dados.nomeExibicao || dados.nome;
         if (sessao) {
-          sessao.empresa = dados.nome;
+          sessao.empresa = exibicao;
           Painel.store.setSession(sessao);
         }
+        if (Painel.brand) {
+          Painel.brand.dados.nome = exibicao;
+          Painel.brand.dados.nomeExibicao = exibicao;
+          Painel.brand.dados.nomeApp = dados.nomeApp || Painel.brand.dados.nomeApp;
+          Painel.brand.dados.logo = dados.logo || Painel.brand.dados.logo;
+          Painel.brand.dados.logoMini = dados.logoMini || Painel.brand.dados.logoMini;
+          Painel.brand.dados.emailSuporte = dados.emailSuporte || "";
+          Painel.brand.dados.rodape = dados.rodape || Painel.brand.dados.rodape;
+          Painel.brand.aplicar();
+        }
+      }
+      if (secao === "funil") {
+        config.funil = dados;
+        preencherPapeis(dados);
       }
     }).catch(function (err) {
       botao.disabled = false;
@@ -358,7 +410,8 @@
     document.querySelectorAll("[data-salvar]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var secao = btn.getAttribute("data-salvar");
-        var form = el(secao === "empresa" ? "form-empresa" : "form-mensagens");
+        var forms = { empresa: "form-empresa", mensagens: "form-mensagens", funil: "form-funil", whatsapp: "form-whatsapp" };
+        var form = el(forms[secao] || "form-mensagens");
         salvarSecao(secao, form, btn);
       });
     });

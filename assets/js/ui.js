@@ -39,9 +39,13 @@
   }
 
   function marca() {
+    var brand = (Painel.brand && Painel.brand.dados) || {};
+    var nome = brand.nomeExibicao || Painel.config.company;
+    var app = brand.nomeApp || Painel.config.app;
+    var logo = brand.logo || "images/logoFull.png";
     return '<span class="brand__text">' +
-      '<img class="brand__logo" src="images/logoFull.png" alt="AssinaSoft">' +
-      '<span class="brand__tag">Portal Comercial</span></span>';
+      '<img class="brand__logo" src="' + u.escaparHTML(logo) + '" alt="' + u.escaparHTML(nome) + '">' +
+      '<span class="brand__tag">' + u.escaparHTML(app) + '</span></span>';
   }
 
   function navGrupo(nome, chaves, atual) {
@@ -73,9 +77,12 @@
     ];
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
+    var brand = (Painel.brand && Painel.brand.dados) || {};
+    var app = brand.nomeApp || "Portal Comercial";
+    var logoMini = brand.logoMini || "images/logoMini.png";
     el.innerHTML =
-      '<a class="rail-brand" href="index.html" aria-label="Portal Comercial" data-rail-tip="Portal Comercial">' +
-        '<img src="images/logoMini.png" alt="" width="34" height="34">' +
+      '<a class="rail-brand" href="index.html" aria-label="' + u.escaparHTML(app) + '" data-rail-tip="' + u.escaparHTML(app) + '">' +
+        '<img src="' + u.escaparHTML(logoMini) + '" alt="" width="34" height="34">' +
       "</a>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
       '<a class="rail-status" href="mensagens.html" aria-label="WhatsApp — integração pendente" data-rail-tip="WhatsApp · Integração pendente">' +

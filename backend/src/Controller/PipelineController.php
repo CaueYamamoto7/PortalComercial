@@ -3,23 +3,23 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\SettingsService;
 use Cake\Http\Response;
 
 class PipelineController extends AppController
 {
-    private const LIMITE = 2000;
-
     public function index(): Response
     {
         $params = (array)$this->request->getQueryParams();
         unset($params['etapa']);
         $identidade = $this->identidade();
+        $limite = (int)((new SettingsService())->mensagens()['maxPipeline'] ?? 2000);
 
         $query = $this->queryService()->baseQuery($params, $identidade);
         $total = (clone $query)->count();
         $rows = $query
             ->orderBy(['Leads.atualizado_em' => 'DESC'])
-            ->limit(self::LIMITE)
+            ->limit($limite)
             ->all()
             ->toList();
 
@@ -47,7 +47,7 @@ class PipelineController extends AppController
             'etapas' => $etapas,
             'total' => $total,
             'carregados' => $carregados,
-            'truncado' => $total > self::LIMITE,
+            'truncado' => $total > $limite,
             'facets' => $this->queryService()->facets($params, $identidade),
         ]);
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\SettingsService;
 use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
@@ -280,8 +281,9 @@ class LeadsController extends AppController
         $this->request->allowMethod(['post']);
         $dados = (array)$this->request->getData();
         $linhas = (array)($dados['linhas'] ?? []);
-        if (count($linhas) > 2000) {
-            $this->erro('Importe no máximo 2.000 linhas por vez.', 'linhas');
+        $maxImportacao = (int)((new SettingsService())->mensagens()['maxImportacao'] ?? 2000);
+        if (count($linhas) > $maxImportacao) {
+            $this->erro('Importe no máximo ' . number_format($maxImportacao, 0, ',', '.') . ' linhas por vez.', 'linhas');
         }
 
         $service = $this->service();
@@ -463,7 +465,7 @@ class LeadsController extends AppController
         $query = $this->queryService()->baseQuery($params, $identidade);
         $rows = $query
             ->orderBy(['Leads.atualizado_em' => 'DESC'])
-            ->limit(10000)
+            ->limit((int)((new SettingsService())->mensagens()['maxExportacao'] ?? 2000))
             ->all()
             ->toList();
 

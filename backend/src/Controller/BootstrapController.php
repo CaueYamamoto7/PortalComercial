@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\PreferencesService;
+use App\Service\SettingsService;
 use Cake\Http\Response;
 
 /**
@@ -16,8 +17,7 @@ class BootstrapController extends AppController
     {
         $identidade = $this->identidade();
         $access = $this->access();
-        $setting = $this->fetchTable('Settings')->find()->where(['id' => 'empresa'])->first();
-        $empresa = $setting ? (array)$setting->get('valor') : [];
+        $marca = (new SettingsService())->marca();
         $userId = (string)($identidade['id'] ?? '');
         $usuario = $userId !== ''
             ? $this->fetchTable('Users')->find()->select(['telefone'])->where(['id' => $userId])->first()
@@ -29,7 +29,7 @@ class BootstrapController extends AppController
                 'email' => (string)($identidade['email'] ?? ''),
                 'cargo' => (string)($identidade['cargo'] ?? ''),
                 'telefone' => (string)($usuario?->get('telefone') ?? ($identidade['telefone'] ?? '')),
-                'empresa' => (string)($empresa['nome'] ?? ''),
+                'empresa' => (string)($marca['nome'] ?? ''),
                 'iniciais' => (string)($identidade['iniciais'] ?? ''),
                 'role' => $access->roleFromIdentity($identidade),
                 'permissoes' => [

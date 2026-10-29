@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Service\AccessControl;
 use App\Service\RateLimiter;
+use App\Service\SettingsService;
 use Cake\Http\Response;
 
 class AuthController extends AppController
@@ -98,6 +99,7 @@ class AuthController extends AppController
             'autenticado' => (bool)$identidade,
             'usuario' => $identidade ? $this->sessaoPublica((array)$identidade) : null,
             'empresa' => $this->empresa(),
+            'marca' => (new SettingsService())->marca(),
         ]);
     }
 
@@ -129,9 +131,6 @@ class AuthController extends AppController
 
     private function empresa(): string
     {
-        $setting = $this->fetchTable('Settings')->find()->where(['id' => 'empresa'])->first();
-        $valor = $setting ? (array)$setting->get('valor') : [];
-
-        return (string)($valor['nome'] ?? '');
+        return (string)((new SettingsService())->marca()['nome'] ?? '');
     }
 }

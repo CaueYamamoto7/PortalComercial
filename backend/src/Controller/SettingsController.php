@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\PreferencesService;
+use App\Service\SettingsService;
 use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
@@ -31,6 +32,8 @@ class SettingsController extends AppController
         return $this->respond([
             'empresa' => $isAdmin ? $this->textoConfig('empresa') : [],
             'mensagens' => $this->textoConfig('mensagens'),
+            'funil' => $this->textoConfig('funil'),
+            'whatsapp' => $this->textoConfig('whatsapp'),
             'sistemas' => array_map(fn ($row) => $service->sistemaOut($row), $sistemas),
             'etapas' => $cat['etapas'],
             'origens' => array_map(fn ($row) => $service->origemOut($row), $origens),
@@ -49,7 +52,7 @@ class SettingsController extends AppController
     public function save(string $secao): Response
     {
         $this->request->allowMethod(['put', 'patch']);
-        if (!in_array($secao, ['empresa', 'mensagens'], true)) {
+        if (!in_array($secao, ['empresa', 'mensagens', 'funil', 'whatsapp'], true)) {
             $this->erro('Seção de configuração inválida.');
         }
         if ($secao === 'empresa') {
@@ -59,9 +62,25 @@ class SettingsController extends AppController
         }
 
         $dados = (array)$this->request->getData();
-        $permitidos = $secao === 'empresa'
-            ? ['nome', 'documento', 'email', 'telefone', 'site', 'cidade', 'uf']
-            : ['limiteDiario', 'intervalo', 'inicio', 'fim'];
+        $permitidos = match ($secao) {
+            'empresa' => [
+                'nome', 'documento', 'email', 'telefone', 'site', 'cidade', 'uf',
+                'nomeExibicao', 'nomeApp', 'logo', 'logoMini', 'emailSuporte', 'rodape',
+            ],
+            'mensagens' => [
+                'limiteDiario', 'intervalo', 'inicio', 'fim', 'fusoHorario',
+                'maxCampanha', 'maxImportacao', 'maxExportacao', 'maxPipeline', 'porPagina',
+            ],
+            'funil' => ['etapaContatadaId', 'etapaPropostaId', 'etapaNegociacaoId'],
+            'whatsapp' => [
+                'greetingTemplate', 'greetingTemplateSemNome', 'objectiveDefault',
+                'delayMinSeconds', 'delayMaxSeconds', 'staleSeconds', 'retrySeconds',
+                'maxLeadsPerBatch', 'maxObjectiveLength', 'maxMessageLength',
+                'aiEnabled', 'aiModel', 'aiTemperature', 'aiMaxTokens', 'aiTimeout',
+                'aiMaxReplyLength', 'aiMaxNotesLength', 'aiMaxOutputLength',
+                'aiSystemPrompt', 'humanToken', 'fallbackSignature', 'refusalPattern',
+            ],
+        };
         $novos = [];
         foreach ($permitidos as $chave) {
             if (array_key_exists($chave, $dados)) {
@@ -69,29 +88,12 @@ class SettingsController extends AppController
             }
         }
 
-        if ($secao === 'empresa') {
-            if (($novos['nome'] ?? '') === '' || mb_strlen($novos['nome']) > 190) {
-                $this->erro('Informe o nome da empresa.', 'nome');
-            }
-            if (($novos['email'] ?? '') !== '' && !filter_var($novos['email'], FILTER_VALIDATE_EMAIL)) {
-                $this->erro('Informe um e-mail válido.', 'email');
-            }
-            if (isset($novos['uf'])) {
-                $novos['uf'] = mb_substr(mb_strtoupper($novos['uf']), 0, 2);
-            }
-        } else {
-            $novos['limiteDiario'] = max(1, min(2000, (int)($novos['limiteDiario'] ?? 300)));
-            $novos['intervalo'] = max(1, min(120, (int)($novos['intervalo'] ?? 10)));
-            foreach (['inicio', 'fim'] as $campo) {
-                if (isset($novos[$campo]) && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $novos[$campo])) {
-                    $this->erro('Horário inválido.', $campo);
-                }
-            }
-        }
-
         $table = $this->fetchTable('Settings');
         $setting = $table->find()->where(['id' => $secao])->first();
         $atual = $setting ? (array)$setting->get('valor') : [];
+        // PATCH e formulários antigos não podem apagar configurações existentes.
+        $novos = array_merge((new SettingsService())->obter($secao), $novos);
+        $this->validarSecao($secao, $novos);
         foreach ($novos as $chave => $valor) {
             $atual[$chave] = $valor;
         }
@@ -105,6 +107,109 @@ class SettingsController extends AppController
         $this->registroAuditoria('configuracao.salvar', 'settings', $secao);
 
         return $this->respond($atual);
+    }
+
+    /** @param array<string, mixed> $novos */
+    private function validarSecao(string $secao, array &$novos): void
+    {
+        if ($secao === 'empresa') {
+            if (($novos['nome'] ?? '') === '' || mb_strlen($novos['nome']) > 190) {
+                $this->erro('Informe o nome da empresa.', 'nome');
+            }
+            foreach (['nomeExibicao', 'nomeApp', 'rodape'] as $campo) {
+                if (isset($novos[$campo]) && mb_strlen($novos[$campo]) > 190) {
+                    $this->erro('Texto muito longo.', $campo);
+                }
+            }
+            if (($novos['email'] ?? '') !== '' && !filter_var($novos['email'], FILTER_VALIDATE_EMAIL)) {
+                $this->erro('Informe um e-mail válido.', 'email');
+            }
+            if (($novos['emailSuporte'] ?? '') !== '' && !filter_var($novos['emailSuporte'], FILTER_VALIDATE_EMAIL)) {
+                $this->erro('Informe um e-mail de suporte válido.', 'emailSuporte');
+            }
+            if (isset($novos['uf'])) {
+                $novos['uf'] = mb_substr(mb_strtoupper($novos['uf']), 0, 2);
+            }
+
+            return;
+        }
+
+        if ($secao === 'mensagens') {
+            $novos['limiteDiario'] = max(1, min(2000, (int)($novos['limiteDiario'] ?? 300)));
+            $novos['intervalo'] = max(1, min(120, (int)($novos['intervalo'] ?? 10)));
+            $novos['maxCampanha'] = max(1, min(50000, (int)($novos['maxCampanha'] ?? 5000)));
+            $novos['maxImportacao'] = max(1, min(50000, (int)($novos['maxImportacao'] ?? 2000)));
+            $novos['maxExportacao'] = max(1, min(50000, (int)($novos['maxExportacao'] ?? 2000)));
+            $novos['maxPipeline'] = max(1, min(50000, (int)($novos['maxPipeline'] ?? 2000)));
+            $novos['porPagina'] = max(5, min(200, (int)($novos['porPagina'] ?? 50)));
+            foreach (['inicio', 'fim'] as $campo) {
+                if (isset($novos[$campo]) && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $novos[$campo])) {
+                    $this->erro('Horário inválido.', $campo);
+                }
+            }
+            if (isset($novos['fusoHorario']) && !in_array($novos['fusoHorario'], timezone_identifiers_list(), true)) {
+                $this->erro('Fuso horário inválido.', 'fusoHorario');
+            }
+            if (($novos['inicio'] ?? '') >= ($novos['fim'] ?? '')) {
+                $this->erro('O horário de fim deve ser posterior ao início.', 'fim');
+            }
+
+            return;
+        }
+
+        if ($secao === 'funil') {
+            $tabela = $this->fetchTable('Stages');
+            foreach (['etapaContatadaId', 'etapaPropostaId', 'etapaNegociacaoId'] as $campo) {
+                $id = (string)($novos[$campo] ?? '');
+                if ($id === '' || !$tabela->find()->where(['id' => $id])->first()) {
+                    $this->erro('Selecione uma etapa válida.', $campo);
+                }
+            }
+
+            return;
+        }
+
+        $this->validarWhatsApp($novos);
+    }
+
+    /** @param array<string, mixed> $novos */
+    private function validarWhatsApp(array &$novos): void
+    {
+        foreach (['greetingTemplate', 'greetingTemplateSemNome'] as $campo) {
+            $valor = (string)($novos[$campo] ?? '');
+            if ($valor === '' || mb_strlen($valor) > 500) {
+                $this->erro('Informe um texto de saudação com até 500 caracteres.', $campo);
+            }
+        }
+        $novos['objectiveDefault'] = mb_substr((string)($novos['objectiveDefault'] ?? ''), 0, 1500);
+        $novos['delayMinSeconds'] = max(10, min(3600, (int)($novos['delayMinSeconds'] ?? 60)));
+        $novos['delayMaxSeconds'] = max(
+            $novos['delayMinSeconds'],
+            min(86400, (int)($novos['delayMaxSeconds'] ?? 360)),
+        );
+        $novos['staleSeconds'] = max(60, min(86400, (int)($novos['staleSeconds'] ?? 900)));
+        $novos['retrySeconds'] = max(10, min(86400, (int)($novos['retrySeconds'] ?? 60)));
+        $novos['maxLeadsPerBatch'] = max(1, min(1000, (int)($novos['maxLeadsPerBatch'] ?? 200)));
+        $novos['maxObjectiveLength'] = max(100, min(10000, (int)($novos['maxObjectiveLength'] ?? 1500)));
+        $novos['maxMessageLength'] = max(100, min(4096, (int)($novos['maxMessageLength'] ?? 2000)));
+        $novos['aiEnabled'] = filter_var($novos['aiEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $novos['aiModel'] = mb_substr((string)($novos['aiModel'] ?? ''), 0, 120);
+        $novos['aiTemperature'] = max(0, min(2, (float)($novos['aiTemperature'] ?? 0.4)));
+        $novos['aiMaxTokens'] = max(50, min(8000, (int)($novos['aiMaxTokens'] ?? 400)));
+        $novos['aiTimeout'] = max(5, min(120, (int)($novos['aiTimeout'] ?? 15)));
+        $novos['aiMaxReplyLength'] = max(100, min(10000, (int)($novos['aiMaxReplyLength'] ?? 3000)));
+        $novos['aiMaxNotesLength'] = max(100, min(10000, (int)($novos['aiMaxNotesLength'] ?? 2000)));
+        $novos['aiMaxOutputLength'] = max(100, min(4096, (int)($novos['aiMaxOutputLength'] ?? 2000)));
+        $novos['aiSystemPrompt'] = mb_substr((string)($novos['aiSystemPrompt'] ?? ''), 0, 5000);
+        $novos['humanToken'] = mb_substr((string)($novos['humanToken'] ?? 'HUMANO'), 0, 30);
+        if (trim($novos['humanToken']) === '') {
+            $this->erro('Informe a palavra de transferência humana.', 'humanToken');
+        }
+        $novos['fallbackSignature'] = mb_substr((string)($novos['fallbackSignature'] ?? ''), 0, 190);
+        $novos['refusalPattern'] = (string)($novos['refusalPattern'] ?? '');
+        if ($novos['refusalPattern'] === '' || @preg_match($novos['refusalPattern'], '') === false) {
+            $this->erro('A expressão de recusa é inválida.', 'refusalPattern');
+        }
     }
 
     // ------------------------------------------------------------------
@@ -285,6 +390,7 @@ class SettingsController extends AppController
         );
 
         $table->delete($etapa);
+        $this->removerReferenciasEtapa($id, (string)$destino->get('id'));
         foreach ($restantes as $indice => $restante) {
             $restante->set('ordem', $indice);
             $table->saveOrFail($restante);
@@ -722,9 +828,29 @@ class SettingsController extends AppController
 
     private function textoConfig(string $chave): array
     {
-        $setting = $this->fetchTable('Settings')->find()->where(['id' => $chave])->first();
+        return (new SettingsService())->obter($chave);
+    }
 
-        return $setting ? (array)$setting->get('valor') : [];
+    /** Impede que o funil aponte para uma etapa excluída. */
+    private function removerReferenciasEtapa(string $removida, string $destino): void
+    {
+        $table = $this->fetchTable('Settings');
+        $setting = $table->find()->where(['id' => 'funil'])->first();
+        if (!$setting) {
+            return;
+        }
+        $valor = (array)$setting->get('valor');
+        $alterou = false;
+        foreach (['etapaContatadaId', 'etapaPropostaId', 'etapaNegociacaoId'] as $chave) {
+            if ((string)($valor[$chave] ?? '') === $removida) {
+                $valor[$chave] = $destino;
+                $alterou = true;
+            }
+        }
+        if ($alterou) {
+            $setting->set('valor', $valor);
+            $table->saveOrFail($setting);
+        }
     }
 
     private function membroDetalhado(object $row): array
@@ -777,13 +903,13 @@ class SettingsController extends AppController
     private function sessao(): array
     {
         $identidade = $this->identidade();
-        $empresa = $this->textoConfig('empresa');
+        $marca = (new SettingsService())->marca();
 
         return [
             'nome' => (string)($identidade['nome'] ?? ''),
             'email' => (string)($identidade['email'] ?? ''),
             'cargo' => (string)($identidade['cargo'] ?? ''),
-            'empresa' => (string)($empresa['nome'] ?? ''),
+            'empresa' => (string)($marca['nome'] ?? ''),
             'iniciais' => (string)($identidade['iniciais'] ?? ''),
             'role' => $this->access()->roleFromIdentity($identidade),
             'lembrar' => false,

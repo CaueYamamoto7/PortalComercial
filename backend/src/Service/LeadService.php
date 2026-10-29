@@ -171,9 +171,10 @@ class LeadService
 
         $id = is_array($etapa) ? ($etapa['id'] ?? '') : $etapa->get('id');
         $nome = is_array($etapa) ? ($etapa['nome'] ?? '') : $etapa->get('nome');
+        $settings = new SettingsService();
 
-        return (string)$id === 'et_contatado'
-            || $this->normalizar((string)$nome) === 'contatado';
+        return (string)$id === $settings->papelId('contatado')
+            || in_array($this->normalizar((string)$nome), $settings->papelNomes('contatado'), true);
     }
 
     /** @return array<int, string> */
@@ -198,9 +199,10 @@ class LeadService
 
         $id = is_array($etapa) ? ($etapa['id'] ?? '') : $etapa->get('id');
         $nome = is_array($etapa) ? ($etapa['nome'] ?? '') : $etapa->get('nome');
+        $settings = new SettingsService();
 
-        return (string)$id === 'et_proposta'
-            || $this->normalizar((string)$nome) === 'proposta';
+        return (string)$id === $settings->papelId('proposta')
+            || in_array($this->normalizar((string)$nome), $settings->papelNomes('proposta'), true);
     }
 
     public function filtrar(array $leads, array $params): array
@@ -369,6 +371,8 @@ class LeadService
         $total = count($leads);
         $abertos = $ganhos = $perdidos = $atrasados = $hojeCount = $naoContatar = 0;
         $emNegociacao = $emProposta = 0;
+        $etapaNegociacaoId = (new SettingsService())->papelId('negociacao');
+        $etapaPropostaId = (new SettingsService())->papelId('proposta');
 
         foreach ($leads as $lead) {
             $etapa = $etapasPorId[$lead['etapaId']] ?? null;
@@ -386,10 +390,10 @@ class LeadService
                     $hojeCount++;
                 }
             }
-            if ($lead['etapaId'] === 'et_negociacao') {
+            if ($lead['etapaId'] === $etapaNegociacaoId) {
                 $emNegociacao++;
             }
-            if ($lead['etapaId'] === 'et_proposta') {
+            if ($lead['etapaId'] === $etapaPropostaId) {
                 $emProposta++;
             }
             if ($lead['naoContatar']) {

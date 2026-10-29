@@ -187,7 +187,7 @@ class LeadQueryService
     public function paginar(array $filtros, array $identidade): array
     {
         $page = max(1, (int)($filtros['page'] ?? 1));
-        $perPage = (int)($filtros['perPage'] ?? 12);
+        $perPage = (int)($filtros['perPage'] ?? (new SettingsService())->mensagens()['porPagina']);
         $perPage = max(1, min(self::PER_PAGE_MAX, $perPage));
 
         $query = $this->baseQuery($filtros, $identidade);
@@ -241,9 +241,12 @@ class LeadQueryService
         $hoje = $hojeQuery->count();
 
         $emNegociacao = (clone $this->baseQuery($filtros, $identidade))
-            ->where(['Leads.etapa_id' => 'et_negociacao'])->count();
-        $emProposta = (clone $this->baseQuery($filtros, $identidade))
-            ->where(['Leads.etapa_id' => 'et_proposta'])->count();
+            ->where(['Leads.etapa_id' => (new SettingsService())->papelId('negociacao')])->count();
+        $propostas = $this->leads->etapasProposta();
+        $emProposta = $propostas
+            ? (clone $this->baseQuery($filtros, $identidade))
+                ->where(['Leads.etapa_id IN' => $propostas])->count()
+            : 0;
         $naoContatar = (clone $this->baseQuery($filtros, $identidade))
             ->where(['Leads.nao_contatar' => true])->count();
 
@@ -385,7 +388,7 @@ class LeadQueryService
     {
         return $this->audienciaQuery($filtros, $identidade)
             ->orderBy(['Leads.id' => 'ASC'])
-            ->limit(max(1, min(5000, $limite)))
+            ->limit(max(1, min(50001, $limite)))
             ->all()
             ->toList();
     }
