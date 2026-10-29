@@ -54,7 +54,7 @@ Agenda de tarefas por período, identificação de atrasos, conclusão de ativid
 
 ### Mensagens
 
-Composição de campanhas, seleção de público por filtros ou de forma manual, prévia de mensagem, variáveis, templates e histórico de envios.
+Abordagem em duas etapas: saudação inicial, espera pela resposta, mensagem contextual após 1–6 minutos e atendimento manual. Seleção de leads, filas persistentes, prévia editável, histórico e conexão de WhatsApp por QR code. Instruções de instalação e operação em [whatsapp-connector/README.md](whatsapp-connector/README.md).
 
 ### Relatórios
 
@@ -154,7 +154,8 @@ As migrations são aplicadas de forma independente do boot do container. As sess
 
 ## Estado atual
 
-- O envio de WhatsApp está implementado como stub: a mensagem é validada e registrada no histórico, mas não é disparada para a API do WhatsApp.
+- O WhatsApp usa um conector não oficial separado (Baileys) e um worker CakePHP. Exige configuração, serviços persistentes e vinculação pelo titular do número; não oferece garantia contra restrições. A geração contextual pode usar Groq ou fallback sem IA.
+- As campanhas antigas permanecem na API legada. A nova tela utiliza `/api/whatsapp/outreach`; mensagens individuais abrem o aplicativo oficial e não são marcadas como enviadas apenas pela abertura.
 - O banco inicial não contém leads, conversas ou campanhas fictícias.
 - A interface e a API são servidas na mesma origem em produção.
 
