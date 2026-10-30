@@ -17,6 +17,7 @@ class LeadQueryService
     use LocatorAwareTrait;
 
     public const PER_PAGE_MAX = 100;
+    private array $contagensCache = [];
 
     private LeadService $leads;
     private AccessControl $access;
@@ -224,28 +225,16 @@ class LeadQueryService
     /** @param array<string, mixed> $filtros @param array<string, mixed> $identidade */
     public function stats(array $filtros, array $identidade): array
     {
-        $total = (clone $this->baseQuery($filtros, $identidade))->count();
-        $abertos = $this->comEtapa($filtros, $identidade, 'aberto')->count();
-        $ganhos = $this->comEtapa($filtros, $identidade, 'ganho')->count();
-        $perdidos = $this->comEtapa($filtros, $identidade, 'perdido')->count();
-
-        $atrasadosQuery = $this->comEtapa($filtros, $identidade, 'aberto')
-            ->where(['Leads.proximo_contato <' => new DateTime()]);
-        $atrasados = $atrasadosQuery->count();
-
-        $hojeQuery = $this->comEtapa($filtros, $identidade, 'aberto')
-            ->where([
-                'Leads.proximo_contato >=' => (new DateTime('today')),
-                'Leads.proximo_contato <' => (new DateTime('today +1 day')),
-            ]);
-        $hoje = $hojeQuery->count();
-
-        $emNegociacao = (clone $this->baseQuery($filtros, $identidade))
-            ->where(['Leads.etapa_id' => 'et_negociacao'])->count();
-        $emProposta = (clone $this->baseQuery($filtros, $identidade))
-            ->where(['Leads.etapa_id' => 'et_proposta'])->count();
-        $naoContatar = (clone $this->baseQuery($filtros, $identidade))
-            ->where(['Leads.nao_contatar' => true])->count();
+        $c = $this->contagensAgregadas($filtros, $identidade);
+        $total = $c['total'];
+        $abertos = $c['abertos'];
+        $ganhos = $c['ganhos'];
+        $perdidos = $c['perdidos'];
+        $atrasados = $c['atrasados'];
+        $hoje = $c['hoje'];
+        $emNegociacao = $c['emNegociacao'];
+        $emProposta = $c['emProposta'];
+        $naoContatar = $c['naoContatar'];
 
         $decididos = $ganhos + $perdidos;
 
@@ -278,71 +267,77 @@ class LeadQueryService
     /** @param array<string, mixed> $filtros @param array<string, mixed> $identidade */
     public function contagensConversas(array $filtros, array $identidade): array
     {
-        $aberto = fn () => $this->comEtapa($filtros, $identidade, 'aberto');
-
-        $contatadas = $this->leads->etapasContatadas();
-
-        $semMensagemQuery = $aberto()->where([
-            'Leads.mensagens_enviadas' => 0,
-            'Leads.mensagens_recebidas' => 0,
-            'Leads.nao_contatar' => false,
-        ]);
-        if ($contatadas) {
-            $semMensagemQuery->where(['Leads.etapa_id NOT IN' => $contatadas]);
-        }
-        $semMensagem = $semMensagemQuery->count();
-
-        $responder = $aberto()
-            ->where([
-                'Leads.mensagens_recebidas >' => 0,
-                'Leads.ultima_mensagem_direcao' => 'entrada',
-                'Leads.nao_contatar' => false,
-            ])->count();
-        $emConversa = $aberto()
-            ->where([
-                'Leads.mensagens_enviadas >' => 0,
-                'Leads.mensagens_recebidas >' => 0,
-                'Leads.ultima_mensagem_direcao !=' => 'entrada',
-                'Leads.nao_contatar' => false,
-            ])->count();
-
-        $aguardandoQuery = $aberto()->where([
-            'Leads.mensagens_recebidas' => 0,
-            'Leads.nao_contatar' => false,
-        ]);
-        $origemAguardando = [['Leads.mensagens_enviadas >' => 0]];
-        if ($contatadas) {
-            $origemAguardando[] = ['Leads.etapa_id IN' => $contatadas];
-        }
-        $aguardando = $aguardandoQuery->where(['OR' => $origemAguardando])->count();
-        $abertas = $aberto()
-            ->where([
-                'Leads.nao_contatar' => false,
-            ])->where($this->condicoesConversasAbertas())->count();
-
-        $perdidos = $this->etapasPorTipo('perdido');
-        $clientes = $this->comEtapa($filtros, $identidade, 'ganho')->count();
-        $base = $this->baseQuery($filtros, $identidade);
-        $condicoesRecusado = ['Leads.nao_contatar' => true];
-        if ($perdidos) {
-            $condicoesRecusado = ['OR' => [
-                'Leads.nao_contatar' => true,
-                'Leads.etapa_id IN' => $perdidos,
-            ]];
-        }
-        $recusados = $base->where($condicoesRecusado)->count();
-        $total = (clone $this->baseQuery($filtros, $identidade))->count();
+        $c = $this->contagensAgregadas($filtros, $identidade);
 
         return [
-            'total' => $total,
-            'semMensagem' => $semMensagem,
-            'aguardando' => $aguardando,
-            'precisoResponder' => $responder,
-            'emConversa' => $emConversa,
-            'conversasAbertas' => $abertas,
-            'clientes' => $clientes,
-            'recusados' => $recusados,
+            'total' => $c['total'],
+            'semMensagem' => $c['semMensagem'],
+            'aguardando' => $c['aguardando'],
+            'precisoResponder' => $c['precisoResponder'],
+            'emConversa' => $c['emConversa'],
+            'conversasAbertas' => $c['conversasAbertas'],
+            'clientes' => $c['ganhos'],
+            'recusados' => $c['recusados'],
         ];
+    }
+
+    /** Uma única leitura agrega os indicadores usados pelo painel e pela barra lateral. */
+    private function contagensAgregadas(array $filtros, array $identidade): array
+    {
+        $chave = json_encode([$filtros, $identidade]);
+        if (isset($this->contagensCache[$chave])) {
+            return $this->contagensCache[$chave];
+        }
+
+        $query = $this->baseQuery($filtros, $identidade)
+            ->leftJoin(['ContagemEtapa' => 'stages'], ['ContagemEtapa.id = Leads.etapa_id']);
+        $agora = (new DateTime())->format('Y-m-d H:i:s');
+        $inicioHoje = (new DateTime('today'))->format('Y-m-d H:i:s');
+        $fimHoje = (new DateTime('today +1 day'))->format('Y-m-d H:i:s');
+        $aberto = "ContagemEtapa.tipo = 'aberto'";
+        $elegivel = "$aberto AND Leads.nao_contatar = FALSE";
+        $contatadas = $this->idsSql($this->leads->etapasContatadas());
+        $propostas = $this->idsSql($this->leads->etapasProposta());
+        $perdidos = $this->idsSql($this->etapasPorTipo('perdido'));
+        $contatada = $contatadas ? "Leads.etapa_id IN ($contatadas)" : 'FALSE';
+        $proposta = $propostas ? "Leads.etapa_id IN ($propostas)" : 'FALSE';
+        $perdida = $perdidos ? "Leads.etapa_id IN ($perdidos)" : 'FALSE';
+        $condicoes = [
+            'abertos' => $aberto,
+            'ganhos' => "ContagemEtapa.tipo = 'ganho'",
+            'perdidos' => "ContagemEtapa.tipo = 'perdido'",
+            'atrasados' => "$aberto AND Leads.proximo_contato < '$agora'",
+            'hoje' => "$aberto AND Leads.proximo_contato >= '$inicioHoje' AND Leads.proximo_contato < '$fimHoje'",
+            'emNegociacao' => "Leads.etapa_id = 'et_negociacao'",
+            'emProposta' => "Leads.etapa_id = 'et_proposta'",
+            'naoContatar' => 'Leads.nao_contatar = TRUE',
+            'semMensagem' => "$elegivel AND Leads.mensagens_enviadas = 0 AND Leads.mensagens_recebidas = 0 AND NOT ($contatada)",
+            'aguardando' => "$elegivel AND Leads.mensagens_recebidas = 0 AND (Leads.mensagens_enviadas > 0 OR $contatada)",
+            'precisoResponder' => "$elegivel AND Leads.mensagens_recebidas > 0 AND Leads.ultima_mensagem_direcao = 'entrada'",
+            'emConversa' => "$elegivel AND Leads.mensagens_enviadas > 0 AND Leads.mensagens_recebidas > 0 AND Leads.ultima_mensagem_direcao != 'entrada'",
+            'conversasAbertas' => "$elegivel AND (Leads.mensagens_recebidas > 0 OR $proposta)",
+            'recusados' => "Leads.nao_contatar = TRUE OR $perdida",
+        ];
+        $campos = ['total' => $query->expr('COUNT(*)')];
+        foreach ($condicoes as $nome => $condicao) {
+            $campos[$nome] = $query->expr("SUM(CASE WHEN $condicao THEN 1 ELSE 0 END)");
+        }
+        $row = $query->select($campos, true)->disableHydration()->first() ?: [];
+        $resultado = ['total' => (int)($row['total'] ?? 0)];
+        foreach (array_keys($condicoes) as $nome) {
+            $resultado[$nome] = (int)($row[$nome] ?? 0);
+        }
+
+        return $this->contagensCache[$chave] = $resultado;
+    }
+
+    /** IDs de etapas vindos do banco, escapados como literais SQL. */
+    private function idsSql(array $ids): string
+    {
+        return implode(', ', array_map(
+            fn ($id) => "'" . str_replace("'", "''", (string)$id) . "'",
+            $ids
+        ));
     }
 
     /** @param array<string, mixed> $filtros @param array<string, mixed> $identidade */

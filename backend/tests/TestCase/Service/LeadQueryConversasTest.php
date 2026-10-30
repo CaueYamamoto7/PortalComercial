@@ -94,4 +94,23 @@ class LeadQueryConversasTest extends TestCase
         $this->assertSame(1, $contagens['conversasAbertas']);
         $this->assertSame(['ld_test_conversa_7'], $lista);
     }
+
+    public function testIndicadoresAgregadosRespeitamEtapasEExclusaoLogica(): void
+    {
+        $filtros = ['ids' => implode(',', $this->ids)];
+        $stats = $this->service->stats($filtros, ['role' => 'admin']);
+        $conversas = $this->service->contagensConversas($filtros, ['role' => 'admin']);
+
+        $this->assertSame(7, $stats['total']);
+        $this->assertSame(6, $stats['abertos']);
+        $this->assertSame(1, $stats['ganhos']);
+        $this->assertSame(1, $stats['naoContatar']);
+        $this->assertSame(3, $conversas['semMensagem']);
+        $this->assertSame(4, $conversas['conversasAbertas']);
+        $this->assertSame(1, $conversas['clientes']);
+        $this->assertSame(1, $conversas['recusados']);
+
+        $restrito = $this->service->stats($filtros, ['role' => 'consultor', 'nome' => 'Consultor Teste']);
+        $this->assertSame(6, $restrito['total']);
+    }
 }
