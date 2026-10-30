@@ -10,7 +10,6 @@
   var camada = 0;
   var camadas = [];
   var icone = Painel.icons.icone;
-  var resumoViaBootstrap = false;
   var resumoRequisicao = 0;
 
   var PAGINAS = {
@@ -83,28 +82,14 @@
         icone("message-circle") +
       "</a>";
 
-    carregarResumoSidebar();
+    window.setTimeout(carregarResumoSidebar, 400);
   }
 
   function carregarResumoSidebar() {
     var api = Painel.api;
     if (!api) return;
 
-    // A primeira carga reaproveita o /api/bootstrap (que já traz o resumo),
-    // evitando uma requisição extra por página. Recargas após alterações
-    // usam /api/resumo para trazer dados frescos.
-    var promessa;
-    if (!resumoViaBootstrap && api.bootstrap) {
-      resumoViaBootstrap = true;
-      promessa = api.bootstrap().then(function (dados) {
-        if (dados && dados.resumo) return dados.resumo;
-        return api.resumo ? api.resumo() : null;
-      }).catch(function () {
-        return api.resumo ? api.resumo() : null;
-      });
-    } else if (api.resumo) {
-      promessa = api.resumo();
-    }
+    var promessa = api.resumo ? api.resumo() : null;
     if (!promessa) return;
     var requisicao = ++resumoRequisicao;
 

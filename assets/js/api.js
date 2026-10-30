@@ -99,7 +99,7 @@
     window.location.replace("login.html?next=" + encodeURIComponent(next));
   }
 
-  function requisicao(method, caminho, corpo, params) {
+  function requisicao(method, caminho, corpo, params, emSegundoPlano) {
     var url = Painel.config.apiBase + caminho + queryString(params);
     var chave = method + " " + url + (corpo !== undefined ? " " + JSON.stringify(corpo) : "");
 
@@ -107,7 +107,7 @@
       return emAndamento[chave];
     }
 
-    var acompanharCarga = cargaInicial;
+    var acompanharCarga = cargaInicial && !emSegundoPlano;
     if (acompanharCarga) {
       pendentesIniciais++;
       clearTimeout(timerInicial);
@@ -178,7 +178,7 @@
         return dados;
       });
     },
-    resumo: function () { return requisicao("GET", "/resumo"); },
+    resumo: function () { return requisicao("GET", "/resumo", undefined, undefined, true); },
     catalogos: function (params) { return requisicao("GET", "/catalogos", undefined, params); },
     auth: {
       login: function (email, senha) {

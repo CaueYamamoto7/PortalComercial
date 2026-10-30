@@ -1,2 +1,1 @@
-/* Aplicado antes da renderização para evitar flashes de conteúdo incompleto. */
-document.documentElement.classList.add("is-initial-loading");
+/* Cada seção exibe seu próprio estado de carregamento sem bloquear a página inteira. */

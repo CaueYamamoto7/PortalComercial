@@ -9,8 +9,17 @@
   var ui = Painel.ui;
   var api = Painel.api;
   var config = null;
+  var secoes = ["empresa", "funil", "sistemas", "origens", "equipe", "mensagens"];
 
   function el(id) { return document.getElementById(id); }
+
+  function marcarCarregamento(carregando) {
+    secoes.forEach(function (id) {
+      var secao = el(id);
+      secao.inert = carregando;
+      secao.setAttribute("aria-busy", carregando ? "true" : "false");
+    });
+  }
 
   function preencher(form, dados) {
     Object.keys(dados || {}).forEach(function (k) {
@@ -20,6 +29,7 @@
   }
 
   function carregar() {
+    marcarCarregamento(true);
     return api.configuracoes.obter().then(function (cfg) {
       config = cfg;
       preencher(el("form-empresa"), cfg.empresa);
@@ -32,6 +42,7 @@
         var node = document.querySelector('[data-count="' + k + '"]');
         if (node) node.textContent = u.formatarNumero(cfg.counts[k]);
       });
+      marcarCarregamento(false);
       return cfg;
     }).catch(function (err) {
       ui.toast(err.message || "Não foi possível carregar as configurações.", "error");
@@ -48,6 +59,7 @@
   /* Empresa e mensagens ---------------------------------------------------- */
 
   function salvarSecao(secao, form, botao) {
+    if (!config || botao.disabled || el(secao).inert) return;
     if (!form.reportValidity()) return;
     var dados = {};
     Array.prototype.forEach.call(form.elements, function (campo) {

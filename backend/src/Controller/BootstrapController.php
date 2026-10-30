@@ -43,7 +43,6 @@ class BootstrapController extends AppController
             ],
             'catalogos' => $this->queryService()->facets([], $identidade),
             'preferencias' => (new PreferencesService())->obter($userId),
-            'resumo' => $this->resumoDados(),
         ]);
     }
 
