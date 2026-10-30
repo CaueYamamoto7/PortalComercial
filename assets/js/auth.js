@@ -206,7 +206,10 @@
 
   if (modo === "guest" && Painel.store.getSession()) {
     auth.verificar().then(function (sessao) {
-      if (sessao) window.location.replace("/");
+      if (sessao) {
+        var next = new URLSearchParams(window.location.search).get("next");
+        window.location.replace(auth.destino(next));
+      }
     });
   }
 })(window.Painel);
