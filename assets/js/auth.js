@@ -6,27 +6,30 @@
   "use strict";
 
   function paginaAtual() {
-    var partes = window.location.pathname.split("/");
-    return partes[partes.length - 1] || "index.html";
+    return window.location.pathname || "/";
   }
 
   function normalizarDestino(next) {
-    if (!next) return "index.html";
-    var base = String(next).split("?")[0].split("#")[0].split("\\").pop().split("/").pop();
-    if (Painel.config.paginasInternas.indexOf(base) !== -1) return base;
-    return "index.html";
+    if (!next) return "/";
+    try {
+      var destino = new URL(String(next), window.location.origin);
+      if (destino.origin !== window.location.origin) return "/";
+      var path = destino.pathname === "/index.html" ? "/" : destino.pathname.replace(/\.html$/, "");
+      if (Painel.config.paginasInternas.indexOf(path) !== -1) return path + destino.search;
+    } catch (e) { /* destino inválido */ }
+    return "/";
   }
 
   function redirecionarLogin() {
     var next = paginaAtual() + window.location.search;
-    window.location.replace("login.html?next=" + encodeURIComponent(next));
+    window.location.replace("/login?next=" + encodeURIComponent(next));
   }
 
   var idleLimit = 30 * 60 * 1000;
   var activityKey = "assinasoft.ultimaAtividade.v1";
   var leadKey = "assinasoft.cadastroLeadAberto.v1";
   var leadLeaseKey = "assinasoft.cadastroLeadAtivo.v1";
-  var isLead = paginaAtual() === "cadastro-lead.html";
+  var isLead = paginaAtual() === "/cadastro-lead";
   var lastActivity = Date.now();
   var lastPing = 0;
   var idleClosing = false;
@@ -112,7 +115,7 @@
       var concluir = function () {
         Painel.store.clearSession();
         try { window.localStorage.removeItem(activityKey); } catch (e) { /* ignora */ }
-        window.location.href = "login.html";
+        window.location.href = "/login";
       };
       if (Painel.api && Painel.api.auth) {
         Painel.api.auth.logout().then(concluir, concluir);
@@ -131,8 +134,8 @@
             desde: (auth.sessao() || {}).desde || new Date().toISOString()
           });
           Painel.store.setSession(sessao);
-          if (sessao.mustChangePassword && paginaAtual() !== "conta.html") {
-            window.location.replace("conta.html");
+          if (sessao.mustChangePassword && paginaAtual() !== "/conta") {
+            window.location.replace("/conta");
             return sessao;
           }
           if (resposta && resposta.preferencias) {
@@ -143,7 +146,7 @@
         Painel.store.clearSession();
         return null;
       }).catch(function (error) {
-        if (paginaAtual() === "cadastro-lead.html" && !error.status) {
+        if (paginaAtual() === "/cadastro-lead" && !error.status) {
           return auth.sessao();
         }
         return null;
@@ -203,7 +206,7 @@
 
   if (modo === "guest" && Painel.store.getSession()) {
     auth.verificar().then(function (sessao) {
-      if (sessao) window.location.replace("index.html");
+      if (sessao) window.location.replace("/");
     });
   }
 })(window.Painel);

@@ -687,14 +687,14 @@
 
     document.querySelector("[data-exportar]").addEventListener("click", function () { exportar(null); });
     document.querySelector("[data-novo]").addEventListener("click", function () {
-      window.location.href = "cadastro-lead.html";
+      window.location.href = "/cadastro-lead";
     });
     document.querySelector("[data-importar]").addEventListener("click", abrirImportacao);
 
     document.addEventListener("click", function (e) {
       var novoVazio = e.target.closest("[data-novo]");
       if (novoVazio && !e.target.closest(".page-head")) {
-        window.location.href = "cadastro-lead.html";
+        window.location.href = "/cadastro-lead";
         return;
       }
       var pageBtn = e.target.closest("button[data-page]");
@@ -743,7 +743,7 @@
         if (!ids.length) return;
         var acao = btn.getAttribute("data-bulk");
         if (acao === "mensagem") {
-          window.location.href = "mensagens.html?leads=" + encodeURIComponent(ids.join(","));
+          window.location.href = "/mensagens?leads=" + encodeURIComponent(ids.join(","));
           return;
         }
         if (acao === "etapa") {

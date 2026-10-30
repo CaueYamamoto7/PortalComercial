@@ -11,6 +11,19 @@
 declare(strict_types=1);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$pages = [
+    '/' => 'index.html',
+    '/login' => 'login.html',
+    '/leads' => 'leads.html',
+    '/cadastro-lead' => 'cadastro-lead.html',
+    '/qr-cadastro-lead' => 'qr-cadastro-lead.html',
+    '/pipeline' => 'pipeline.html',
+    '/followups' => 'followups.html',
+    '/mensagens' => 'mensagens.html',
+    '/relatorios' => 'relatorios.html',
+    '/configuracoes' => 'configuracoes.html',
+    '/conta' => 'conta.html',
+];
 
 // Nunca expõe arquivos internos do backend ou do próprio repositório.
 if (preg_match('#^/(backend|vendor|node_modules|\.)#', $path)) {
@@ -28,14 +41,23 @@ if ($path === '/api' || str_starts_with($path, '/api/')) {
     return true;
 }
 
-if ($path !== '/' && is_file(__DIR__ . $path)) {
-    return false;
+foreach ($pages as $route => $file) {
+    if ($path !== '/' . $file) {
+        continue;
+    }
+    $query = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
+    header('Location: ' . $route . ($query !== null ? '?' . $query : ''), true, 308);
+    return true;
 }
 
-if ($path === '/') {
+if (isset($pages[$path])) {
     header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . DIRECTORY_SEPARATOR . 'index.html');
+    readfile(__DIR__ . DIRECTORY_SEPARATOR . $pages[$path]);
     return true;
+}
+
+if ($path !== '/' && is_file(__DIR__ . $path)) {
+    return false;
 }
 
 http_response_code(404);

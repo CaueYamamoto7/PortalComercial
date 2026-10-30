@@ -13,14 +13,14 @@
   var resumoRequisicao = 0;
 
   var PAGINAS = {
-    dashboard: { label: "Painel", href: "index.html", icon: "grid", grupo: "Comercial" },
-    leads: { label: "Leads", href: "leads.html", icon: "users", grupo: "Comercial" },
-    pipeline: { label: "Pipeline", href: "pipeline.html", icon: "kanban", grupo: "Comercial" },
-    followups: { label: "Follow-ups", href: "followups.html", icon: "calendar-clock", grupo: "Comercial" },
-    mensagens: { label: "Mensagens", href: "mensagens.html", icon: "message-circle", grupo: "Relacionamento" },
-    relatorios: { label: "Relatórios", href: "relatorios.html", icon: "chart", grupo: "Relacionamento" },
-    configuracoes: { label: "Configurações", href: "configuracoes.html", icon: "sliders", grupo: "Sistema" },
-    conta: { label: "Minha conta", href: "conta.html", icon: "user", grupo: "Sistema" }
+    dashboard: { label: "Painel", href: "/", icon: "grid", grupo: "Comercial" },
+    leads: { label: "Leads", href: "/leads", icon: "users", grupo: "Comercial" },
+    pipeline: { label: "Pipeline", href: "/pipeline", icon: "kanban", grupo: "Comercial" },
+    followups: { label: "Follow-ups", href: "/followups", icon: "calendar-clock", grupo: "Comercial" },
+    mensagens: { label: "Mensagens", href: "/mensagens", icon: "message-circle", grupo: "Relacionamento" },
+    relatorios: { label: "Relatórios", href: "/relatorios", icon: "chart", grupo: "Relacionamento" },
+    configuracoes: { label: "Configurações", href: "/configuracoes", icon: "sliders", grupo: "Sistema" },
+    conta: { label: "Minha conta", href: "/conta", icon: "user", grupo: "Sistema" }
   };
 
   var NAV_MOBILE = ["dashboard", "leads", "pipeline", "followups"];
@@ -73,11 +73,11 @@
     var nav = grupos.map(function (g) { return navGrupo(g.nome, g.chaves, atual); }).join("");
 
     el.innerHTML =
-      '<a class="rail-brand" href="index.html" aria-label="Portal Comercial" data-rail-tip="Portal Comercial">' +
+      '<a class="rail-brand" href="/" aria-label="Portal Comercial" data-rail-tip="Portal Comercial">' +
         '<img src="images/logoMini.png" alt="" width="34" height="34">' +
       "</a>" +
       '<nav class="sidebar__nav" aria-label="Navegação principal">' + nav + "</nav>" +
-      '<a class="rail-status" href="mensagens.html" aria-label="WhatsApp — integração pendente" data-rail-tip="WhatsApp · Integração pendente">' +
+      '<a class="rail-status" href="/mensagens" aria-label="WhatsApp — integração pendente" data-rail-tip="WhatsApp · Integração pendente">' +
         '<span class="rail-status__dot"></span>' +
         icone("message-circle") +
       "</a>";
@@ -130,7 +130,7 @@
     var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
 
     el.innerHTML =
-      '<a class="topbar__brand" href="index.html" aria-label="Portal Comercial"><img src="images/logoMini.png" alt="" width="26" height="26"></a>' +
+      '<a class="topbar__brand" href="/" aria-label="Portal Comercial"><img src="images/logoMini.png" alt="" width="26" height="26"></a>' +
       '<div class="topbar__crumbs"><span class="topbar__workspace">Portal Comercial</span>' + icone("chevron-right") +
         "<strong>" + atual.label + "</strong></div>" +
       '<div class="topbar__right">' +
@@ -162,7 +162,7 @@
             '<div class="dropdown-panel__head"><strong>Notificações</strong>' +
             '<button class="text-link xs" type="button" data-read-all>Marcar como lidas</button></div>' +
             '<div data-notif-list><div class="loading-lines" role="status" aria-label="Carregando notificações"></div></div>' +
-            '<div class="dropdown-panel__foot"><a class="text-link xs" href="followups.html">Ver follow-ups</a></div>' +
+            '<div class="dropdown-panel__foot"><a class="text-link xs" href="/followups">Ver follow-ups</a></div>' +
           "</div>" +
         "</div>" +
         '<div class="topbar__divider"></div>' +
@@ -175,8 +175,8 @@
           '<div class="dropdown-panel" id="panel-user">' +
             '<div class="dropdown-panel__head"><div><strong>' + u.escaparHTML(sessao.nome) + '</strong><div class="xs faint" style="margin-top:2px">' + u.escaparHTML(sessao.email) + "</div></div></div>" +
             '<div class="dropdown-list">' +
-              '<a class="dropdown-item" href="conta.html">' + icone("user") + '<span class="dropdown-item__text"><strong>Minha conta</strong><small>Perfil e preferências</small></span></a>' +
-              (podeConfig ? '<a class="dropdown-item" href="configuracoes.html">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Empresa, funil e equipe</small></span></a>' : "") +
+              '<a class="dropdown-item" href="/conta">' + icone("user") + '<span class="dropdown-item__text"><strong>Minha conta</strong><small>Perfil e preferências</small></span></a>' +
+              (podeConfig ? '<a class="dropdown-item" href="/configuracoes">' + icone("sliders") + '<span class="dropdown-item__text"><strong>Configurações</strong><small>Empresa, funil e equipe</small></span></a>' : "") +
             "</div>" +
             '<div class="dropdown-panel__foot"><button class="dropdown-item dropdown-item--danger" type="button" data-logout>' + icone("logout") + "<span>Encerrar sessão</span></button></div>" +
           "</div>" +
@@ -200,7 +200,7 @@
       lista.innerHTML = itens.map(function (n) {
         var cls = n.tipo === "sucesso" ? "notif-item__icon--success" : n.tipo === "alerta" ? "notif-item__icon--warning" : "";
         var ico = n.tipo === "sucesso" ? "check-circle" : n.tipo === "alerta" ? "alert-triangle" : "info";
-        return '<a class="notif-item" href="' + u.escaparHTML(u.hrefSeguro(n.href, "index.html")) + '">' +
+        return '<a class="notif-item" href="' + u.escaparHTML(u.hrefSeguro(n.href, "/")) + '">' +
           '<span class="notif-item__icon ' + cls + '">' + icone(ico) + "</span>" +
           '<span class="notif-item__text"><p>' + u.escaparHTML(n.texto) + "</p><time>" + u.tempoRelativo(n.data) + "</time></span>" +
           (!n.lida ? '<span class="notif-item__unread"></span>' : "") +
@@ -217,23 +217,23 @@
     var sessao = Painel.auth.usuario();
     var podeConfig = !sessao.permissoes || sessao.permissoes.gerenciarCatalogo;
     var itens = [
-      { grupo: "Navegação", label: "Painel", desc: "Visão geral comercial", icon: "grid", href: "index.html", termos: "dashboard inicio indicadores" },
-      { grupo: "Navegação", label: "Leads", desc: "Base comercial", icon: "users", href: "leads.html", termos: "contatos base importar planilha" },
-      { grupo: "Navegação", label: "Pipeline", desc: "Funil kanban", icon: "kanban", href: "pipeline.html", termos: "funil etapas negociacao" },
-      { grupo: "Navegação", label: "Follow-ups", desc: "Agenda comercial", icon: "calendar-clock", href: "followups.html", termos: "tarefas agenda retorno" },
-      { grupo: "Navegação", label: "Mensagens", desc: "Envios e histórico", icon: "message-circle", href: "mensagens.html", termos: "whatsapp campanha disparo" },
-      { grupo: "Navegação", label: "Relatórios", desc: "Conversão e desempenho", icon: "chart", href: "relatorios.html", termos: "metricas exportar" },
-      { grupo: "Navegação", label: "Configurações", desc: "Empresa, funil e sistemas", icon: "sliders", href: "configuracoes.html", termos: "ajustes etapas assinasoft" },
-      { grupo: "Ações", label: "Cadastrar lead", desc: "Abrir formulário", icon: "user-plus", href: "leads.html?novo=1", termos: "novo contato lead" },
-      { grupo: "Ações", label: "Importar planilha", desc: "CSV ou XLSX", icon: "file-spreadsheet", href: "leads.html?importar=1", termos: "csv xlsx planilha" },
-      { grupo: "Ações", label: "Nova mensagem", desc: "Enviar pelo WhatsApp", icon: "send", href: "mensagens.html", termos: "campanha disparo whatsapp" },
-      { grupo: "Ações", label: "Nova tarefa", desc: "Agendar follow-up", icon: "calendar", href: "followups.html?nova=1", termos: "followup tarefa retorno" },
-      { grupo: "Sistema", label: "Minha conta", desc: "Perfil e preferências", icon: "user", href: "conta.html", termos: "perfil senha preferencias conta" },
+      { grupo: "Navegação", label: "Painel", desc: "Visão geral comercial", icon: "grid", href: "/", termos: "dashboard inicio indicadores" },
+      { grupo: "Navegação", label: "Leads", desc: "Base comercial", icon: "users", href: "/leads", termos: "contatos base importar planilha" },
+      { grupo: "Navegação", label: "Pipeline", desc: "Funil kanban", icon: "kanban", href: "/pipeline", termos: "funil etapas negociacao" },
+      { grupo: "Navegação", label: "Follow-ups", desc: "Agenda comercial", icon: "calendar-clock", href: "/followups", termos: "tarefas agenda retorno" },
+      { grupo: "Navegação", label: "Mensagens", desc: "Envios e histórico", icon: "message-circle", href: "/mensagens", termos: "whatsapp campanha disparo" },
+      { grupo: "Navegação", label: "Relatórios", desc: "Conversão e desempenho", icon: "chart", href: "/relatorios", termos: "metricas exportar" },
+      { grupo: "Navegação", label: "Configurações", desc: "Empresa, funil e sistemas", icon: "sliders", href: "/configuracoes", termos: "ajustes etapas assinasoft" },
+      { grupo: "Ações", label: "Cadastrar lead", desc: "Abrir formulário", icon: "user-plus", href: "/leads?novo=1", termos: "novo contato lead" },
+      { grupo: "Ações", label: "Importar planilha", desc: "CSV ou XLSX", icon: "file-spreadsheet", href: "/leads?importar=1", termos: "csv xlsx planilha" },
+      { grupo: "Ações", label: "Nova mensagem", desc: "Enviar pelo WhatsApp", icon: "send", href: "/mensagens", termos: "campanha disparo whatsapp" },
+      { grupo: "Ações", label: "Nova tarefa", desc: "Agendar follow-up", icon: "calendar", href: "/followups?nova=1", termos: "followup tarefa retorno" },
+      { grupo: "Sistema", label: "Minha conta", desc: "Perfil e preferências", icon: "user", href: "/conta", termos: "perfil senha preferencias conta" },
       { grupo: "Sistema", label: "Encerrar sessão", desc: "Sair do painel", icon: "logout", action: "logout", termos: "sair logout" }
     ];
 
     if (!podeConfig) {
-      itens = itens.filter(function (item) { return item.href !== "configuracoes.html"; });
+      itens = itens.filter(function (item) { return item.href !== "/configuracoes"; });
     }
 
     return itens;
@@ -437,7 +437,7 @@
     }).join("");
 
     var html = '<div class="sheet-menu">' + itens + "</div>" +
-      '<a class="sheet-status" href="mensagens.html">' +
+      '<a class="sheet-status" href="/mensagens">' +
         '<span class="sheet-status__dot"></span>' +
         '<span class="sheet-status__text"><strong>WhatsApp</strong><small>Integração pendente</small></span>' +
         icone("arrow-up-right") +
@@ -906,8 +906,8 @@
 
       if (e.target.closest("[data-user-menu-sidebar]")) {
         menuFlutuante(e.target.closest("[data-user-menu-sidebar]"), [
-          { label: "Minha conta", icone: "user", acao: function () { window.location.href = "conta.html"; } },
-          { label: "Configurações", icone: "sliders", acao: function () { window.location.href = "configuracoes.html"; } },
+          { label: "Minha conta", icone: "user", acao: function () { window.location.href = "/conta"; } },
+          { label: "Configurações", icone: "sliders", acao: function () { window.location.href = "/configuracoes"; } },
           { divider: true },
           { label: "Encerrar sessão", icone: "logout", perigo: true, acao: function () { Painel.auth.sair(); } }
         ]);

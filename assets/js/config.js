@@ -23,14 +23,14 @@ Painel.config = {
   },
 
   paginasInternas: [
-    "index.html",
-    "leads.html",
-    "cadastro-lead.html",
-    "pipeline.html",
-    "followups.html",
-    "mensagens.html",
-    "relatorios.html",
-    "configuracoes.html",
-    "conta.html"
+    "/",
+    "/leads",
+    "/cadastro-lead",
+    "/pipeline",
+    "/followups",
+    "/mensagens",
+    "/relatorios",
+    "/configuracoes",
+    "/conta"
   ]
 };

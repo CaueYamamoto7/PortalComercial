@@ -8,6 +8,8 @@ O Portal Comercial centraliza a operação comercial em uma aplicação web com 
 
 O sistema opera em uma única origem: o front-end é servido em `/` e a API em `/api`. A autenticação é baseada em sessão, com proteção CSRF e cookies restritos ao contexto da aplicação.
 
+As páginas usam URLs sem extensão, como `/leads`, `/pipeline` e `/configuracoes`. Links antigos com `.html` redirecionam para os novos caminhos.
+
 ## Arquitetura
 
 - **Front-end:** aplicação multipágina em HTML, CSS e JavaScript, sem framework de UI.
@@ -38,7 +40,7 @@ Visão operacional com cartões de contatos organizados por estágio de relacion
 
 ### Leads
 
-O cadastro individual está em `cadastro-lead.html`, uma página própria acessível pelo botão
+O cadastro individual está em `/cadastro-lead`, uma página própria acessível pelo botão
 **Novo lead**. O formulário exige nome, ao menos um sistema de interesse e WhatsApp ou e-mail.
 Uma nova origem pode ser cadastrada na própria página e fica disponível no catálogo do CRM.
 Novos leads recebem etapa **Novo**, prioridade **Média** e o usuário autenticado como

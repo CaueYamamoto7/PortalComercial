@@ -150,7 +150,7 @@
     }
     list.innerHTML = dados.campanhas.map(function (c) {
       var st = statusCampanha(c.status);
-      return '<a class="campaign-mini__item" href="mensagens.html?tab=historico">' +
+      return '<a class="campaign-mini__item" href="/mensagens?tab=historico">' +
         '<span class="campaign-mini__icon">' + ui.icone("message-circle") + "</span>" +
         '<span class="campaign-mini__text"><strong>' + u.escaparHTML(c.nome) + "</strong><small>" + u.formatarNumero(c.publico) + " contato(s) · " + u.escaparHTML(c.canal) + "</small></span>" +
         '<span class="campaign-mini__meta"><time datetime="' + u.escaparHTML(c.criadaEm || "") + '">' + dataCurta(c.criadaEm) + ' · ' + hora(c.criadaEm) + '</time><span class="badge ' + st.cls + '">' + st.label + "</span></span></a>";
@@ -329,7 +329,7 @@
       d.el.addEventListener("click", function (e) {
         var lote = e.target.closest("[data-conv-lote]");
         if (lote) {
-          window.location.href = "mensagens.html?leads=" + lote.getAttribute("data-conv-lote");
+          window.location.href = "/mensagens?leads=" + lote.getAttribute("data-conv-lote");
           return;
         }
         var abrir = e.target.closest("[data-conv-open]");

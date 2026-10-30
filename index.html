@@ -39,8 +39,8 @@
           </div>
           <div class="page-head__actions">
             <label class="dashboard-period"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#calendar"></use></svg><select data-periodo aria-label="Período dos indicadores e mensagens"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label>
-            <a class="btn btn--secondary" href="leads.html?importar=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#upload"></use></svg>Importar</a>
-            <a class="btn btn--primary" href="leads.html?novo=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Novo contato</a>
+            <a class="btn btn--secondary" href="/leads?importar=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#upload"></use></svg>Importar</a>
+            <a class="btn btn--primary" href="/leads?novo=1"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Novo contato</a>
           </div>
         </div>
 
@@ -50,7 +50,7 @@
         <div class="dash-alert" id="dash-alerta" hidden>
           <svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#triangle-alert"></use></svg>
           <span id="dash-alerta-texto"></span>
-          <a href="followups.html" id="dash-alerta-link">Ver follow-ups</a>
+          <a href="/followups" id="dash-alerta-link">Ver follow-ups</a>
         </div>
 
         <section class="dashboard-overview" aria-labelledby="dashboard-overview-title">
@@ -120,12 +120,12 @@
           </section>
 
           <section class="card dashboard-messages" aria-labelledby="mensagens-title">
-            <div class="card__head"><div><h2 class="card__title" id="mensagens-title">Mensagens recentes</h2><p class="card__desc">Campanhas registradas no período</p></div><a class="text-link" href="mensagens.html?tab=historico">Ver todas</a></div>
+            <div class="card__head"><div><h2 class="card__title" id="mensagens-title">Mensagens recentes</h2><p class="card__desc">Campanhas registradas no período</p></div><a class="text-link" href="/mensagens?tab=historico">Ver todas</a></div>
             <div class="card__body"><div class="campaign-mini" id="lista-campanhas"><div class="dashboard-placeholder skeleton" role="status" aria-label="Carregando mensagens"></div></div></div>
           </section>
 
           <section class="card dashboard-tasks" aria-labelledby="tarefas-title">
-            <div class="card__head card__head--bordered"><div><h2 class="card__title" id="tarefas-title">Ações de hoje <span class="dashboard-count" id="acoes-total">—</span></h2><p class="card__desc">Hoje e atrasadas · independente do período</p></div><a class="text-link" href="followups.html">Ver agenda</a></div>
+            <div class="card__head card__head--bordered"><div><h2 class="card__title" id="tarefas-title">Ações de hoje <span class="dashboard-count" id="acoes-total">—</span></h2><p class="card__desc">Hoje e atrasadas · independente do período</p></div><a class="text-link" href="/followups">Ver agenda</a></div>
             <div id="lista-tarefas"><div class="task-loading"><span class="skeleton" style="height:12px;width:60%"></span></div></div>
             <div class="card__foot"><span class="small faint" id="tarefas-total">Carregando agenda…</span><button class="text-link" type="button" data-nova-tarefa>Agendar follow-up</button></div>
           </section>
@@ -133,7 +133,7 @@
           <section class="card dashboard-next" aria-labelledby="proximas-title">
             <div class="card__head"><div><h2 class="card__title" id="proximas-title">Próximas ações</h2><p class="card__desc">Prepare os próximos passos</p></div><button class="icon-btn icon-btn--sm" type="button" data-nova-tarefa aria-label="Criar follow-up"><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg></button></div>
             <div class="card__body" id="proximas-acoes"><div class="dashboard-placeholder skeleton" role="status" aria-label="Carregando próximos agendamentos"></div></div>
-            <div class="card__foot"><button class="btn btn--secondary btn--sm" type="button" data-nova-tarefa>+ Criar follow-up</button><a class="text-link" href="followups.html">Ver agenda</a></div>
+            <div class="card__foot"><button class="btn btn--secondary btn--sm" type="button" data-nova-tarefa>+ Criar follow-up</button><a class="text-link" href="/followups">Ver agenda</a></div>
           </section>
         </div>
       </main>

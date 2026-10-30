@@ -62,7 +62,7 @@
     botao.classList.add("is-loading");
     botao.disabled = true;
     Painel.auth.entrar(valorEmail, valorSenha, lembrar.checked).then(function (sessao) {
-      window.location.href = sessao && sessao.mustChangePassword ? "conta.html" : destino;
+      window.location.href = sessao && sessao.mustChangePassword ? "/conta" : destino;
     }).catch(function (err) {
       botao.classList.remove("is-loading");
       botao.disabled = false;

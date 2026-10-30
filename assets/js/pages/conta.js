@@ -245,7 +245,7 @@
       form.reset();
       if (Painel.auth.usuario().mustChangePassword) {
         ui.toast("Senha alterada. Você já pode usar o painel.", "success");
-        window.location.href = "index.html";
+        window.location.href = "/";
         return;
       }
       ui.toast("Senha alterada. Use a nova senha no próximo login.", "success");

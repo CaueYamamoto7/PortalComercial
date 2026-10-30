@@ -20,9 +20,17 @@ const mime = {
   ".woff": "font/woff",
   ".woff2": "font/woff2"
 };
+const pages = new Set(["login", "leads", "cadastro-lead", "qr-cadastro-lead", "pipeline", "followups", "mensagens", "relatorios", "configuracoes", "conta"]);
 
 http.createServer((req, res) => {
   let filePath = decodeURIComponent(req.url.split("?")[0].split("#")[0]);
+  if (filePath === "/index.html" || (filePath.endsWith(".html") && pages.has(filePath.slice(1, -5)))) {
+    const target = filePath === "/index.html" ? "/" : filePath.slice(0, -5);
+    res.writeHead(308, { Location: target + (req.url.includes("?") ? "?" + req.url.split("?")[1] : "") });
+    res.end();
+    return;
+  }
+  if (pages.has(filePath.slice(1))) filePath += ".html";
   if (filePath === "/") filePath = "/index.html";
   const file = path.join(root, filePath);
 

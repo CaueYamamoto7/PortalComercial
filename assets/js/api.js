@@ -93,10 +93,10 @@
   }
 
   function redirecionarLogin() {
-    var pagina = window.location.pathname.split("/").pop() || "index.html";
-    if (pagina === "login.html") return;
+    var pagina = window.location.pathname || "/";
+    if (pagina === "/login") return;
     var next = pagina + window.location.search;
-    window.location.replace("login.html?next=" + encodeURIComponent(next));
+    window.location.replace("/login?next=" + encodeURIComponent(next));
   }
 
   function requisicao(method, caminho, corpo, params, emSegundoPlano) {
@@ -136,8 +136,8 @@
             redirecionarLogin();
           }
           if (res.status === 428) {
-            var atual = window.location.pathname.split("/").pop();
-            if (atual !== "conta.html") window.location.replace("conta.html");
+            var atual = window.location.pathname;
+            if (atual !== "/conta") window.location.replace("/conta");
           }
           if (res.status === 419) {
             tokenAtual = "";

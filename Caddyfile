@@ -8,6 +8,10 @@
 :{$PORT:80} {
 	root * /app/public
 
+	redir /index.html /{?query} 308
+	@legacyPages path_regexp legacyPages ^/(login|leads|cadastro-lead|qr-cadastro-lead|pipeline|followups|mensagens|relatorios|configuracoes|conta)\.html$
+	redir @legacyPages /{re.legacyPages.1}{?query} 308
+
 	encode zstd gzip
 
 	# API CakePHP: o front controller é backend/webroot/index.php e as rotas
@@ -19,7 +23,7 @@
 
 	# Front estático: páginas HTML, assets, imagens.
 	handle {
-		try_files {path} {path}/ /index.html
+		try_files {path} {path}.html {path}/ /index.html
 		file_server
 	}
 
