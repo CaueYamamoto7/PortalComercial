@@ -73,6 +73,7 @@ class AuthController extends AppController
         $session = $this->request->getSession();
         $session->renew();
         $session->write('Auth', $identidade);
+        $session->write('AuthLastActivity', time());
 
         $limiter->clear($chave);
         $this->audit()->log($identidade, 'auth.login', 'user', (string)$usuario->get('id'), [], $this->request->clientIp());

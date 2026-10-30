@@ -43,8 +43,8 @@ O cadastro individual está em `cadastro-lead.html`, uma página própria acess�
 Uma nova origem pode ser cadastrada na própria página e fica disponível no catálogo do CRM.
 Novos leads recebem etapa **Novo**, prioridade **Média** e o usuário autenticado como
 responsável. A migration `20261030100000_LeadContactOptional` permite leads sem telefone;
-aplique-a antes de publicar esta página. A sessão do servidor não expira por inatividade,
-mas pode terminar por saída explícita, revogação da conta ou limpeza dos cookies pelo navegador.
+aplique-a antes de publicar esta página. Nas demais páginas, a sessão termina após 30 minutos
+sem interação. O cadastro de leads não aplica esse limite enquanto estiver aberto.
 
 Cadastro, edição, consulta detalhada, timeline de interações, filtros combinados, ordenação e paginação. O detalhe do lead reúne dados cadastrais, histórico, conversa e tarefas associadas.
 
@@ -137,7 +137,7 @@ As rotas são agrupadas sob `/api`. Respostas de sucesso utilizam o envelope `{ 
 | `SECURITY_SALT` | **Obrigatória em produção.** Salt criptográfico do CakePHP. |
 | `DEBUG` | Modo de diagnóstico detalhado. Deve permanecer `false` em produção. |
 | `SESSION_SECURE` | Restringe o cookie de sessão a conexões HTTPS. |
-| `SESSION_TIMEOUT` | Tempo de inatividade da sessão em minutos. Padrão: `240`. |
+| Inatividade | A autenticação expira após 30 minutos sem interação nas páginas internas, exceto em `cadastro-lead.html`. |
 | `APP_TMP` | Diretório de cache, logs e sessões. |
 | `APP_DEFAULT_TIMEZONE` | Fuso horário da aplicação. |
 | `ADMIN_NAME` | Nome do usuário inicial criado pela migration de catálogo. |

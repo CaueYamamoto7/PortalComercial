@@ -53,6 +53,55 @@ class ApiSecurityTest extends TestCase
         $this->assertResponseCode(401);
     }
 
+    public function testSessaoInativaExpiraForaDoCadastro(): void
+    {
+        $this->prepareIdleUser('us_idle_expired', time() - 1801);
+        $this->get('/api/leads/catalogos');
+        $this->assertResponseCode(401);
+    }
+
+    public function testCadastroLeadMantemSessaoInativa(): void
+    {
+        $this->prepareIdleUser('us_idle_lead', time() - 1801);
+        $this->configRequest(['headers' => ['X-Page-Context' => 'cadastro-lead']]);
+        $this->get('/api/auth/session');
+        $this->assertResponseOk();
+        $this->assertResponseContains('"autenticado":true');
+    }
+
+    public function testRetornoDoCadastroRetomaSessao(): void
+    {
+        $this->prepareIdleUser('us_idle_resume', time() - 1801);
+        $this->configRequest(['headers' => ['X-Idle-Resume' => '1']]);
+        $this->get('/api/auth/session');
+        $this->assertResponseOk();
+        $this->assertResponseContains('"autenticado":true');
+    }
+
+    private function prepareIdleUser(string $id, int $lastActivity): void
+    {
+        $conn = \Cake\Datasource\ConnectionManager::get('default');
+        $conn->delete('users', ['id' => $id]);
+        $conn->insert('users', [
+            'id' => $id,
+            'nome' => 'Usuário Teste',
+            'email' => $id . '@example.com',
+            'senha_hash' => password_hash('senha-teste', PASSWORD_DEFAULT),
+            'cargo' => 'Consultor',
+            'perfil' => 'Consultor comercial',
+            'role' => 'consultor',
+            'status' => 'ativo',
+            'iniciais' => 'UT',
+            'auth_version' => 1,
+            'criado_em' => date('Y-m-d H:i:s'),
+            'atualizado_em' => date('Y-m-d H:i:s'),
+        ]);
+        $this->session([
+            'Auth' => ['id' => $id, 'authVersion' => 1],
+            'AuthLastActivity' => $lastActivity,
+        ]);
+    }
+
     public function testHostHeaderInvalidoEhRejeitadoEmProducao(): void
     {
         Configure::write('debug', false);

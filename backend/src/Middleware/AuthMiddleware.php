@@ -21,6 +21,7 @@ use Throwable;
  */
 class AuthMiddleware implements MiddlewareInterface
 {
+    private const IDLE_SECONDS = 1800;
     private const PUBLIC_PATHS = [
         '/api/health',
         '/api/auth/login',
@@ -39,6 +40,19 @@ class AuthMiddleware implements MiddlewareInterface
         if ($identity && !$this->sessaoValida((array)$identity)) {
             $session->destroy();
             $identity = null;
+        }
+
+        if ($identity) {
+            $now = time();
+            $lastActivity = (int)$session->read('AuthLastActivity');
+            $leadPage = $request->getHeaderLine('X-Page-Context') === 'cadastro-lead';
+            $resumingLead = $request->getHeaderLine('X-Idle-Resume') === '1';
+            if (!$leadPage && !$resumingLead && $lastActivity > 0 && $now - $lastActivity >= self::IDLE_SECONDS) {
+                $session->destroy();
+                $identity = null;
+            } elseif ($leadPage || $resumingLead || $lastActivity === 0 || $request->getHeaderLine('X-User-Activity') === '1') {
+                $session->write('AuthLastActivity', $now);
+            }
         }
 
         if ($identity) {

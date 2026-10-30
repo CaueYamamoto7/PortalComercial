@@ -71,7 +71,11 @@
     if (csrfToken()) return Promise.resolve();
     if (!bootstrapToken) {
       bootstrapToken = fetch(Painel.config.apiBase + "/auth/session", {
-        headers: { "Accept": "application/json" },
+        headers: {
+          "Accept": "application/json",
+          "X-Page-Context": document.documentElement.getAttribute("data-page") === "cadastro-lead" ? "cadastro-lead" : "",
+          "X-Idle-Resume": Painel.auth && Painel.auth.resumeFromLead ? "1" : ""
+        },
         credentials: "same-origin"
       }).then(function () {
         tokenAtual = cookie("csrfToken");
@@ -111,6 +115,8 @@
 
     var promessa = garantirToken().then(function () {
       var headers = { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" };
+      if (document.documentElement.getAttribute("data-page") === "cadastro-lead") headers["X-Page-Context"] = "cadastro-lead";
+      if (Painel.auth && Painel.auth.resumeFromLead) headers["X-Idle-Resume"] = "1";
       var token = csrfToken();
       if (token) headers["X-CSRF-Token"] = token;
       if (corpo !== undefined) headers["Content-Type"] = "application/json";
@@ -122,6 +128,7 @@
         body: corpo !== undefined ? JSON.stringify(corpo) : undefined
       });
     }).then(function (res) {
+      if (Painel.auth && Painel.auth.resumeFromLead) Painel.auth.resumeFromLead = false;
       return res.json().catch(function () { return {}; }).then(function (json) {
         if (!res.ok) {
           if (res.status === 401 && caminho !== "/auth/login") {
