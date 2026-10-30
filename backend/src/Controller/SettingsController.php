@@ -27,6 +27,7 @@ class SettingsController extends AppController
         $equipe = $this->fetchTable('Users')->find()->orderBy(['nome' => 'ASC'])->all()->toList();
 
         $isAdmin = $this->access()->isAdmin($identidade);
+        $vinculosEquipe = $isAdmin ? $this->vinculosEquipe() : [];
 
         return $this->respond([
             'empresa' => $isAdmin ? $this->textoConfig('empresa') : [],
@@ -34,7 +35,12 @@ class SettingsController extends AppController
             'sistemas' => array_map(fn ($row) => $service->sistemaOut($row), $sistemas),
             'etapas' => $cat['etapas'],
             'origens' => array_map(fn ($row) => $service->origemOut($row), $origens),
-            'equipe' => $isAdmin ? array_map(fn ($row) => $this->membroDetalhado($row), $equipe) : [],
+            'equipe' => $isAdmin ? array_map(
+                fn ($row) => $this->membroDetalhado($row, $vinculosEquipe[(string)$row->get('nome')] ?? [
+                    'leads' => 0, 'tarefas' => 0, 'campanhas' => 0, 'registros' => 0,
+                ]),
+                $equipe
+            ) : [],
             'counts' => $isAdmin ? [
                 'leads' => $this->fetchTable('Leads')->find()->where(['deleted_at IS' => null])->count(),
                 'interacoes' => $this->fetchTable('Interactions')->find()->count(),
@@ -727,7 +733,7 @@ class SettingsController extends AppController
         return $setting ? (array)$setting->get('valor') : [];
     }
 
-    private function membroDetalhado(object $row): array
+    private function membroDetalhado(object $row, ?array $vinculos = null): array
     {
         $membro = $this->service()->membroOut($row);
         $membro['cargo'] = (string)$row->get('cargo');
@@ -736,9 +742,29 @@ class SettingsController extends AppController
             'perfil' => (string)$row->get('perfil'),
             'role' => $row->get('role'),
         ]);
-        $membro = array_merge($membro, $this->vinculosMembro((string)$row->get('nome')));
+        $membro = array_merge($membro, $vinculos ?? $this->vinculosMembro((string)$row->get('nome')));
 
         return $membro;
+    }
+
+    /** @return array<string, array{leads: int, tarefas: int, campanhas: int, registros: int}> */
+    private function vinculosEquipe(): array
+    {
+        $conn = ConnectionManager::get('default');
+        $vinculos = [];
+        foreach (['leads' => 'leads', 'tasks' => 'tarefas', 'campaigns' => 'campanhas'] as $table => $campo) {
+            $rows = $conn->execute(
+                'SELECT responsavel, COUNT(*) AS total FROM ' . $table . ' GROUP BY responsavel'
+            )->fetchAll('assoc');
+            foreach ($rows as $row) {
+                $nome = (string)$row['responsavel'];
+                $vinculos[$nome] ??= ['leads' => 0, 'tarefas' => 0, 'campanhas' => 0, 'registros' => 0];
+                $vinculos[$nome][$campo] = (int)$row['total'];
+                $vinculos[$nome]['registros'] += (int)$row['total'];
+            }
+        }
+
+        return $vinculos;
     }
 
     /** @return array{leads: int, tarefas: int, campanhas: int, registros: int} */
