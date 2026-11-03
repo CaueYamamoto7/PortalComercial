@@ -79,16 +79,16 @@ class LeadsController extends AppController
         $lock = (new CaptureOriginLock())->current();
         if ($lock['ativa']) $dados['origemId'] = $lock['origemId'];
 
-        return $this->createLead($dados);
+        return $this->createLead($dados, true);
     }
 
-    private function createLead(array $dados): Response
+    private function createLead(array $dados, bool $cadastroRapido = false): Response
     {
         $campos = $this->montarLead($dados);
         $campos['etapa_id'] = $this->etapaNovo();
         $campos['prioridade'] = 'media';
         $campos['responsavel'] = $this->usuarioNome();
-        $this->validarLead($campos, null);
+        $this->validarLead($campos, null, $cadastroRapido);
         $campos = $this->marcarUltimoContatoSeContatada($campos);
 
         $entity = $this->writeService()->criar($campos, $this->identidade());
@@ -664,7 +664,7 @@ class LeadsController extends AppController
         ];
     }
 
-    private function validarLead(array $campos, ?string $ignorarId): void
+    private function validarLead(array $campos, ?string $ignorarId, bool $sistemaOpcional = false): void
     {
         if ($campos['nome'] === '') {
             $this->erro('Informe o nome do lead.', 'nome');
@@ -689,13 +689,15 @@ class LeadsController extends AppController
             }
         }
         $sistemaIds = array_values(array_unique(array_map('strval', (array)$campos['sistema_ids'])));
-        if (!$sistemaIds) {
+        if (!$sistemaIds && !$sistemaOpcional) {
             $this->erro('Selecione ao menos um sistema de interesse.', 'sistemaIds');
         }
-        $sistemasValidos = $this->fetchTable('Systems')->find()
-            ->where(['id IN' => $sistemaIds, 'ativo' => true])->count();
-        if ($sistemasValidos !== count($sistemaIds)) {
-            $this->erro('Selecione sistemas de interesse válidos.', 'sistemaIds');
+        if ($sistemaIds) {
+            $sistemasValidos = $this->fetchTable('Systems')->find()
+                ->where(['id IN' => $sistemaIds, 'ativo' => true])->count();
+            if ($sistemasValidos !== count($sistemaIds)) {
+                $this->erro('Selecione sistemas de interesse válidos.', 'sistemaIds');
+            }
         }
 
         $etapa = $this->fetchTable('Stages')->find()->where(['id' => $campos['etapa_id']])->first();

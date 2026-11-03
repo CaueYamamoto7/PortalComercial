@@ -25,18 +25,25 @@
     </header>
     <div class="capture-content">
       <div class="capture-intro">
-        <div class="capture-intro__row"><div><h1>Novo lead<span class="capture-title-dot">.</span></h1><p class="capture-subtitle">Registre um contato em poucos passos. Os detalhes podem ser completados depois.</p></div><div class="capture-intro__mark" aria-hidden="true">01</div></div>
+        <div class="capture-intro__row"><div><h1>Novo lead<span class="capture-title-dot">.</span></h1><p class="capture-subtitle">Cadastre em segundos com nome e uma forma de contato. Complete os detalhes quando quiser.</p></div><div class="capture-intro__mark" aria-hidden="true">01</div></div>
       </div>
       <form id="capture-form" class="capture-form" novalidate>
         <section class="capture-section" aria-labelledby="section-contact">
           <div class="capture-section__head"><span class="capture-section__number">01</span><div><h2 id="section-contact">Quem é o contato?</h2><p>Comece pelo nome e por pelo menos uma forma de contato.</p></div></div>
           <div class="capture-grid">
             <label class="capture-field capture-full"><span>Nome completo <em>*</em></span><input name="nome" type="text" maxlength="160" autocomplete="name" placeholder="Ex.: Maria Oliveira" required></label>
-            <label class="capture-field"><span>Empresa</span><input name="empresa" type="text" maxlength="160" autocomplete="organization" placeholder="Onde trabalha"></label>
-            <label class="capture-field"><span>Cargo</span><input name="cargo" type="text" maxlength="120" autocomplete="organization-title" placeholder="Função na empresa"></label>
             <label class="capture-field"><span>WhatsApp</span><input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999"></label>
             <label class="capture-field"><span>E-mail</span><input name="email" type="email" maxlength="190" autocomplete="email" placeholder="nome@empresa.com.br"></label>
             <p class="capture-note capture-full"><span class="capture-note__icon" aria-hidden="true">i</span> Informe WhatsApp <strong>ou</strong> e-mail. Os dois campos são aceitos.</p>
+          </div>
+        </section>
+        <div class="capture-expand"><button type="button" class="capture-expand__button" id="capture-expand" aria-expanded="false" aria-controls="capture-details"><span id="capture-expand-label">Adicionar mais detalhes</span><span class="capture-expand__chevron" aria-hidden="true">+</span></button><p>Empresa, origem, sistemas e observações podem ser adicionados agora ou depois.</p></div>
+        <div class="capture-details" id="capture-details" hidden>
+        <section class="capture-section" aria-labelledby="section-extra">
+          <div class="capture-section__head"><span class="capture-section__number">+</span><div><h2 id="section-extra">Dados adicionais</h2><p>Preencha o que já souber sobre o contato.</p></div></div>
+          <div class="capture-grid">
+            <label class="capture-field"><span>Empresa</span><input name="empresa" type="text" maxlength="160" autocomplete="organization" placeholder="Onde trabalha"></label>
+            <label class="capture-field"><span>Cargo</span><input name="cargo" type="text" maxlength="120" autocomplete="organization-title" placeholder="Função na empresa"></label>
             <label class="capture-field capture-full"><span>Cidade</span><input name="cidade" type="text" maxlength="120" autocomplete="address-level2" placeholder="Cidade do contato"></label>
           </div>
         </section>
@@ -45,7 +52,7 @@
           <div class="capture-grid">
             <div class="capture-field capture-full"><label for="capture-source">Origem</label><div class="capture-source-row"><select name="origemId" id="capture-source"><option value="">Carregando origens…</option></select><button type="button" class="capture-add-source" id="capture-add-source"><span aria-hidden="true">＋</span> Nova origem</button></div></div>
             <div class="capture-source-new capture-full" id="capture-source-new" hidden><label class="capture-field" for="capture-source-name"><span>Nome da nova origem</span><input id="capture-source-name" maxlength="120" placeholder="Ex.: Indicação de cliente"></label><div class="capture-source-new__actions"><button type="button" class="capture-button capture-button--primary" id="capture-save-source">Salvar origem</button><button type="button" class="capture-button capture-button--plain" id="capture-cancel-source">Cancelar</button></div></div>
-            <fieldset class="capture-systems capture-full"><legend>Sistemas de interesse <em>*</em></legend><div id="capture-systems" class="capture-system-list"><span class="capture-muted">Carregando sistemas…</span></div><p class="capture-field-help">Selecione um ou mais sistemas.</p></fieldset>
+            <fieldset class="capture-systems capture-full"><legend>Sistemas de interesse</legend><div id="capture-systems" class="capture-system-list"><span class="capture-muted">Carregando sistemas…</span></div><p class="capture-field-help">Opcional: selecione os sistemas, se souber.</p></fieldset>
             <label class="capture-field"><span>Possui sistema parecido?</span><select name="possuiSistema"><option value="nao_informado">Selecione uma opção</option><option value="nao">Não</option><option value="sim">Sim</option></select></label>
             <label class="capture-field" id="capture-current-wrap" hidden><span>Qual sistema?</span><input name="sistemaAtual" type="text" maxlength="160" placeholder="Nome do sistema atual"></label>
           </div>
@@ -54,9 +61,10 @@
           <div class="capture-section__head"><span class="capture-section__number">03</span><div><h2 id="section-notes">Algo mais para registrar?</h2><p>Observações ajudam a continuar a conversa depois.</p></div></div>
           <label class="capture-field"><span>Observações</span><textarea name="observacoes" rows="5" placeholder="Contexto, necessidades, próximos passos…"></textarea></label>
         </section>
+        </div>
         <div class="capture-assignment"><span class="capture-assignment__icon" aria-hidden="true">✓</span><p>Este lead entrará em <strong>Novo</strong>, com prioridade <strong>Média</strong>, sob responsabilidade de <strong id="capture-owner">sua conta</strong>.</p></div>
         <p id="capture-feedback" class="capture-feedback" role="status" aria-live="polite" tabindex="-1"></p>
-        <div class="capture-actions"><button type="button" class="capture-button capture-button--plain" id="capture-clear">Limpar campos</button><button type="submit" class="capture-button capture-button--primary capture-button--submit" id="capture-submit" disabled>Salvar lead <span aria-hidden="true">→</span></button></div>
+        <div class="capture-actions"><button type="button" class="capture-button capture-button--plain" id="capture-clear">Limpar campos</button><button type="submit" class="capture-button capture-button--primary capture-button--submit" id="capture-submit">Salvar lead <span aria-hidden="true">→</span></button></div>
       </form>
       <p class="capture-footer">ASSINASOFT <span>•</span> PORTAL COMERCIAL</p>
     </div>

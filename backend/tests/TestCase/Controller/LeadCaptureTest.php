@@ -86,4 +86,27 @@ class LeadCaptureTest extends TestCase
         $this->assertResponseCode(422);
         $this->assertResponseContains('sistema de interesse');
     }
+
+    public function testCadastroRapidoAceitaApenasNomeEUmContato(): void
+    {
+        $this->post('/api/leads/cadastro', ['nome' => 'Lead rápido por email', 'email' => 'rapido@example.com']);
+        $this->assertResponseCode(201);
+
+        $this->post('/api/leads/cadastro', ['nome' => 'Lead rápido por telefone', 'telefone' => '11987654321']);
+        $this->assertResponseCode(201);
+
+        $rows = ConnectionManager::get('default')->execute(
+            "SELECT telefone, email, sistema_ids FROM leads WHERE nome LIKE 'Lead rápido %' ORDER BY nome"
+        )->fetchAll('assoc');
+        $this->assertCount(2, $rows);
+        foreach ($rows as $row) {
+            $this->assertSame([], json_decode((string)$row['sistema_ids'], true));
+        }
+    }
+
+    public function testCadastroRapidoExigeContato(): void
+    {
+        $this->post('/api/leads/cadastro', ['nome' => 'Lead sem contato']);
+        $this->assertResponseCode(422);
+    }
 }

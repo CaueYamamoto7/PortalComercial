@@ -11,6 +11,14 @@
   var escape = Painel.util.escaparHTML;
   var lockedSource = null;
   var unlockTimer = null;
+  var details = document.getElementById("capture-details");
+  var expand = document.getElementById("capture-expand");
+
+  function mostrarDetalhes(show) {
+    details.hidden = !show;
+    expand.setAttribute("aria-expanded", String(show));
+    document.getElementById("capture-expand-label").textContent = show ? "Ocultar detalhes" : "Adicionar mais detalhes";
+  }
 
   function informar(message, success) {
     feedback.textContent = message || "";
@@ -47,15 +55,14 @@
         return '<label><input type="checkbox" name="sistemaIds" value="' + escape(item.id) + '"' + (checked.indexOf(String(item.id)) >= 0 ? ' checked' : '') + '><span>' + escape(item.nome) + '</span></label>';
       }).join("");
       if (!(data.sistemas || []).some(function (item) { return item.ativo; })) {
-        document.getElementById("capture-systems").innerHTML = '<span class="capture-muted">Nenhum sistema ativo. Cadastre um sistema no painel antes de adicionar leads.</span>';
-        submit.disabled = true;
-      } else {
-        submit.disabled = false;
+        document.getElementById("capture-systems").innerHTML = '<span class="capture-muted">Nenhum sistema disponível no momento.</span>';
       }
+      submit.disabled = false;
     });
   }
 
   document.getElementById("capture-logout").addEventListener("click", function () { Painel.auth.sair(); });
+  expand.addEventListener("click", function () { mostrarDetalhes(details.hidden); });
   document.getElementById("capture-clear").addEventListener("click", function () { form.reset(); if (lockedSource) source.value = lockedSource; form.elements.nome.focus(); });
   document.getElementById("capture-add-source").addEventListener("click", function () { sourceBox.hidden = false; sourceName.focus(); });
   document.getElementById("capture-cancel-source").addEventListener("click", function () { sourceBox.hidden = true; sourceName.value = ""; });
@@ -78,7 +85,7 @@
     if (!show) form.elements.sistemaAtual.value = "";
   });
   form.addEventListener("reset", function () {
-    setTimeout(function () { document.getElementById("capture-current-wrap").hidden = true; if (lockedSource) source.value = lockedSource; informar(""); }, 0);
+    setTimeout(function () { document.getElementById("capture-current-wrap").hidden = true; if (lockedSource) source.value = lockedSource; mostrarDetalhes(false); informar(""); }, 0);
   });
   form.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -86,7 +93,6 @@
     var email = form.elements.email.value.trim();
     var sistemas = Array.prototype.map.call(form.querySelectorAll('input[name="sistemaIds"]:checked'), function (item) { return item.value; });
     if (!form.elements.nome.value.trim()) { informar("Informe o nome do lead."); form.elements.nome.focus(); return; }
-    if (!sistemas.length) { informar("Selecione ao menos um sistema de interesse."); form.querySelector('input[name="sistemaIds"]')?.focus(); return; }
     if (!telefone && !email) { informar("Informe WhatsApp ou e-mail."); form.elements.telefone.focus(); return; }
     if (telefone && !Painel.util.telefoneValido(telefone)) { informar("WhatsApp inválido. Use DDD + número."); form.elements.telefone.focus(); return; }
     if (email && !form.elements.email.checkValidity()) { informar("Informe um e-mail válido."); form.elements.email.focus(); return; }
