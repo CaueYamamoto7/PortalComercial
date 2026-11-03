@@ -37,6 +37,7 @@
       renderEtapas();
       renderSistemas();
       renderOrigens();
+      renderOrigemCadastro();
       renderEquipe();
       Object.keys(cfg.counts).forEach(function (k) {
         var node = document.querySelector('[data-count="' + k + '"]');
@@ -201,6 +202,26 @@
   }
 
   /* Origens ---------------------------------------------------------------- */
+
+  function renderOrigemCadastro() {
+    var lock = config.origemCadastro || {};
+    el("origem-cadastro-id").innerHTML = '<option value="">Selecione</option>' + config.origens.filter(function (o) { return o.ativo; }).map(function (o) {
+      return '<option value="' + u.escaparHTML(o.id) + '">' + u.escaparHTML(o.nome) + '</option>';
+    }).join("");
+    el("origem-cadastro-id").value = lock.origemId || "";
+    el("origem-cadastro-ate").value = lock.ate ? new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(lock.ate)).replace(" ", "T") : "";
+    var status = el("origem-cadastro-status");
+    status.textContent = lock.ativa ? "Travada até " + new Date(lock.ate).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Sem trava ativa";
+    status.classList.toggle("is-active", !!lock.ativa);
+    el("origem-cadastro-unlock").hidden = !lock.ativa;
+  }
+
+  function salvarOrigemCadastro(dados) {
+    api.configuracoes.salvar("origemCadastro", dados).then(function () {
+      ui.toast(dados.origemId ? "Origem travada." : "Origem destravada.", "success");
+      carregar();
+    }).catch(function (err) { ui.toast(err.message || "Não foi possível salvar a trava.", "error"); });
+  }
 
   function renderOrigens() {
     el("lista-origens").innerHTML = config.origens.map(function (o) {
@@ -529,6 +550,14 @@
     }, { passive: true });
   }
 
+  el("form-origem-cadastro").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var id = el("origem-cadastro-id").value;
+    var ate = el("origem-cadastro-ate").value;
+    if (!id || !ate) { ui.toast("Selecione a origem e o prazo.", "error"); return; }
+    salvarOrigemCadastro({ origemId: id, ate: ate });
+  });
+  el("origem-cadastro-unlock").addEventListener("click", function () { salvarOrigemCadastro({ origemId: "", ate: "" }); });
   bind();
   carregar();
 })(window.Painel);

@@ -23,6 +23,7 @@ return function (RouteBuilder $routes): void {
 
         $builder->get('/leads', ['controller' => 'Leads', 'action' => 'index']);
         $builder->post('/leads', ['controller' => 'Leads', 'action' => 'add']);
+        $builder->post('/leads/cadastro', ['controller' => 'Leads', 'action' => 'addCapture']);
         $builder->get('/leads/catalogos', ['controller' => 'Leads', 'action' => 'catalogs']);
         $builder->post('/leads/origens', ['controller' => 'Leads', 'action' => 'addSource']);
         $builder->post('/leads/importar', ['controller' => 'Leads', 'action' => 'importar']);

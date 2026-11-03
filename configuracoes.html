@@ -92,12 +92,21 @@
 
             <section class="card settings-card" id="origens" inert aria-busy="true">
               <div class="card__head card__head--bordered">
-                <div><h2 class="card__title">Origens</h2><p class="card__desc">Canais de aquisição usados no cadastro e nos relatórios</p></div>
-                <div class="card__actions"><button class="btn btn--secondary btn--sm" type="button" data-add-origem><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Nova origem</button></div>
+                <div><h2 class="card__title">Origens</h2><p class="card__desc">Gerencie os canais de entrada dos leads e o preenchimento do formulário.</p></div>
               </div>
-              <div class="settings-list" id="lista-origens">
-                <div class="loading-lines" aria-label="Carregando origens" role="status"></div>
+              <div class="capture-origin-setting">
+                <div class="capture-origin-setting__head">
+                  <div><span class="capture-origin-setting__eyebrow">Formulário de cadastro</span><h3>Fixar origem por um período</h3><p>Durante a trava, todos os leads criados em /cadastro-lead recebem a origem escolhida.</p></div>
+                  <span class="capture-origin-setting__status" id="origem-cadastro-status" role="status">Carregando…</span>
+                </div>
+                <form id="form-origem-cadastro" class="form-grid">
+                  <label class="field"><span class="field__label">Origem do formulário</span><select class="select" name="origemId" id="origem-cadastro-id"><option value="">Selecione uma origem</option></select></label>
+                  <label class="field"><span class="field__label">Travar até</span><input class="input" type="datetime-local" name="ate" id="origem-cadastro-ate"><span class="field__hint">Horário de Brasília. A seleção é liberada automaticamente após o prazo.</span></label>
+                  <div class="capture-origin-setting__actions field--full"><button class="btn btn--primary" type="submit">Salvar trava</button><button class="btn btn--secondary" type="button" id="origem-cadastro-unlock">Destravar agora</button></div>
+                </form>
               </div>
+              <div class="settings-subhead"><div><h3>Origens cadastradas</h3><p>Disponíveis para seleção nos formulários e filtros.</p></div><button class="btn btn--secondary btn--sm" type="button" data-add-origem><svg class="icon" aria-hidden="true"><use href="assets/vendor/lucide/sprite.svg#plus"></use></svg>Nova origem</button></div>
+              <div class="settings-list" id="lista-origens"><div class="loading-lines" aria-label="Carregando origens" role="status"></div></div>
             </section>
 
             <section class="card settings-card" id="equipe" inert aria-busy="true">

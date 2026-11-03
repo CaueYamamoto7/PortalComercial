@@ -9,6 +9,8 @@
   var sourceName = document.getElementById("capture-source-name");
   var submit = document.getElementById("capture-submit");
   var escape = Painel.util.escaparHTML;
+  var lockedSource = null;
+  var unlockTimer = null;
 
   function informar(message, success) {
     feedback.textContent = message || "";
@@ -28,10 +30,19 @@
     var checked = Array.prototype.map.call(form.querySelectorAll('input[name="sistemaIds"]:checked'), function (item) { return item.value; });
     var selectedSource = selected || source.value;
     return Painel.api.leads.catalogos().then(function (data) {
+      lockedSource = data.origemCadastro && data.origemCadastro.ativa ? data.origemCadastro.origemId : null;
       source.innerHTML = '<option value="">Selecione uma origem</option>' + (data.origens || []).filter(function (item) { return item.ativo; }).map(function (item) {
         return '<option value="' + escape(item.id) + '">' + escape(item.nome) + '</option>';
       }).join("");
-      if (selectedSource) source.value = selectedSource;
+      if (lockedSource || selectedSource) source.value = lockedSource || selectedSource;
+      source.disabled = !!lockedSource;
+      document.getElementById("capture-add-source").hidden = !!lockedSource;
+      sourceBox.hidden = !!lockedSource;
+      if (unlockTimer) clearTimeout(unlockTimer);
+      if (lockedSource && data.origemCadastro.ate) {
+        var remaining = new Date(data.origemCadastro.ate).getTime() - Date.now();
+        if (remaining > 0) unlockTimer = setTimeout(function () { carregarCatalogos().catch(function () {}); }, Math.min(remaining + 1000, 2147483647));
+      }
       document.getElementById("capture-systems").innerHTML = (data.sistemas || []).filter(function (item) { return item.ativo; }).map(function (item) {
         return '<label><input type="checkbox" name="sistemaIds" value="' + escape(item.id) + '"' + (checked.indexOf(String(item.id)) >= 0 ? ' checked' : '') + '><span>' + escape(item.nome) + '</span></label>';
       }).join("");
@@ -45,7 +56,7 @@
   }
 
   document.getElementById("capture-logout").addEventListener("click", function () { Painel.auth.sair(); });
-  document.getElementById("capture-clear").addEventListener("click", function () { form.reset(); form.elements.nome.focus(); });
+  document.getElementById("capture-clear").addEventListener("click", function () { form.reset(); if (lockedSource) source.value = lockedSource; form.elements.nome.focus(); });
   document.getElementById("capture-add-source").addEventListener("click", function () { sourceBox.hidden = false; sourceName.focus(); });
   document.getElementById("capture-cancel-source").addEventListener("click", function () { sourceBox.hidden = true; sourceName.value = ""; });
   document.getElementById("capture-save-source").addEventListener("click", function () {
@@ -67,7 +78,7 @@
     if (!show) form.elements.sistemaAtual.value = "";
   });
   form.addEventListener("reset", function () {
-    setTimeout(function () { document.getElementById("capture-current-wrap").hidden = true; informar(""); }, 0);
+    setTimeout(function () { document.getElementById("capture-current-wrap").hidden = true; if (lockedSource) source.value = lockedSource; informar(""); }, 0);
   });
   form.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -88,7 +99,7 @@
     };
     submit.disabled = true;
     informar("");
-    Painel.api.leads.criar(data).then(function () {
+    Painel.api.leads.criarCadastro(data).then(function () {
       form.reset();
       informar("Lead cadastrado com sucesso. Você pode cadastrar o próximo.", true);
       window.scrollTo({ top: 0, behavior: "smooth" });

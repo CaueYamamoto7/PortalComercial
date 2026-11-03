@@ -200,6 +200,7 @@
       listar: function (params) { return requisicao("GET", "/leads", undefined, params); },
       obter: function (id) { return requisicao("GET", "/leads/" + id); },
       criar: function (dados) { return requisicao("POST", "/leads", dados); },
+      criarCadastro: function (dados) { return requisicao("POST", "/leads/cadastro", dados); },
       criarOrigem: function (nome) { return requisicao("POST", "/leads/origens", { nome: nome }); },
       atualizar: function (id, dados) { return requisicao("PUT", "/leads/" + id, dados); },
       mover: function (id, etapaId) { return requisicao("POST", "/leads/" + id + "/mover", { etapaId: etapaId }); },

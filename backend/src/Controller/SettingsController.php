@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\PreferencesService;
+use App\Service\CaptureOriginLock;
 use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
@@ -35,6 +36,7 @@ class SettingsController extends AppController
             'sistemas' => array_map(fn ($row) => $service->sistemaOut($row), $sistemas),
             'etapas' => $cat['etapas'],
             'origens' => array_map(fn ($row) => $service->origemOut($row), $origens),
+            'origemCadastro' => (new CaptureOriginLock())->current(),
             'equipe' => $isAdmin ? array_map(
                 fn ($row) => $this->membroDetalhado($row, $vinculosEquipe[(string)$row->get('nome')] ?? [
                     'leads' => 0, 'tarefas' => 0, 'campanhas' => 0, 'registros' => 0,
@@ -55,13 +57,41 @@ class SettingsController extends AppController
     public function save(string $secao): Response
     {
         $this->request->allowMethod(['put', 'patch']);
-        if (!in_array($secao, ['empresa', 'mensagens'], true)) {
+        if (!in_array($secao, ['empresa', 'mensagens', 'origemCadastro'], true)) {
             $this->erro('Seção de configuração inválida.');
         }
         if ($secao === 'empresa') {
             $this->exigirAdmin();
         } else {
             $this->exigirGestor();
+        }
+
+        if ($secao === 'origemCadastro') {
+            $dados = (array)$this->request->getData();
+            $id = $this->texto($dados['origemId'] ?? '');
+            $ate = $this->texto($dados['ate'] ?? '');
+            if ($id !== '') {
+                $source = $this->fetchTable('Sources')->find()->where(['id' => $id, 'ativo' => true])->first();
+                if (!$source) $this->erro('Selecione uma origem ativa.', 'origemId');
+                try {
+                    $date = \DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $ate, new \DateTimeZone('America/Sao_Paulo'));
+                    if (!$date || $date->format('Y-m-d\TH:i') !== $ate || $date <= new \DateTimeImmutable('now')) {
+                        $this->erro('Informe uma data e hora futuras.', 'ate');
+                    }
+                    $ate = $date->format(DATE_ATOM);
+                } catch (\Exception) {
+                    $this->erro('Informe uma data e hora válidas.', 'ate');
+                }
+            } else {
+                $ate = '';
+            }
+            $table = $this->fetchTable('Settings');
+            $setting = $table->find()->where(['id' => $secao])->first()
+                ?? $table->newEntity(['id' => $secao]);
+            $setting->set('valor', ['origemId' => $id, 'ate' => $ate]);
+            $table->saveOrFail($setting);
+            $this->registroAuditoria('configuracao.salvar', 'settings', $secao);
+            return $this->respond((new CaptureOriginLock())->current());
         }
 
         $dados = (array)$this->request->getData();
@@ -190,6 +220,9 @@ class SettingsController extends AppController
         $this->exigirGestor();
         $table = $this->fetchTable('Sources');
         $origem = $table->find()->where(['id' => $id])->first();
+        if ((new CaptureOriginLock())->current()['origemId'] === $id) {
+            $this->erro('Destrave a origem do formulário antes de removê-la.');
+        }
         if (!$origem) {
             $this->erro('Origem não encontrada.', null, 404);
         }
@@ -650,6 +683,9 @@ class SettingsController extends AppController
 
         if ($entity) {
             $entity->set('nome', $nome);
+            if (($dados['ativo'] ?? true) === false && (new CaptureOriginLock())->current()['origemId'] === $id) {
+                $this->erro('Destrave a origem do formulário antes de desativá-la.');
+            }
             $entity->set('ativo', ($dados['ativo'] ?? true) !== false);
             $status = 200;
         } else {

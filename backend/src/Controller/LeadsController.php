@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\CaptureOriginLock;
 use Cake\Datasource\ConnectionManager;
 use Cake\Http\Response;
 
@@ -31,6 +32,7 @@ class LeadsController extends AppController
             'sistemas' => array_values(array_filter($catalog['sistemas'], fn ($item) => $item['ativo'])),
             'origens' => array_values(array_filter($catalog['origens'], fn ($item) => $item['ativo'])),
             'equipe' => $this->access()->canSeeAllLeads($this->identidade()) ? $catalog['equipe'] : [],
+            'origemCadastro' => (new CaptureOriginLock())->current(),
         ]);
     }
 
@@ -67,6 +69,21 @@ class LeadsController extends AppController
         $this->request->allowMethod(['post']);
         $dados = (array)$this->request->getData();
 
+        return $this->createLead($dados);
+    }
+
+    public function addCapture(): Response
+    {
+        $this->request->allowMethod(['post']);
+        $dados = (array)$this->request->getData();
+        $lock = (new CaptureOriginLock())->current();
+        if ($lock['ativa']) $dados['origemId'] = $lock['origemId'];
+
+        return $this->createLead($dados);
+    }
+
+    private function createLead(array $dados): Response
+    {
         $campos = $this->montarLead($dados);
         $campos['etapa_id'] = $this->etapaNovo();
         $campos['prioridade'] = 'media';
