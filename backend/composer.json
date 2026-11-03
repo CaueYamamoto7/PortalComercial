@@ -5,7 +5,7 @@
     "type": "project",
     "homepage": "https://cakephp.org",
     "require": {
-        "php": ">=8.2",
+        "php": "^8.5",
         "cakephp/authentication": "^3.0",
         "cakephp/authorization": "^3.0",
         "cakephp/cakephp": "5.4.*",

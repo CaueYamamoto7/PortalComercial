@@ -19,33 +19,19 @@ defaults:
 jobs:
   testsuite:
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - php-version: '8.2'
-            dependencies: 'lowest'
-          - php-version: '8.5'
-            dependencies: 'highest'
-
     steps:
     - uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-version }}
+        php-version: '8.5'
         extensions: mbstring, intl, pdo_sqlite
         ini-values: zend.assertions=1
         coverage: none
 
     - name: Composer install
-      run: |
-        if [ "${{ matrix.dependencies }}" = "lowest" ]; then
-          composer update --prefer-lowest --prefer-stable --no-interaction --no-progress
-        else
-          composer install --prefer-dist --no-interaction --no-progress
-        fi
+      run: composer install --prefer-dist --no-interaction --no-progress
 
     - name: Composer post install
       run: composer run-script post-install-cmd --no-interaction
@@ -68,7 +54,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
+        php-version: '8.5'
         extensions: mbstring, intl
         coverage: none
         tools: cs2pr, phpstan:2.1
