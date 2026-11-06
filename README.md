@@ -41,12 +41,18 @@ Visão operacional com cartões de contatos organizados por estágio de relacion
 ### Leads
 
 O cadastro individual está em `/cadastro-lead`, uma página própria acessível pelo botão
-**Novo lead**. O formulário exige nome, ao menos um sistema de interesse e WhatsApp ou e-mail.
+**Novo lead**. O formulário exige nome e WhatsApp ou e-mail; o sistema de interesse é opcional.
 Uma nova origem pode ser cadastrada na própria página e fica disponível no catálogo do CRM.
 Novos leads recebem etapa **Novo**, prioridade **Média** e o usuário autenticado como
 responsável. A migration `20261030100000_LeadContactOptional` permite leads sem telefone;
 aplique-a antes de publicar esta página. Nas demais páginas, a sessão termina após 30 minutos
 sem interação. O cadastro de leads não aplica esse limite enquanto estiver aberto.
+
+### Teste local da captura offline
+
+Execute `backend/bin/cake migrations migrate -c default` e `backend/bin/cake cache clear _cake_model_` antes de iniciar o servidor. Na raiz do projeto, inicie com `php -S 127.0.0.1:8080 -t . router.php` e abra `http://127.0.0.1:8080/cadastro-lead`. O servidor `serve.js` sozinho não atende a API.
+
+Entre na conta com internet e espere a indicação “Página pronta para abrir sem internet”. Nas ferramentas do navegador, escolha **Network → Offline**, cadastre dois leads e confirme que aparecem como pendentes. Recarregue a página ainda offline e confira que continuam lá. Volte para **Online** e confirme que o contador chega a zero e que ambos aparecem em **Leads**. O navegador deve permitir service workers e IndexedDB; use `localhost` ou HTTPS, sem navegação privada. Cadastros confirmados são removidos do armazenamento local; os pendentes ficam no aparelho até a confirmação da API.
 
 Cadastro, edição, consulta detalhada, timeline de interações, filtros combinados, ordenação e paginação. O detalhe do lead reúne dados cadastrais, histórico, conversa e tarefas associadas.
 
