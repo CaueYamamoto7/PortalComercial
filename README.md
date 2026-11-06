@@ -171,3 +171,9 @@ As migrations são aplicadas de forma independente do boot do container. As sess
 
 php -S 127.0.0.1:8080 -t . router.php
 http://127.0.0.1:8080
+
+
+git switch main
+git pull origin main
+git merge feature/captura-leads-offline
+git push origin main
