@@ -25,6 +25,7 @@ class BootstrapController extends AppController
 
         return $this->respond([
             'usuario' => [
+                'id' => $userId,
                 'nome' => (string)($identidade['nome'] ?? ''),
                 'email' => (string)($identidade['email'] ?? ''),
                 'cargo' => (string)($identidade['cargo'] ?? ''),

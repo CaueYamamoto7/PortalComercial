@@ -76,10 +76,30 @@ class LeadsController extends AppController
     {
         $this->request->allowMethod(['post']);
         $dados = (array)$this->request->getData();
+        $requestId = strtolower((string)($dados['captureRequestId'] ?? ''));
+        if ($requestId !== '' && !preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i', $requestId)) {
+            $this->erro('Identificador de captura inválido.', 'captureRequestId');
+        }
+        if ($requestId !== '') {
+            $existing = $this->fetchTable('Leads')->find()->where(['capture_request_id' => $requestId])->first();
+            if ($existing) return $this->captureResponse($existing);
+            $dados['captureRequestId'] = strtolower($requestId);
+        }
         $lock = (new CaptureOriginLock())->current();
         if ($lock['ativa']) $dados['origemId'] = $lock['origemId'];
 
         return $this->createLead($dados, true);
+    }
+
+    private function captureResponse(object $lead): Response
+    {
+        if ((string)$lead->get('capture_user_id') !== (string)$this->identidade()['id']) {
+            $this->erro('Cadastro já pertence a outra conta.', null, 409);
+        }
+        return $this->respond(
+            $this->service()->leadOut($this->service()->leadCompleto((string)$lead->get('id'))),
+            200
+        );
     }
 
     private function createLead(array $dados, bool $cadastroRapido = false): Response
@@ -88,10 +108,30 @@ class LeadsController extends AppController
         $campos['etapa_id'] = $this->etapaNovo();
         $campos['prioridade'] = 'media';
         $campos['responsavel'] = $this->usuarioNome();
-        $this->validarLead($campos, null, $cadastroRapido);
+        try {
+            $this->validarLead($campos, null, $cadastroRapido);
+        } catch (ApiException $error) {
+            if ($cadastroRapido && !empty($dados['captureRequestId'])) {
+                $existing = $this->fetchTable('Leads')->find()->where(['capture_request_id' => $dados['captureRequestId']])->first();
+                if ($existing) return $this->captureResponse($existing);
+            }
+            throw $error;
+        }
         $campos = $this->marcarUltimoContatoSeContatada($campos);
+        if ($cadastroRapido && !empty($dados['captureRequestId'])) {
+            $campos['capture_request_id'] = $dados['captureRequestId'];
+            $campos['capture_user_id'] = (string)$this->identidade()['id'];
+        }
 
-        $entity = $this->writeService()->criar($campos, $this->identidade());
+        try {
+            $entity = $this->writeService()->criar($campos, $this->identidade());
+        } catch (\Cake\Database\Exception\DatabaseException $error) {
+            if ($cadastroRapido && !empty($dados['captureRequestId'])) {
+                $existing = $this->fetchTable('Leads')->find()->where(['capture_request_id' => $dados['captureRequestId']])->first();
+                if ($existing) return $this->captureResponse($existing);
+            }
+            throw $error;
+        }
 
         $this->registrarInteracao(
             (string)$entity->get('id'),
