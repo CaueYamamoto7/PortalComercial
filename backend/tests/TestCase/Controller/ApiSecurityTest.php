@@ -67,6 +67,7 @@ class ApiSecurityTest extends TestCase
         $this->get('/api/auth/session');
         $this->assertResponseOk();
         $this->assertResponseContains('"autenticado":true');
+        $this->assertResponseContains('"id":"us_idle_lead"');
     }
 
     public function testRetornoDoCadastroRetomaSessao(): void
@@ -160,5 +161,6 @@ class ApiSecurityTest extends TestCase
         $this->assertResponseOk();
         $this->assertResponseContains('"preferencias"');
         $this->assertResponseContains('"tabelaCompacta":true');
+        $this->assertResponseContains('"id":"us_teste"');
     }
 }

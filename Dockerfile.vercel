@@ -34,6 +34,7 @@ RUN cd /app/backend \
 COPY assets /app/public/assets
 COPY images /app/public/images
 COPY *.html /app/public/
+COPY capture-sw.js /app/public/
 COPY Caddyfile /etc/frankenphp/Caddyfile
 
 EXPOSE 80

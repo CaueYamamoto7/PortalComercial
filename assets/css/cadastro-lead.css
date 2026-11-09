@@ -138,3 +138,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid rgba(41,131,198,.42);
   html { scroll-behavior: auto; }
   .capture-button, .capture-field input, .capture-field textarea, .capture-system-list label { transition: none; }
 }
+.capture-queue { padding: 14px 16px; margin: 16px 0; border: 1px solid #d3dfeb; border-radius: 12px; background: #f5f9fd; color: #314d64; font-size: 13px; }
+.capture-queue > button { margin-left: 12px; }
+.capture-queue-item { padding-top: 9px; margin-top: 9px; border-top: 1px solid #d3dfeb; }
+.capture-queue-item strong { display: block; color: #173a54; }
+.capture-queue-item span { display: block; margin-top: 3px; }
+.capture-queue-item button { margin-top: 6px; }

@@ -63,6 +63,7 @@
         </section>
         </div>
         <div class="capture-assignment"><span class="capture-assignment__icon" aria-hidden="true">✓</span><p>Este lead entrará em <strong>Novo</strong>, com prioridade <strong>Média</strong>, sob responsabilidade de <strong id="capture-owner">sua conta</strong>.</p></div>
+        <div class="capture-queue" id="capture-queue" aria-live="polite"><span id="capture-offline-ready">Preparando a página para uso offline…</span><br><span id="capture-queue-status">Verificando cadastros salvos neste aparelho…</span><button type="button" class="capture-button capture-button--plain" id="capture-sync">Sincronizar agora</button><div id="capture-queue-items"></div></div>
         <p id="capture-feedback" class="capture-feedback" role="status" aria-live="polite" tabindex="-1"></p>
         <div class="capture-actions"><button type="button" class="capture-button capture-button--plain" id="capture-clear">Limpar campos</button><button type="submit" class="capture-button capture-button--primary capture-button--submit" id="capture-submit">Salvar lead <span aria-hidden="true">→</span></button></div>
       </form>
@@ -70,6 +71,7 @@
     </div>
   </main>
   <script defer src="assets/js/api.js"></script>
+  <script defer src="assets/js/capture-offline.js"></script>
   <script defer src="assets/js/pages/cadastro-lead.js"></script>
 </body>
 </html>

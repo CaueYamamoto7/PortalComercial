@@ -108,6 +108,7 @@ class AuthController extends AppController
         $access = new AccessControl();
 
         return [
+            'id' => (string)($identidade['id'] ?? ''),
             'nome' => (string)($identidade['nome'] ?? ''),
             'email' => (string)($identidade['email'] ?? ''),
             'cargo' => (string)($identidade['cargo'] ?? ''),

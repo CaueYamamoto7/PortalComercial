@@ -109,4 +109,32 @@ class LeadCaptureTest extends TestCase
         $this->post('/api/leads/cadastro', ['nome' => 'Lead sem contato']);
         $this->assertResponseCode(422);
     }
+
+    public function testReenvioDaCapturaConfirmaMesmoLeadSemDuplicar(): void
+    {
+        $hex = bin2hex(random_bytes(16));
+        $id = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-4' . substr($hex, 13, 3) . '-8' . substr($hex, 17, 3) . '-' . substr($hex, 20);
+        $dados = ['captureRequestId' => $id, 'nome' => 'Lead do evento', 'email' => $hex . '@example.com'];
+        $this->assertTrue($this->getTableLocator()->get('Leads')->getSchema()->hasColumn('capture_request_id'));
+        $this->post('/api/leads/cadastro', $dados);
+        $this->assertResponseCode(201);
+        $first = ConnectionManager::get('default')->execute(
+            'SELECT capture_request_id FROM leads WHERE email = :email', ['email' => $dados['email']]
+        )->fetch('assoc');
+        $this->assertSame($id, $first['capture_request_id'] ?? null);
+        $this->post('/api/leads/cadastro', $dados);
+        $this->assertResponseCode(200);
+        $count = ConnectionManager::get('default')->execute(
+            'SELECT COUNT(*) AS total FROM leads WHERE capture_request_id = :id', ['id' => $id]
+        )->fetch('assoc');
+        $this->assertSame(1, (int)$count['total']);
+    }
+
+    public function testCapturaRecusaIdentificadorInvalido(): void
+    {
+        $this->post('/api/leads/cadastro', [
+            'captureRequestId' => 'invalido', 'nome' => 'Lead invalido', 'email' => 'invalido@example.com',
+        ]);
+        $this->assertResponseCode(422);
+    }
 }
