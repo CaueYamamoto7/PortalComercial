@@ -58,3 +58,4 @@ ConnectionHelper::addTestAliases();
 // (new SchemaLoader())->loadSqlFiles('./tests/schema.sql', 'test');
 
 (new Migrator())->run();
+\Cake\Cache\Cache::clear('_cake_model_');
